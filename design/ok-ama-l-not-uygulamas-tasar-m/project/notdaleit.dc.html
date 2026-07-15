@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    html, body { margin: 0; padding: 0; }
+    * { box-sizing: border-box; }
+    [data-nd-app] {
+      --nd-bg: #fafafa; --nd-card: #ffffff; --nd-sb: #f5f5f3;
+      --nd-br: #ebebe9; --nd-brS: #e1e1df;
+      --nd-tx: #262626; --nd-tx2: #8f8f8c;
+      --nd-bar: #cfcfcc; --nd-bar2: #e7e7e4; --nd-hover: #f0f0ee;
+      --nd-acc: #262626; --nd-accfg: #ffffff; --nd-desk: #eeeeec;
+      --nd-sh: 0 1px 2px rgba(0,0,0,.04), 0 14px 36px -14px rgba(0,0,0,.14);
+    }
+    [data-nd-app][data-tema="koyu"] {
+      --nd-bg: #171716; --nd-card: #1f1f1e; --nd-sb: #1b1b1a;
+      --nd-br: #2a2a29; --nd-brS: #333331;
+      --nd-tx: #ececea; --nd-tx2: #8f8f8c;
+      --nd-bar: #4a4a48; --nd-bar2: #333331;
+      --nd-hover: #282827;
+      --nd-acc: #ececea; --nd-accfg: #191918; --nd-desk: #111110;
+      --nd-sh: 0 1px 2px rgba(0,0,0,.35), 0 14px 36px -14px rgba(0,0,0,.55);
+    }
+    @keyframes ndFade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-thumb { background: var(--nd-bar2, #e7e7e4); border-radius: 999px; border: 2px solid transparent; background-clip: content-box; }
+    ::-webkit-scrollbar-track { background: transparent; }
+  </style>
+</helmet>
+
+<div data-nd-app data-tema="{{ temaEtkin }}" style="min-height:100vh; width:100%; background:var(--nd-desk,#eeeeec); display:flex; align-items:center; justify-content:center; font-family:'Instrument Sans',system-ui,sans-serif; color:var(--nd-tx,#262626); -webkit-font-smoothing:antialiased;">
+  <div style="{{ cihazStil }}">
+    <div ref="{{ appRef }}" style="display:flex; width:100%; height:100%; min-height:inherit; overflow:hidden; background:var(--nd-bg,#fafafa); position:relative; --sbw:{{ sbW }}; --sbpos:{{ sbPos }}; --sbi:{{ sbI }}; --sbtf:{{ sbTf }}; --sbsh:{{ sbSh }}; --sblo:{{ sbLo }}; --sblv:{{ sbLv }}; --cnv:{{ cnvPe }}; --pdfz:{{ zoom }}; --accu:{{ accU }}; --accufg:{{ accUFg }};">
+
+      <!-- ─── Yan panel ─── -->
+      <aside style="width:var(--sbw,248px); position:var(--sbpos,relative); inset:var(--sbi,auto); transform:var(--sbtf,none); box-shadow:var(--sbsh,none); height:100%; z-index:40; flex-shrink:0; display:flex; flex-direction:column; background:var(--nd-sb,#f5f5f3); border-right:1px solid var(--nd-br,#ebebe9); transition:width .28s cubic-bezier(.2,0,0,1), transform .28s cubic-bezier(.2,0,0,1); overflow:hidden;">
+        <div style="display:flex; align-items:center; gap:10px; padding:16px 14px 12px; min-width:248px; flex-shrink:0;">
+          <div style="width:30px; height:30px; border-radius:9px; background:var(--accu,var(--nd-acc,#262626)); color:var(--accufg,var(--nd-accfg,#ffffff)); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:15px; flex-shrink:0;">n</div>
+          <div style="font-weight:700; font-size:15.5px; letter-spacing:-0.01em; opacity:var(--sblo,1); transition:opacity .2s; white-space:nowrap;">notdaleit</div>
+        </div>
+
+        <button onClick="{{ goKutuphane }}" style="display:flex; align-items:center; gap:11px; margin:1px 10px; padding:9px 11px; border:none; border-radius:11px; background-color:transparent; background:{{ navKutBg }}; color:{{ navKutFg }}; box-shadow:{{ navKutSh }}; cursor:pointer; font-family:inherit; font-size:14px; font-weight:500; min-width:228px; text-align:left; transition:background .15s;" style-hover="background:var(--nd-hover,#f0f0ee)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="flex-shrink:0;"><rect x="4" y="4" width="7" height="7" rx="2"></rect><rect x="13" y="4" width="7" height="7" rx="2"></rect><rect x="4" y="13" width="7" height="7" rx="2"></rect><rect x="13" y="13" width="7" height="7" rx="2"></rect></svg>
+          <span style="opacity:var(--sblo,1); transition:opacity .2s; white-space:nowrap;">Kütüphane</span>
+        </button>
+        <button onClick="{{ goArama }}" style="display:flex; align-items:center; gap:11px; margin:1px 10px; padding:9px 11px; border:none; border-radius:11px; background-color:transparent; background:{{ navAraBg }}; color:{{ navAraFg }}; box-shadow:{{ navAraSh }}; cursor:pointer; font-family:inherit; font-size:14px; font-weight:500; min-width:228px; text-align:left; transition:background .15s;" style-hover="background:var(--nd-hover,#f0f0ee)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="flex-shrink:0;"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
+          <span style="opacity:var(--sblo,1); transition:opacity .2s; white-space:nowrap;">Arama</span>
+        </button>
+        <button onClick="{{ goKlasorler }}" style="display:flex; align-items:center; gap:11px; margin:1px 10px; padding:9px 11px; border:none; border-radius:11px; background-color:transparent; background:{{ navKlaBg }}; color:{{ navKlaFg }}; box-shadow:{{ navKlaSh }}; cursor:pointer; font-family:inherit; font-size:14px; font-weight:500; min-width:228px; text-align:left; transition:background .15s;" style-hover="background:var(--nd-hover,#f0f0ee)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" style="flex-shrink:0;"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+          <span style="opacity:var(--sblo,1); transition:opacity .2s; white-space:nowrap;">Klasörler</span>
+        </button>
+        <button onClick="{{ goAyarlar }}" style="display:flex; align-items:center; gap:11px; margin:1px 10px; padding:9px 11px; border:none; border-radius:11px; background-color:transparent; background:{{ navAyaBg }}; color:{{ navAyaFg }}; box-shadow:{{ navAyaSh }}; cursor:pointer; font-family:inherit; font-size:14px; font-weight:500; min-width:228px; text-align:left; transition:background .15s;" style-hover="background:var(--nd-hover,#f0f0ee)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="flex-shrink:0;"><path d="M4 8h9"></path><path d="M19 8h1"></path><circle cx="16" cy="8" r="2.2"></circle><path d="M4 16h1"></path><path d="M11 16h9"></path><circle cx="8" cy="16" r="2.2"></circle></svg>
+          <span style="opacity:var(--sblo,1); transition:opacity .2s; white-space:nowrap;">Ayarlar</span>
+        </button>
+
+        <div style="margin:16px 10px 4px; padding:0 11px; font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--nd-tx2,#8f8f8c); opacity:var(--sblo,1); visibility:var(--sblv,visible); white-space:nowrap;">Klasörler</div>
+        <sc-for list="{{ sbKlasorler }}" as="k" hint-placeholder-count="3">
+          <button onClick="{{ k.onAc }}" style="display:flex; align-items:center; gap:11px; margin:1px 10px; padding:8px 11px; border:none; border-radius:11px; background-color:transparent; color:var(--nd-tx2,#8f8f8c); cursor:pointer; font-family:inherit; font-size:13.5px; font-weight:500; min-width:228px; text-align:left; opacity:var(--sblo,1); visibility:var(--sblv,visible);" style-hover="background:var(--nd-hover,#f0f0ee); color:var(--nd-tx,#262626)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" style="flex-shrink:0;"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+            <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1;">{{ k.ad }}</span>
+            <span style="font-size:12px;">{{ k.sayi }}</span>
+          </button>
+        </sc-for>
+
+        <div style="flex:1;"></div>
+
+        <button onClick="{{ temaToggle }}" style="display:flex; align-items:center; gap:11px; margin:10px; padding:9px 11px; border:1px solid var(--nd-br,#ebebe9); border-radius:11px; background-color:transparent; background:var(--nd-card,#ffffff); color:var(--nd-tx,#262626); cursor:pointer; font-family:inherit; font-size:13.5px; font-weight:500; min-width:228px; text-align:left; flex-shrink:0;" style-hover="background:var(--nd-hover,#f0f0ee)">
+          <sc-if value="{{ temaKoyuMu }}" hint-placeholder-val="{{ false }}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="4"></circle><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5 5l1.4 1.4M17.6 17.6L19 19M5 19l1.4-1.4M17.6 6.4L19 5"></path></svg>
+          </sc-if>
+          <sc-if value="{{ temaAcikMi }}" hint-placeholder-val="{{ true }}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" style="flex-shrink:0;"><path d="M20 13.5A8 8 0 1 1 10.5 4a6.5 6.5 0 0 0 9.5 9.5z"></path></svg>
+          </sc-if>
+          <span style="opacity:var(--sblo,1); transition:opacity .2s; white-space:nowrap;">{{ temaEtiket }}</span>
+        </button>
+      </aside>
+
+      <sc-if value="{{ scrimGorunur }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ closeDrawer }}" style="position:absolute; inset:0; background:rgba(20,20,18,.35); z-index:35; animation:ndFade .2s;"></div>
+      </sc-if>
+
+      <!-- ─── Ana bölge ─── -->
+      <div style="flex:1; min-width:0; display:flex; flex-direction:column; height:100%; position:relative;">
+
+        <div style="height:58px; flex-shrink:0; display:flex; align-items:center; gap:6px; padding:0 14px; border-bottom:1px solid var(--nd-br,#ebebe9);">
+          <sc-if value="{{ isDetay }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ geriDon }}" title="Geri" style="width:36px; height:36px; display:flex; align-items:center; justify-content:center; border:none; border-radius:10px; background-color:transparent; color:var(--nd-tx2,#8f8f8c); cursor:pointer; flex-shrink:0;" style-hover="background:var(--nd-hover,#f0f0ee); color:var(--nd-tx,#262626)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg>
+            </button>
+          </sc-if>
+          <sc-if value="{{ isDetayDegil }}" hint-placeholder-val="{{ true }}">
+            <button onClick="{{ toggleSidebar }}" title="Paneli aç / kapat" style="width:36px; height:36px; display:flex; align-items:center; justify-content:center; border:none; border-radius:10px; background-color:transparent; color:var(--nd-tx2,#8f8f8c); cursor:pointer; flex-shrink:0;" style-hover="background:var(--nd-hover,#f0f0ee); color:var(--nd-tx,#262626)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>
+            </button>
+          </sc-if>
+          <div style="font-size:15px; font-weight:600; letter-spacing:-0.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-left:4px;">{{ ekranBaslik }}</div>
+          <div style="flex:1;"></div>
+          <sc-if value="{{ isKutuphane }}" hint-placeholder-val="{{ true }}">
+            <button onClick="{{ yeniNot }}" style="display:flex; align-items:center; gap:7px; padding:8px 16px; border:none; border-radius:999px; background:var(--accu,var(--nd-acc,#262626)); color:var(--accufg,var(--nd-accfg,#ffffff)); font-family:inherit; font-size:13.5px; font-weight:600; cursor:pointer; flex-shrink:0; transition:opacity .15s;" style-hover="opacity:.86">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="flex-shrink:0;"><path d="M12 5v14M5 12h14"></path></svg>
+              <span style="white-space:nowrap;">Yeni not</span>
+            </button>
+          </sc-if>
+        </div>
+
+        <div style="flex:1; overflow-y:auto; overflow-x:hidden; position:relative;">
+
+          <!-- Kütüphane -->
+          <sc-if value="{{ isKutuphane }}" hint-placeholder-val="{{ true }}">
+            <div data-screen-label="Kütüphane" style="padding:20px 20px 48px; max-width:1060px; margin:0 auto; animation:ndFade .25s;">
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:18px;">
+                <button onClick="{{ setTumu }}" style="padding:7px 15px; border:1px solid; border-color:{{ chipTumuBd }}; border-radius:999px; background-color:transparent; background:{{ chipTumuBg }}; color:{{ chipTumuFg }}; font-family:inherit; font-size:13px; font-weight:600; cursor:pointer; transition:background .15s;">Tümü</button>
+                <button onClick="{{ setNot }}" style="padding:7px 15px; border:1px solid; border-color:{{ chipNotBd }}; border-radius:999px; background-color:transparent; background:{{ chipNotBg }}; color:{{ chipNotFg }}; font-family:inherit; font-size:13px; font-weight:600; cursor:pointer; transition:background .15s;">Notlar</button>
+                <button onClick="{{ setPdf }}" style="padding:7px 15px; border:1px solid; border-color:{{ chipPdfBd }}; border-radius:999px; background-color:transparent; background:{{ chipPdfBg }}; color:{{ chipPdfFg }}; font-family:inherit; font-size:13px; font-weight:600; cursor:pointer; transition:background .15s;">PDF'ler</button>
+                <div style="flex:1;"></div>
+                <div style="font-size:12.5px; color:var(--nd-tx2,#8f8f8c);">{{ docSayisi }}</div>
+              </div>
+              <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(232px,1fr)); gap:12px;">
+                <sc-for list="{{ docsView }}" as="d" hint-placeholder-count="6">
+                  <div onClick="{{ d.onAc }}" style="background:var(--nd-card,#ffffff); border:1px solid var(--nd-br,#ebebe9); border-radius:16px; padding:16px; cursor:pointer; display:flex; flex-direction:column; gap:12px; min-height:158px; transition:box-shadow .18s, transform .18s, border-color .18s;" style-hover="box-shadow:var(--nd-sh); transform:translateY(-1px); border-color:var(--nd-brS,#e1e1df)">
+                    <div style="display:flex; align-items:flex-start; gap:8px;">
+                      <div style="font-size:14.5px; font-weight:600; letter-spacing:-0.01em; line-height:1.35; flex:1;">{{ d.baslik }}</div>
+                      <sc-if value="{{ d.isPdf }}" hint-placeholder-val="{{ false }}">
+                        <span style="font-size:10.5px; font-weight:700; letter-spacing:.06em; padding:3px 7px; border-radius:6px; border:1px solid var(--nd-brS,#e1e1df); color:var(--nd-tx2,#8f8f8c); flex-shrink:0;">PDF</span>
+                      </sc-if>
+                    </div>
+                    <sc-if value="{{ d.isNot }}" hint-placeholder-val="{{ true }}">
+                      <div style="display:flex; flex-direction:column; gap:7px; flex:1; justify-content:flex-start;">
+                        <div style="height:8px; border-radius:4px; background:var(--nd-bar2,#e7e7e4); width:{{ d.w1 }};"></div>
+                        <div style="height:8px; border-radius:4px; background:var(--nd-bar2,#e7e7e4); width:{{ d.w2 }};"></div>
+                        <div style="height:8px; border-radius:4px; background:var(--nd-bar2,#e7e7e4); width:{{ d.w3 }};"></div>
+                      </div>
+                    </sc-if>
+                    <sc-if value="{{ d.isPdf }}" hint-placeholder-val="{{ false }}">
+                      <div style="flex:1; display:flex; align-items:center; justify-content:center; background:var(--nd-hover,#f0f0ee); border-radius:10px; padding:10px;">
+                        <div style="width:58px; aspect-ratio:1/1.3; background:#ffffff; border:1px solid var(--nd-brS,#e1e1df); border-radius:4px; padding:8px; display:flex; flex-direction:column; gap:4px; box-shadow:0 1px 3px rgba(0,0,0,.06);">
+                          <div style="height:4px; width:70%; background:#d5d5d2; border-radius:2px;"></div>
+                          <div style="height:3px; width:100%; background:#e9e9e6; border-radius:2px;"></div>
+                          <div style="height:3px; width:92%; background:#e9e9e6; border-radius:2px;"></div>
+                          <div style="height:3px; width:100%; background:#e9e9e6; border-radius:2px;"></div>
+                          <div style="height:3px; width:60%; background:#e9e9e6; border-radius:2px;"></div>
+                        </div>
+                      </div>
+                    </sc-if>
+                    <div style="font-size:12px; color:var(--nd-tx2,#8f8f8c);">{{ d.meta }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- Klasörler -->
+          <sc-if value="{{ isKlasorler }}" hint-placeholder-val="{{ false }}">
+            <div data-screen-label="Klasörler" style="padding:20px 20px 48px; max-width:720px; margin:0 auto; animation:ndFade .25s; display:flex; flex-direction:column; gap:12px;">
+              <div style="background:var(--nd-card,#ffffff); border:1px solid var(--nd-br,#ebebe9); border-radius:16px; overflow:hidden; box-shadow:0 1px 2px rgba(0,0,0,.03);">
+                <sc-for list="{{ klasorView }}" as="k" hint-placeholder-count="3">
+                  <div style="border-top:{{ k.bTop }};">
+                    <button onClick="{{ k.onToggle }}" style="display:flex; align-items:center; gap:12px; width:100%; padding:15px 18px; border:none; background-color:transparent; cursor:pointer; text-align:left; color:inherit; font-family:inherit;" style-hover="background:var(--nd-hover,#f0f0ee)">
+                      <span style="display:flex; color:var(--nd-tx2,#8f8f8c); transition:transform .22s; transform:{{ k.chevTf }};">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg>
+                      </span>
+                      <span style="font-size:14.5px; font-weight:600; flex:1;">{{ k.ad }}</span>
+                      <span style="font-size:12.5px; color:var(--nd-tx2,#8f8f8c);">{{ k.sayiMetin }}</span>
+                    </button>
+                    <sc-if value="{{ k.acik }}" hint-placeholder-val="{{ false }}">
+                      <div style="padding:2px 10px 10px; animation:ndFade .2s;">
+                        <sc-for list="{{ k.dosyalar }}" as="f" hint-placeholder-count="2">
+                          <button onClick="{{ f.onAc }}" style="display:flex; align-items:center; gap:11px; width:100%; padding:9px 10px 9px 36px; border:none; border-radius:10px; background-color:transparent; cursor:pointer; text-align:left; color:inherit; font-family:inherit;" style-hover="background:var(--nd-hover,#f0f0ee)">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--nd-tx2)" stroke-width="1.8" stroke-linecap="round" style="flex-shrink:0;"><rect x="5" y="3" width="14" height="18" rx="2"></rect><path d="M9 8h6M9 12h6M9 16h4"></path></svg>
+                            <span style="font-size:13.5px; font-weight:500; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ f.ad }}</span>
+                            <sc-if value="{{ f.isPdf }}" hint-placeholder-val="{{ false }}">
+                              <span style="font-size:10px; font-weight:700; letter-spacing:.06em; padding:2px 6px; border-radius:5px; border:1px solid var(--nd-brS,#e1e1df); color:var(--nd-tx2,#8f8f8c); flex-shrink:0;">PDF</span>
+                            </sc-if>
+                            <span style="font-size:12px; color:var(--nd-tx2,#8f8f8c); flex-shrink:0;">{{ f.zaman }}</span>
+                          </button>
+                        </sc-for>
+                      </div>
+                    </sc-if>
+                  </div>
+                </sc-for>
+              </div>
+              <button onClick="{{ yeniKlasor }}" style="border:1px dashed var(--nd-brS,#e1e1df); border-radius:14px; padding:13px; background-color:transparent; color:var(--nd-tx2,#8f8f8c); font-family:inherit; font-size:13.5px; font-weight:600; cursor:pointer; transition:background .15s;" style-hover="background:var(--nd-card,#ffffff); color:var(--nd-tx,#262626)">+ Yeni klasör</button>
+              <div style="background:var(--nd-card,#ffffff); border:1px solid var(--nd-br,#ebebe9); border-radius:16px; padding:18px;">
+                <div style="font-size:13px; font-weight:600; margin-bottom:12px;">Etiketler</div>
+                <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                  <sc-for list="{{ etiketler }}" as="e" hint-placeholder-count="4">
+                    <span style="display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:999px; border:1px solid var(--nd-br,#ebebe9); font-size:13px; background:var(--nd-bg,#fafafa);">#{{ e.ad }} <span style="font-size:12px; color:var(--nd-tx2,#8f8f8c);">{{ e.sayi }}</span></span>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- Arama -->
+          <sc-if value="{{ isArama }}" hint-placeholder-val="{{ false }}">
+            <div data-screen-label="Arama" style="padding:20px 20px 48px; max-width:680px; margin:0 auto; animation:ndFade .25s;">
+              <div style="display:flex; align-items:center; gap:10px; background:var(--nd-card,#ffffff); border:1px solid var(--nd-br,#ebebe9); border-radius:999px; padding:4px 8px 4px 18px; box-shadow:0 1px 2px rgba(0,0,0,.03);">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--nd-tx2)" stroke-width="1.8" stroke-linecap="round" style="flex-shrink:0;"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
+                <input ref="{{ aramaRef }}" value="{{ arama }}" onChange="{{ aramaDegis }}" placeholder="Not, PDF veya klasör ara" style="flex:1; border:none; outline:none; background:transparent; font-family:inherit; font-size:14.5px; padding:10px 0; color:inherit; min-width:0;">
+                <sc-if value="{{ aramaDolu }}" hint-placeholder-val="{{ false }}">
+                  <button onClick="{{ aramaTemizle }}" style="width:32px; height:32px; display:flex; align-items:center; justify-content:center; border:none; border-radius:999px; background-color:transparent; color:var(--nd-tx2,#8f8f8c); cursor:pointer; flex-shrink:0;" style-hover="background:var(--nd-hover,#f0f0ee)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+                  </button>
+                </sc-if>
+              </div>
+              <sc-if value="{{ sonucVar }}" hint-placeholder-val="{{ true }}">
+                <div style="margin-top:14px; background:var(--nd-card,#ffffff); border:1px solid var(--nd-br,#ebebe9); border-radius:16px; overflow:hidden;">
+                  <sc-for list="{{ aramaSonuclar }}" as="r" hint-placeholder-count="4">
+                    <button onClick="{{ r.onAc }}" style="display:flex; align-items:center; gap:12px; width:100%; padding:13px 16px; border:none; border-top:{{ r.bTop }}; background-color:transparent; cursor:pointer; text-align:left; color:inherit; font-family:inherit;" style-hover="background:var(--nd-hover,#f0f0ee)">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--nd-tx2)" stroke-width="1.8" stroke-linecap="round" style="flex-shrink:0;"><rect x="5" y="3" width="14" height="18" rx="2"></rect><path d="M9 8h6M9 12h6M9 16h4"></path></svg>
+                      <span style="display:flex; flex-direction:column; gap:2px; flex:1; min-width:0;">
+                        <span style="font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ r.baslik }}</span>
+                        <span style="font-size:12px; color:var(--nd-tx2,#8f8f8c);">{{ r.meta }}</span>
+                      </span>
+                      <sc-if value="{{ r.isPdf }}" hint-placeholder-val="{{ false }}">
+                        <span style="font-size:10px; font-weight:700; letter-spacing:.06em; padding:2px 6px; border-radius:5px; border:1px solid var(--nd-brS,#e1e1df); color:var(--nd-tx2,#8f8f8c); flex-shrink:0;">PDF</span>
+                      </sc-if>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--nd-tx2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M9 6l6 6-6 6"></path></svg>
+                    </button>
+                  </sc-for>
+                </div>
+              </sc-if>
+              <sc-if value="{{ bosMu }}" hint-placeholder-val="{{ false }}">
+                <div style="margin-top:14px; padding:36px 20px; text-align:center; color:var(--nd-tx2,#8f8f8c); font-size:14px; background:var(--nd-card,#ffffff); border:1px solid var(--nd-br,#ebebe9); border-radius:16px;">"{{ arama }}" için sonuç bulunamadı</div>
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <!-- Ayarlar -->
+          <sc-if value="{{ isAyarlar }}" hint-placeholder-val="{{ false }}">
+            <div data-screen-label="Ayarlar" style="padding:20px 20px 48px; max-width:680px; margin:0 auto; display:flex; flex-direction:column; gap:12px; animation:ndFade .25s;">
+              <div style="background:var(--nd-card,#ffffff); border:1px solid var(--nd-br,#ebebe9); border-radius:16px; padding:18px;">
+                <div style="font-size:13px; font-weight:600; margin-bottom:14px;">Görünüm</div>
+                <div style="display:flex; align-items:center; gap:12px;">
+                  <div style="flex:1; font-size:14px;">Tema</div>
+                  <div style="display:flex; gap:3px; padding:3px; background:var(--nd-bg,#fafafa); border:1px solid var(--nd-br,#ebebe9); border-radius:999px;">
+                    <button onClick="{{ ayarTemaAcik }}" style="padding:6px 16px; border:none; border-radius:999px; font-family:inherit; font-size:13px; font-weight:600; cursor:pointer; background-color:transparent; background:{{ segAcikBg }}; color:{{ segAcikFg }}; box-shadow:{{ segAcikSh }};">Açık</button>
+                    <button onClick="{{ ayarTemaKoyu }}" style="padding:6px 16px; border:none; border-radius:999px; font-family:inherit; font-size:13px; font-weight:600; cursor:pointer; background-color:transparent; background:{{ segKoyuBg }}; color:{{ segKoyuFg }}; box-shadow:{{ segKoyuSh }};">Koyu</button>
+                  </div>
+                </div>
+              </div>
+              <div style="background:var(--nd-card,#ffffff); border:1px solid var(--nd-br,#ebebe9); border-radius:16px; padding:18px; display:flex; flex-direction:column; gap:14px;">
+                <div style="font-size:13px; font-weight:600;">Kalem varsayılanları</div>
+                <div style="display:flex; align-items:center; gap:12px;">
+                  <div style="flex:1; font-size:14px;">Mürekkep rengi</div>
+                  <div style="display:flex; gap:10px;">
+                    <button onClick="{{ renk1Sec }}" style="width:24px; height:24px; border-radius:999px; border:none; cursor:pointer; background:{{ renk1Bg }}; box-shadow:{{ renk1Ring }};"></button>
+                    <button onClick="{{ renk2Sec }}" style="width:24px; height:24px; border-radius:999px; border:none; cursor:pointer; background:{{ renk2Bg }}; box-shadow:{{ renk2Ring }};"></button>
+                    <button onClick="{{ renk3Sec }}" style="width:24px; height:24px; border-radius:999px; border:none; cursor:pointer; background:{{ renk3Bg }}; box-shadow:{{ renk3Ring }};"></button>
+                    <button onClick="{{ renk4Sec }}" style="width:24px; height:24px; border-radius:999px; border:none; cursor:pointer; background:{{ renk4Bg }}; box-shadow:{{ renk4Ring }};"></button>
+                  </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:12px;">
+                  <div style="flex:1; font-size:14px;">Kalınlık</div>
+                  <div style="display:flex; gap:6px;">
+                    <button onClick="{{ boyut1Sec }}" style="width:30px; height:30px; border:none; border-radius:999px; display:flex; align-items:center; justify-content:center; cursor:pointer; background-color:transparent; background:{{ boyut1Bg }}; color:{{ boyut1Fg }};"><span style="width:4px; height:4px; border-radius:999px; background:currentColor; display:block;"></span></button>
+                    <button onClick="{{ boyut2Sec }}" style="width:30px; height:30px; border:none; border-radius:999px; display:flex; align-items:center; justify-content:center; cursor:pointer; background-color:transparent; background:{{ boyut2Bg }}; color:{{ boyut2Fg }};"><span style="width:7px; height:7px; border-radius:999px; background:currentColor; display:block;"></span></button>
+                    <button onClick="{{ boyut3Sec }}" style="width:30px; height:30px; border:none; border-radius:999px; display:flex; align-items:center; justify-content:center; cursor:pointer; background-color:transparent; background:{{ boyut3Bg }}; color:{{ boyut3Fg }};"><span style="width:10px; height:10px; border-radius:999px; background:currentColor; display:block;"></span></button>
+                  </div>
+                </div>
+              </div>
+              <div style="background:var(--nd-card,#ffffff); border:1px solid var(--nd-br,#ebebe9); border-radius:16px; padding:18px; display:flex; flex-direction:column; gap:6px;">
+                <div style="font-size:14.5px; font-weight:600;">Cihazlar arası senkronizasyon</div>
+                <div style="font-size:13.5px; color:var(--nd-tx2,#8f8f8c); line-height:1.5; max-width:46ch;">Notlarınız ve çizimleriniz tüm cihazlarınızda güncel kalsın. Hesap bağlayarak başlayın.</div>
+                <div style="display:flex; justify-content:flex-end; align-items:center; gap:12px; margin-top:8px;">
+                  <span style="font-size:12.5px; color:var(--nd-tx2,#8f8f8c);">Kapalı</span>
+                  <button onClick="{{ senkronBaglan }}" style="padding:8px 18px; border:none; border-radius:999px; background:var(--accu,var(--nd-acc,#262626)); color:var(--accufg,var(--nd-accfg,#ffffff)); font-family:inherit; font-size:13px; font-weight:600; cursor:pointer; transition:opacity .15s;" style-hover="opacity:.86">Bağlan</button>
+                </div>
+              </div>
+              <div style="background:var(--nd-card,#ffffff); border:1px solid var(--nd-br,#ebebe9); border-radius:16px; padding:18px; display:flex; align-items:center; gap:12px;">
+                <div style="flex:1; font-size:14px;">Sürüm</div>
+                <div style="font-size:13px; color:var(--nd-tx2,#8f8f8c);">0.1.0 · prototip</div>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- Not editörü -->
+          <sc-if value="{{ isEditor }}" hint-placeholder-val="{{ false }}">
+            <div data-screen-label="Not Editörü" style="padding:28px 24px 130px; max-width:840px; margin:0 auto; animation:ndFade .25s;">
+              <div contenteditable="true" suppressContentEditableWarning="{{ true }}" style="font-size:27px; font-weight:700; letter-spacing:-0.02em; outline:none; line-height:1.25;">{{ aktifBaslik }}</div>
+              <div style="display:flex; align-items:center; gap:8px; margin-top:10px; font-size:12.5px; color:var(--nd-tx2,#8f8f8c);">
+                <span style="padding:3px 10px; border:1px solid var(--nd-br,#ebebe9); border-radius:999px; background:var(--nd-card,#ffffff); white-space:nowrap; flex-shrink:0;">{{ aktifKlasor }}</span>
+                <span style="white-space:nowrap;">{{ aktifZaman }}</span>
+              </div>
+              <div style="position:relative; margin-top:22px; min-height:600px;">
+                <div style="display:flex; flex-direction:column;">
+                  <sc-for list="{{ aktifSatirlar }}" as="l" hint-placeholder-count="5">
+                    <div contenteditable="true" suppressContentEditableWarning="{{ true }}" style="outline:none; font-size:{{ l.fs }}; font-weight:{{ l.fw }}; color:{{ l.clr }}; margin:{{ l.mr }}; line-height:1.6; white-space:pre-wrap;">{{ l.t }}</div>
+                  </sc-for>
+                </div>
+                <canvas ref="{{ edCanvasRef }}" onPointerDown="{{ cnvDown }}" onPointerMove="{{ cnvMove }}" onPointerUp="{{ cnvUp }}" onPointerCancel="{{ cnvUp }}" style="position:absolute; inset:0; width:100%; height:100%; z-index:5; pointer-events:var(--cnv,none); touch-action:none; cursor:crosshair;"></canvas>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- PDF görüntüleyici -->
+          <sc-if value="{{ isPdfEkran }}" hint-placeholder-val="{{ false }}">
+            <div data-screen-label="PDF Görüntüleyici" style="padding:18px 16px 150px; animation:ndFade .25s;">
+              <div style="display:flex; align-items:center; justify-content:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
+                <span style="font-size:12.5px; color:var(--nd-tx2,#8f8f8c); white-space:nowrap;">{{ pdfSayfaMetin }}</span>
+                <div style="display:flex; align-items:center; gap:2px; background:var(--nd-card,#ffffff); border:1px solid var(--nd-br,#ebebe9); border-radius:999px; padding:3px;">
+                  <button onClick="{{ zoomAzalt }}" title="Uzaklaştır" style="width:30px; height:30px; display:flex; align-items:center; justify-content:center; border:none; border-radius:999px; background-color:transparent; color:var(--nd-tx2,#8f8f8c); cursor:pointer;" style-hover="background:var(--nd-hover,#f0f0ee); color:var(--nd-tx,#262626)">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M8.5 11h5M21 21l-4.3-4.3"></path></svg>
+                  </button>
+                  <span style="font-size:12.5px; font-weight:600; min-width:44px; text-align:center;">{{ zoomPct }}</span>
+                  <button onClick="{{ zoomArtir }}" title="Yakınlaştır" style="width:30px; height:30px; display:flex; align-items:center; justify-content:center; border:none; border-radius:999px; background-color:transparent; color:var(--nd-tx2,#8f8f8c); cursor:pointer;" style-hover="background:var(--nd-hover,#f0f0ee); color:var(--nd-tx,#262626)">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M11 8.5v5M8.5 11h5M21 21l-4.3-4.3"></path></svg>
+                  </button>
+                </div>
+              </div>
+              <div style="overflow-x:auto;">
+                <div style="position:relative; width:calc(min(680px,100%) * var(--pdfz,1)); margin:0 auto;">
+                  <div style="background:#ffffff; border:1px solid var(--nd-brS,#e1e1df); border-radius:6px; box-shadow:0 2px 14px rgba(0,0,0,.07); aspect-ratio:1/1.38; padding:7% 8%; display:flex; flex-direction:column; gap:9px;">
+                    <div style="height:15px; width:56%; background:#d7d7d4; border-radius:4px; margin-bottom:10px;"></div>
+                    <div style="height:8px; width:100%; background:#eaeae7; border-radius:4px;"></div>
+                    <div style="height:8px; width:96%; background:#eaeae7; border-radius:4px;"></div>
+                    <div style="height:8px; width:99%; background:#eaeae7; border-radius:4px;"></div>
+                    <div style="height:8px; width:88%; background:#eaeae7; border-radius:4px;"></div>
+                    <div style="height:10px; width:34%; background:#dcdcd9; border-radius:4px; margin-top:14px;"></div>
+                    <div style="height:8px; width:100%; background:#eaeae7; border-radius:4px;"></div>
+                    <div style="height:8px; width:93%; background:#eaeae7; border-radius:4px;"></div>
+                    <div style="height:8px; width:97%; background:#eaeae7; border-radius:4px;"></div>
+                    <div style="height:8px; width:64%; background:#eaeae7; border-radius:4px;"></div>
+                    <div style="height:8px; width:100%; background:#eaeae7; border-radius:4px; margin-top:14px;"></div>
+                    <div style="height:8px; width:91%; background:#eaeae7; border-radius:4px;"></div>
+                    <div style="height:8px; width:76%; background:#eaeae7; border-radius:4px;"></div>
+                    <div style="flex:1;"></div>
+                    <div style="font-size:10px; color:#b9b9b6; text-align:center;">1</div>
+                  </div>
+                  <div style="height:16px;"></div>
+                  <div style="background:#ffffff; border:1px solid var(--nd-brS,#e1e1df); border-radius:6px; box-shadow:0 2px 14px rgba(0,0,0,.07); aspect-ratio:1/1.38; padding:7% 8%; display:flex; flex-direction:column; gap:9px;">
+                    <div style="height:10px; width:40%; background:#dcdcd9; border-radius:4px; margin-bottom:6px;"></div>
+                    <div style="height:8px; width:100%; background:#eaeae7; border-radius:4px;"></div>
+                    <div style="height:8px; width:94%; background:#eaeae7; border-radius:4px;"></div>
+                    <div style="height:8px; width:98%; background:#eaeae7; border-radius:4px;"></div>
+                    <div style="height:8px; width:58%; background:#eaeae7; border-radius:4px;"></div>
+                    <div style="height:110px; width:100%; background:#f2f2ef; border:1px solid #e7e7e4; border-radius:6px; margin:10px 0;"></div>
+                    <div style="height:8px; width:100%; background:#eaeae7; border-radius:4px;"></div>
+                    <div style="height:8px; width:89%; background:#eaeae7; border-radius:4px;"></div>
+                    <div style="height:8px; width:95%; background:#eaeae7; border-radius:4px;"></div>
+                    <div style="flex:1;"></div>
+                    <div style="font-size:10px; color:#b9b9b6; text-align:center;">2</div>
+                  </div>
+                  <canvas ref="{{ pdfCanvasRef }}" onPointerDown="{{ cnvDown }}" onPointerMove="{{ cnvMove }}" onPointerUp="{{ cnvUp }}" onPointerCancel="{{ cnvUp }}" style="position:absolute; inset:0; width:100%; height:100%; z-index:5; pointer-events:var(--cnv,none); touch-action:none; cursor:crosshair;"></canvas>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+        </div>
+
+        <!-- Çizim araç çubuğu -->
+        <sc-if value="{{ isCizim }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute; left:50%; bottom:16px; transform:translateX(-50%); z-index:25; display:flex; align-items:center; gap:2px; padding:5px; background:var(--nd-card,#ffffff); border:1px solid var(--nd-br,#ebebe9); border-radius:999px; box-shadow:var(--nd-sh); max-width:calc(100% - 20px); overflow-x:auto; animation:ndFade .25s;">
+            <button onClick="{{ aracElSec }}" title="Seç / kaydır" style="width:36px; height:36px; border:none; border-radius:999px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; background-color:transparent; background:{{ aracElBg }}; color:{{ aracElFg }}; transition:background .15s;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M5 4l6.8 14.6 1.9-5.9 5.9-1.9z"></path></svg>
+            </button>
+            <button onClick="{{ aracKalemSec }}" title="Kalem" style="width:36px; height:36px; border:none; border-radius:999px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; background-color:transparent; background:{{ aracKalemBg }}; color:{{ aracKalemFg }}; transition:background .15s;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 20l1-4L16.5 4.5a2.12 2.12 0 0 1 3 3L8 19z"></path></svg>
+            </button>
+            <button onClick="{{ aracFosforSec }}" title="Fosforlu kalem" style="width:36px; height:36px; border:none; border-radius:999px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; background-color:transparent; background:{{ aracFosforBg }}; color:{{ aracFosforFg }}; transition:background .15s;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M15 4l5 5-9 9H6v-5z"></path><path d="M4 20h8"></path></svg>
+            </button>
+            <button onClick="{{ aracSilgiSec }}" title="Silgi" style="width:36px; height:36px; border:none; border-radius:999px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; background-color:transparent; background:{{ aracSilgiBg }}; color:{{ aracSilgiFg }}; transition:background .15s;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M6 15l8-8 5 5-8 8H8z"></path><path d="M9 20h11"></path></svg>
+            </button>
+            <div style="width:1px; height:22px; background:var(--nd-br,#ebebe9); margin:0 5px; flex-shrink:0;"></div>
+            <button onClick="{{ renk1Sec }}" title="Renk 1" style="width:24px; height:24px; border-radius:999px; border:none; cursor:pointer; flex-shrink:0; margin:0 3px; background:{{ renk1Bg }}; box-shadow:{{ renk1Ring }};"></button>
+            <button onClick="{{ renk2Sec }}" title="Renk 2" style="width:24px; height:24px; border-radius:999px; border:none; cursor:pointer; flex-shrink:0; margin:0 3px; background:{{ renk2Bg }}; box-shadow:{{ renk2Ring }};"></button>
+            <button onClick="{{ renk3Sec }}" title="Renk 3" style="width:24px; height:24px; border-radius:999px; border:none; cursor:pointer; flex-shrink:0; margin:0 3px; background:{{ renk3Bg }}; box-shadow:{{ renk3Ring }};"></button>
+            <button onClick="{{ renk4Sec }}" title="Renk 4" style="width:24px; height:24px; border-radius:999px; border:none; cursor:pointer; flex-shrink:0; margin:0 3px; background:{{ renk4Bg }}; box-shadow:{{ renk4Ring }};"></button>
+            <div style="width:1px; height:22px; background:var(--nd-br,#ebebe9); margin:0 5px; flex-shrink:0;"></div>
+            <button onClick="{{ boyut1Sec }}" title="İnce" style="width:30px; height:30px; border:none; border-radius:999px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; background-color:transparent; background:{{ boyut1Bg }}; color:{{ boyut1Fg }};"><span style="width:4px; height:4px; border-radius:999px; background:currentColor; display:block;"></span></button>
+            <button onClick="{{ boyut2Sec }}" title="Orta" style="width:30px; height:30px; border:none; border-radius:999px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; background-color:transparent; background:{{ boyut2Bg }}; color:{{ boyut2Fg }};"><span style="width:7px; height:7px; border-radius:999px; background:currentColor; display:block;"></span></button>
+            <button onClick="{{ boyut3Sec }}" title="Kalın" style="width:30px; height:30px; border:none; border-radius:999px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; background-color:transparent; background:{{ boyut3Bg }}; color:{{ boyut3Fg }};"><span style="width:10px; height:10px; border-radius:999px; background:currentColor; display:block;"></span></button>
+            <div style="width:1px; height:22px; background:var(--nd-br,#ebebe9); margin:0 5px; flex-shrink:0;"></div>
+            <button onClick="{{ geriAl }}" title="Geri al" style="width:36px; height:36px; border:none; border-radius:999px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; background-color:transparent; color:var(--nd-tx2,#8f8f8c); opacity:{{ geriAlOp }};" style-hover="background:var(--nd-hover,#f0f0ee); color:var(--nd-tx,#262626)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10h10a5 5 0 0 1 0 10h-3"></path><path d="M8 6l-4 4 4 4"></path></svg>
+            </button>
+            <button onClick="{{ temizle }}" title="Tümünü temizle" style="width:36px; height:36px; border:none; border-radius:999px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; background-color:transparent; color:var(--nd-tx2,#8f8f8c); opacity:{{ temizleOp }};" style-hover="background:var(--nd-hover,#f0f0ee); color:var(--nd-tx,#262626)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"></path><path d="M9 7V5h6v2"></path><path d="M6 7l1 13h10l1-13"></path></svg>
+            </button>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ toastVar }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute; left:50%; bottom:76px; transform:translateX(-50%); z-index:60; padding:10px 18px; background:var(--nd-acc,#262626); color:var(--nd-accfg,#ffffff); border-radius:999px; font-size:13px; font-weight:500; box-shadow:var(--nd-sh); animation:ndFade .25s; white-space:nowrap;">{{ toastMetin }}</div>
+        </sc-if>
+
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;tema&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;options&quot;: [&quot;açık&quot;, &quot;koyu&quot;], &quot;default&quot;: &quot;açık&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Görünüm&quot;}, &quot;vurgu&quot;: {&quot;editor&quot;: &quot;color&quot;, &quot;options&quot;: [&quot;#262626&quot;, &quot;#4a6cf7&quot;, &quot;#1f8a5b&quot;, &quot;#d97757&quot;], &quot;default&quot;: &quot;#262626&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Görünüm&quot;}, &quot;cihaz&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;options&quot;: [&quot;masaüstü&quot;, &quot;tablet&quot;, &quot;telefon&quot;], &quot;default&quot;: &quot;masaüstü&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Önizleme&quot;}}">
+class Component extends DCLogic {
+  state = {
+    ekran: 'kutuphane', oncekiEkran: 'kutuphane', aktifId: null,
+    sbAcik: true, cekmece: false, temaOvr: null,
+    filtre: 'tumu', acikKlasorler: { 'Ders Notları': true },
+    arama: '', arac: 'el', renkIdx: 0, boyutIdx: 1,
+    cizimler: {}, zoom: 1, w: 1200, toast: null,
+    ekstraKlasorler: [], yeniler: [], yeniSayac: 0
+  };
+
+  docs = [
+    { id: 'n1', tip: 'not', baslik: 'Sprint 12 — Toplantı Notları', klasor: 'İş', zaman: '2 sa önce', w: ['72%', '94%', '58%'], satirlar: [
+      { t: 'Katılımcılar: Elif, Mert, Deniz. Süre: 45 dk.', tur: 'p' },
+      { t: 'Kararlar', tur: 'h' },
+      { t: '• PDF üzerinde kalem gecikmesi 16 ms hedefine çekilecek.', tur: 'p' },
+      { t: '• Fosforlu kalem ayrı bir katmanda birleştirilecek.', tur: 'p' },
+      { t: '• Karanlık tema ilk sürüme dahil.', tur: 'p' },
+      { t: 'Sonraki adımlar', tur: 'h' },
+      { t: 'Perşembe: çizim motoru testi. Cuma: TestFlight dağıtımı.', tur: 'p' }
+    ] },
+    { id: 'n2', tip: 'not', baslik: 'Dalga Mekaniği — Özet', klasor: 'Ders Notları', zaman: 'dün', w: ['88%', '64%', '76%'], satirlar: [
+      { t: 'Temel kavramlar', tur: 'h' },
+      { t: 'Dalga boyu λ, frekans f ve hız v arasında v = λ · f ilişkisi geçerli.', tur: 'p' },
+      { t: '• Enine dalgalarda titreşim, yayılma yönüne dik.', tur: 'p' },
+      { t: '• Boyuna dalgalarda titreşim, yayılma yönüne paralel.', tur: 'p' },
+      { t: 'Girişim', tur: 'h' },
+      { t: 'İki dalganın üst üste binmesi; yapıcı ve yıkıcı girişim durumları sınavda çıkacak.', tur: 'p' }
+    ] },
+    { id: 'p1', tip: 'pdf', baslik: 'Bitirme Tezi Taslağı', klasor: 'Ders Notları', zaman: 'dün', sayfa: 24 },
+    { id: 'n3', tip: 'not', baslik: 'Uygulama Fikirleri', klasor: 'İş', zaman: '2 gün önce', w: ['64%', '82%', '46%'], satirlar: [
+      { t: '• Sesli notu metne çevirme', tur: 'p' },
+      { t: '• PDF sayfalarını yeniden sıralama', tur: 'p' },
+      { t: '• Çizimden şekil tanıma (daire, ok, kare)', tur: 'p' },
+      { t: '• Widget: son 3 not', tur: 'p' }
+    ] },
+    { id: 'p2', tip: 'pdf', baslik: 'Kira Sözleşmesi', klasor: 'Kişisel', zaman: '3 gün önce', sayfa: 6 },
+    { id: 'n4', tip: 'not', baslik: 'Alışveriş Listesi', klasor: 'Kişisel', zaman: '4 gün önce', w: ['52%', '38%', '60%'], satirlar: [
+      { t: '• Süt, yumurta, zeytin', tur: 'p' },
+      { t: '• Filtre kahve', tur: 'p' },
+      { t: '• A5 çizim defteri', tur: 'p' }
+    ] },
+    { id: 'p3', tip: 'pdf', baslik: 'Ders Programı', klasor: 'Ders Notları', zaman: '1 hf önce', sayfa: 2 },
+    { id: 'n5', tip: 'not', baslik: 'Günlük — Temmuz', klasor: 'Kişisel', zaman: '1 hf önce', w: ['90%', '70%', '84%'], satirlar: [
+      { t: '3 Temmuz', tur: 'h' },
+      { t: 'Sabah koşusu 5 km. Öğleden sonra tez için kaynak taraması.', tur: 'p' },
+      { t: '4 Temmuz', tur: 'h' },
+      { t: 'notdaleit arayüz taslağı bitti; çizim katmanı beklediğimden akıcı.', tur: 'p' }
+    ] }
+  ];
+
+  tema() { return this.state.temaOvr || this.props.tema || 'açık'; }
+  inks() { return [this.tema() === 'koyu' ? '#ececea' : '#262626', '#4a6cf7', '#e0533d', '#f0b429']; }
+  tumDocs() { return [...this.state.yeniler, ...this.docs]; }
+  klasorAdlari() { return ['Ders Notları', 'İş', 'Kişisel', ...this.state.ekstraKlasorler]; }
+
+  appRef = (el) => { this.appEl = el; if (el && this.wro) this.wro.observe(el); };
+  aramaRef = (el) => { this.aramaEl = el; };
+  edCanvasRef = (el) => this.setCnv('edCnv', el);
+  pdfCanvasRef = (el) => this.setCnv('pdfCnv', el);
+
+  setCnv(key, el) {
+    if (this[key] && this.ro) this.ro.unobserve(this[key]);
+    this[key] = el;
+    if (el) {
+      if (!this.ro) this.ro = new ResizeObserver((list) => list.forEach((en) => this.fitCnv(en.target)));
+      this.ro.observe(el);
+      this.fitCnv(el);
+    }
+  }
+
+  fitCnv(cnv) {
+    const d = window.devicePixelRatio || 1;
+    const w = cnv.clientWidth, h = cnv.clientHeight;
+    if (!w || !h) return;
+    const W = Math.round(w * d), H = Math.round(h * d);
+    if (cnv.width !== W || cnv.height !== H) { cnv.width = W; cnv.height = H; }
+    this.boya(cnv);
+  }
+
+  boya(cnv) {
+    if (!cnv) return;
+    const ctx = cnv.getContext('2d');
+    const d = window.devicePixelRatio || 1;
+    ctx.setTransform(d, 0, 0, d, 0, 0);
+    ctx.clearRect(0, 0, cnv.width / d + 2, cnv.height / d + 2);
+    const list = this.state.cizimler[this.state.aktifId] || [];
+    list.forEach((s) => this.ciz(ctx, s));
+    if (this.canli) this.ciz(ctx, this.canli);
+  }
+
+  ciz(ctx, s) {
+    ctx.save();
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    if (s.a === 'silgi') { ctx.globalCompositeOperation = 'destination-out'; ctx.lineWidth = s.b * 8; ctx.strokeStyle = '#000'; }
+    else if (s.a === 'fosfor') { ctx.globalAlpha = .32; ctx.lineWidth = s.b * 4.5; ctx.strokeStyle = s.r; }
+    else { ctx.lineWidth = s.b; ctx.strokeStyle = s.r; }
+    const p = s.p;
+    ctx.beginPath();
+    ctx.moveTo(p[0].x, p[0].y);
+    if (p.length === 1) ctx.lineTo(p[0].x + .01, p[0].y);
+    for (let i = 1; i < p.length; i++) ctx.lineTo(p[i].x, p[i].y);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  nokta(e, c) {
+    const r = c.getBoundingClientRect();
+    return { x: (e.clientX - r.left) * (c.clientWidth / r.width), y: (e.clientY - r.top) * (c.clientHeight / r.height) };
+  }
+
+  cnvDown = (e) => {
+    if (this.state.arac === 'el') return;
+    const c = e.currentTarget;
+    try { c.setPointerCapture(e.pointerId); } catch (_) {}
+    this.canli = { a: this.state.arac, r: this.inks()[this.state.renkIdx], b: [2.5, 5, 9][this.state.boyutIdx], p: [this.nokta(e, c)] };
+  };
+  cnvMove = (e) => {
+    if (!this.canli) return;
+    this.canli.p.push(this.nokta(e, e.currentTarget));
+    this.boya(e.currentTarget);
+  };
+  cnvUp = (e) => {
+    if (!this.canli) return;
+    const s = this.canli; this.canli = null;
+    const id = this.state.aktifId;
+    this.setState((prev) => {
+      const m = { ...prev.cizimler };
+      m[id] = [...(m[id] || []), s];
+      return { cizimler: m };
+    });
+  };
+
+  gosterToast(m) {
+    clearTimeout(this.toastTimer);
+    this.setState({ toast: m });
+    this.toastTimer = setTimeout(() => this.setState({ toast: null }), 2200);
+  }
+
+  acDoc(d) {
+    this.setState((prev) => ({
+      ekran: d.tip === 'pdf' ? 'pdf' : 'editor', aktifId: d.id,
+      oncekiEkran: prev.ekran === 'editor' || prev.ekran === 'pdf' ? prev.oncekiEkran : prev.ekran,
+      arac: 'el', cekmece: false
+    }));
+  }
+
+  componentDidMount() {
+    this.wro = new ResizeObserver((es) => {
+      const w = es[0].contentRect.width;
+      if (Math.abs(w - this.state.w) > 4) this.setState({ w });
+    });
+    if (this.appEl) this.wro.observe(this.appEl);
+  }
+
+  componentWillUnmount() {
+    if (this.wro) this.wro.disconnect();
+    if (this.ro) this.ro.disconnect();
+    clearTimeout(this.toastTimer);
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    prevProps = prevProps || {}; prevState = prevState || {};
+    if (prevProps.tema !== this.props.tema && this.state.temaOvr !== null) this.setState({ temaOvr: null });
+    if (prevState.cizimler !== this.state.cizimler || prevState.aktifId !== this.state.aktifId || prevState.ekran !== this.state.ekran) {
+      this.boya(this.edCnv); this.boya(this.pdfCnv);
+    }
+    if (this.state.ekran === 'arama' && prevState.ekran !== 'arama' && this.aramaEl) this.aramaEl.focus();
+  }
+
+  renderVals() {
+    const s = this.state, p = this.props;
+    const tema = this.tema(), koyu = tema === 'koyu';
+    const cihaz = p.cihaz || 'masaüstü';
+    const telefon = s.w < 640;
+
+    let sbW, sbPos, sbI, sbTf, sbSh, sbLo, sbLv;
+    if (telefon) {
+      sbW = '284px'; sbPos = 'absolute'; sbI = '0 auto 0 0';
+      sbTf = s.cekmece ? 'translateX(0)' : 'translateX(-106%)';
+      sbSh = s.cekmece ? '0 24px 60px -12px rgba(0,0,0,.3)' : 'none';
+      sbLo = '1'; sbLv = 'visible';
+    } else {
+      sbW = s.sbAcik ? '248px' : '66px'; sbPos = 'relative'; sbI = 'auto'; sbTf = 'none'; sbSh = 'none';
+      sbLo = s.sbAcik ? '1' : '0'; sbLv = s.sbAcik ? 'visible' : 'hidden';
+    }
+
+    const cihazStilMap = {
+      'masaüstü': { width: '100%', height: '100vh', display: 'flex' },
+      'tablet': { width: '834px', maxWidth: 'calc(100vw - 40px)', height: 'min(1120px, calc(100vh - 40px))', borderRadius: '28px', border: '1px solid var(--nd-brS)', boxShadow: 'var(--nd-sh)', overflow: 'hidden', display: 'flex', margin: '20px', background: 'var(--nd-bg)' },
+      'telefon': { width: '393px', maxWidth: 'calc(100vw - 32px)', height: 'min(852px, calc(100vh - 36px))', borderRadius: '44px', border: '1px solid var(--nd-brS)', boxShadow: 'var(--nd-sh)', overflow: 'hidden', display: 'flex', margin: '18px', background: 'var(--nd-bg)' }
+    };
+
+    const accU = p.vurgu && p.vurgu.toLowerCase() !== '#262626' ? p.vurgu : '';
+    const accUFg = accU ? '#ffffff' : '';
+
+    const aktif = this.tumDocs().find((d) => d.id === s.aktifId) || null;
+    const isEditor = s.ekran === 'editor', isPdfEkran = s.ekran === 'pdf';
+    const isDetay = isEditor || isPdfEkran;
+    const basliklar = { kutuphane: 'Kütüphane', arama: 'Arama', klasorler: 'Klasörler', ayarlar: 'Ayarlar' };
+
+    const navStil = (a) => ({
+      bg: a ? 'var(--nd-card)' : 'transparent',
+      fg: a ? 'var(--nd-tx)' : 'var(--nd-tx2)',
+      sh: a ? '0 1px 2px rgba(0,0,0,.05)' : 'none'
+    });
+    const nKut = navStil(s.ekran === 'kutuphane'), nAra = navStil(s.ekran === 'arama'),
+      nKla = navStil(s.ekran === 'klasorler'), nAya = navStil(s.ekran === 'ayarlar');
+
+    const chipStil = (a) => ({
+      bg: a ? 'var(--accu, var(--nd-acc))' : 'var(--nd-card)',
+      fg: a ? 'var(--accufg, var(--nd-accfg))' : 'var(--nd-tx2)',
+      bd: a ? 'transparent' : 'var(--nd-br)'
+    });
+    const cTum = chipStil(s.filtre === 'tumu'), cNot = chipStil(s.filtre === 'not'), cPdf = chipStil(s.filtre === 'pdf');
+
+    const filtreli = this.tumDocs().filter((d) => s.filtre === 'tumu' || d.tip === s.filtre);
+    const docsView = filtreli.map((d) => ({
+      baslik: d.baslik, isPdf: d.tip === 'pdf', isNot: d.tip === 'not',
+      w1: (d.w || ['70%'])[0], w2: (d.w || ['', '85%'])[1], w3: (d.w || ['', '', '55%'])[2],
+      meta: d.tip === 'pdf' ? d.sayfa + ' sayfa · ' + d.zaman : d.klasor + ' · ' + d.zaman,
+      onAc: () => this.acDoc(d)
+    }));
+
+    const klasorView = this.klasorAdlari().map((ad, i) => {
+      const dosyalar = this.tumDocs().filter((d) => d.klasor === ad);
+      const acik = !!s.acikKlasorler[ad];
+      return {
+        ad, acik, bTop: i === 0 ? 'none' : '1px solid var(--nd-br)',
+        chevTf: acik ? 'rotate(180deg)' : 'none',
+        sayiMetin: dosyalar.length + ' öğe',
+        onToggle: () => this.setState((prev) => ({ acikKlasorler: { ...prev.acikKlasorler, [ad]: !prev.acikKlasorler[ad] } })),
+        dosyalar: dosyalar.map((d) => ({ ad: d.baslik, isPdf: d.tip === 'pdf', zaman: d.zaman, onAc: () => this.acDoc(d) }))
+      };
+    });
+
+    const q = s.arama.trim().toLowerCase();
+    const bulunan = q
+      ? this.tumDocs().filter((d) => (d.baslik + ' ' + d.klasor).toLowerCase().includes(q))
+      : this.tumDocs();
+    const aramaSonuclar = bulunan.map((d, i) => ({
+      baslik: d.baslik, isPdf: d.tip === 'pdf',
+      meta: d.klasor + ' · ' + d.zaman,
+      bTop: i === 0 ? 'none' : '1px solid var(--nd-br)',
+      onAc: () => this.acDoc(d)
+    }));
+
+    const segStil = (a) => ({
+      bg: a ? 'var(--nd-card)' : 'transparent',
+      fg: a ? 'var(--nd-tx)' : 'var(--nd-tx2)',
+      sh: a ? '0 1px 3px rgba(0,0,0,.08)' : 'none'
+    });
+    const segA = segStil(!koyu), segK = segStil(koyu);
+
+    const inks = this.inks();
+    const ring = (i) => s.renkIdx === i
+      ? '0 0 0 2px var(--nd-card), 0 0 0 4px var(--nd-tx)'
+      : 'inset 0 0 0 1px rgba(128,128,128,.25)';
+    const aracStil = (a) => ({
+      bg: a ? 'var(--accu, var(--nd-acc))' : 'transparent',
+      fg: a ? 'var(--accufg, var(--nd-accfg))' : 'var(--nd-tx2)'
+    });
+    const aEl = aracStil(s.arac === 'el'), aKa = aracStil(s.arac === 'kalem'),
+      aFo = aracStil(s.arac === 'fosfor'), aSi = aracStil(s.arac === 'silgi');
+    const bStil = (i) => aracStil(s.boyutIdx === i);
+    const b1 = bStil(0), b2 = bStil(1), b3 = bStil(2);
+
+    const cizimVar = ((s.cizimler[s.aktifId] || []).length > 0);
+
+    const satirlar = ((aktif && aktif.satirlar) || []).map((l) => ({
+      t: l.t,
+      fs: l.tur === 'h' ? '16px' : '15px',
+      fw: l.tur === 'h' ? '700' : '400',
+      clr: l.tur === 'soluk' ? 'var(--nd-tx2)' : 'var(--nd-tx)',
+      mr: l.tur === 'h' ? '14px 0 4px' : '0 0 8px'
+    }));
+
+    return {
+      temaEtkin: tema, temaKoyuMu: koyu, temaAcikMi: !koyu,
+      temaEtiket: koyu ? 'Açık tema' : 'Koyu tema',
+      cihazStil: cihazStilMap[cihaz] || cihazStilMap['masaüstü'],
+      appRef: this.appRef, mainRef: null,
+      sbW, sbPos, sbI, sbTf, sbSh, sbLo, sbLv,
+      cnvPe: s.arac === 'el' ? 'none' : 'auto',
+      zoom: s.zoom, accU, accUFg,
+
+      navKutBg: nKut.bg, navKutFg: nKut.fg, navKutSh: nKut.sh,
+      navAraBg: nAra.bg, navAraFg: nAra.fg, navAraSh: nAra.sh,
+      navKlaBg: nKla.bg, navKlaFg: nKla.fg, navKlaSh: nKla.sh,
+      navAyaBg: nAya.bg, navAyaFg: nAya.fg, navAyaSh: nAya.sh,
+      goKutuphane: () => this.setState({ ekran: 'kutuphane', cekmece: false }),
+      goArama: () => this.setState({ ekran: 'arama', cekmece: false }),
+      goKlasorler: () => this.setState({ ekran: 'klasorler', cekmece: false }),
+      goAyarlar: () => this.setState({ ekran: 'ayarlar', cekmece: false }),
+      sbKlasorler: this.klasorAdlari().map((ad) => ({
+        ad, sayi: this.tumDocs().filter((d) => d.klasor === ad).length,
+        onAc: () => this.setState((prev) => ({ ekran: 'klasorler', cekmece: false, acikKlasorler: { ...prev.acikKlasorler, [ad]: true } }))
+      })),
+      temaToggle: () => this.setState({ temaOvr: koyu ? 'açık' : 'koyu' }),
+      scrimGorunur: telefon && s.cekmece,
+      closeDrawer: () => this.setState({ cekmece: false }),
+
+      isDetay, isDetayDegil: !isDetay,
+      geriDon: () => this.setState({ ekran: s.oncekiEkran || 'kutuphane', arac: 'el' }),
+      toggleSidebar: () => telefon ? this.setState((prev) => ({ cekmece: !prev.cekmece })) : this.setState((prev) => ({ sbAcik: !prev.sbAcik })),
+      ekranBaslik: isDetay ? (aktif ? aktif.baslik : '') : basliklar[s.ekran],
+      isKutuphane: s.ekran === 'kutuphane',
+      yeniNot: () => {
+        const n = s.yeniSayac + 1;
+        const d = { id: 'yeni' + n, tip: 'not', baslik: 'Adsız not ' + n, klasor: 'Kişisel', zaman: 'şimdi', w: ['40%', '0%', '0%'], satirlar: [{ t: 'Yazmaya başlayın…', tur: 'soluk' }] };
+        this.setState((prev) => ({ yeniler: [d, ...prev.yeniler], yeniSayac: n, ekran: 'editor', aktifId: d.id, oncekiEkran: 'kutuphane', arac: 'kalem', cekmece: false }));
+      },
+
+      chipTumuBg: cTum.bg, chipTumuFg: cTum.fg, chipTumuBd: cTum.bd, setTumu: () => this.setState({ filtre: 'tumu' }),
+      chipNotBg: cNot.bg, chipNotFg: cNot.fg, chipNotBd: cNot.bd, setNot: () => this.setState({ filtre: 'not' }),
+      chipPdfBg: cPdf.bg, chipPdfFg: cPdf.fg, chipPdfBd: cPdf.bd, setPdf: () => this.setState({ filtre: 'pdf' }),
+      docSayisi: filtreli.length + ' öğe',
+      docsView,
+
+      isKlasorler: s.ekran === 'klasorler',
+      klasorView,
+      yeniKlasor: () => this.setState((prev) => {
+        const ad = 'Yeni Klasör ' + (prev.ekstraKlasorler.length + 1);
+        return { ekstraKlasorler: [...prev.ekstraKlasorler, ad], acikKlasorler: { ...prev.acikKlasorler, [ad]: true } };
+      }),
+      etiketler: [{ ad: 'önemli', sayi: 4 }, { ad: 'sınav', sayi: 2 }, { ad: 'fikir', sayi: 3 }, { ad: 'taslak', sayi: 1 }],
+
+      isArama: s.ekran === 'arama',
+      aramaRef: this.aramaRef, arama: s.arama,
+      aramaDegis: (e) => this.setState({ arama: e.target.value }),
+      aramaDolu: q.length > 0,
+      aramaTemizle: () => this.setState({ arama: '' }),
+      sonucVar: aramaSonuclar.length > 0,
+      aramaSonuclar,
+      bosMu: q.length > 0 && aramaSonuclar.length === 0,
+
+      isAyarlar: s.ekran === 'ayarlar',
+      ayarTemaAcik: () => this.setState({ temaOvr: 'açık' }),
+      ayarTemaKoyu: () => this.setState({ temaOvr: 'koyu' }),
+      segAcikBg: segA.bg, segAcikFg: segA.fg, segAcikSh: segA.sh,
+      segKoyuBg: segK.bg, segKoyuFg: segK.fg, segKoyuSh: segK.sh,
+      senkronBaglan: () => this.gosterToast('Senkronizasyon bu prototipte temsilî'),
+
+      renk1Bg: inks[0], renk1Ring: ring(0), renk1Sec: () => this.setState({ renkIdx: 0 }),
+      renk2Bg: inks[1], renk2Ring: ring(1), renk2Sec: () => this.setState({ renkIdx: 1 }),
+      renk3Bg: inks[2], renk3Ring: ring(2), renk3Sec: () => this.setState({ renkIdx: 2 }),
+      renk4Bg: inks[3], renk4Ring: ring(3), renk4Sec: () => this.setState({ renkIdx: 3 }),
+      boyut1Bg: b1.bg, boyut1Fg: b1.fg, boyut1Sec: () => this.setState({ boyutIdx: 0 }),
+      boyut2Bg: b2.bg, boyut2Fg: b2.fg, boyut2Sec: () => this.setState({ boyutIdx: 1 }),
+      boyut3Bg: b3.bg, boyut3Fg: b3.fg, boyut3Sec: () => this.setState({ boyutIdx: 2 }),
+
+      isEditor,
+      aktifBaslik: aktif ? aktif.baslik : '',
+      aktifKlasor: aktif ? aktif.klasor : '',
+      aktifZaman: aktif ? 'Son düzenleme: ' + aktif.zaman : '',
+      aktifSatirlar: satirlar,
+      edCanvasRef: this.edCanvasRef,
+      cnvDown: this.cnvDown, cnvMove: this.cnvMove, cnvUp: this.cnvUp,
+
+      isPdfEkran,
+      pdfCanvasRef: this.pdfCanvasRef,
+      pdfSayfaMetin: 'Sayfa 1 / ' + ((aktif && aktif.sayfa) || 1),
+      zoomAzalt: () => this.setState((prev) => ({ zoom: Math.max(.5, Math.round((prev.zoom - .25) * 100) / 100) })),
+      zoomArtir: () => this.setState((prev) => ({ zoom: Math.min(2, Math.round((prev.zoom + .25) * 100) / 100) })),
+      zoomPct: Math.round(s.zoom * 100) + '%',
+
+      isCizim: isDetay,
+      aracElBg: aEl.bg, aracElFg: aEl.fg, aracElSec: () => this.setState({ arac: 'el' }),
+      aracKalemBg: aKa.bg, aracKalemFg: aKa.fg, aracKalemSec: () => this.setState({ arac: 'kalem' }),
+      aracFosforBg: aFo.bg, aracFosforFg: aFo.fg, aracFosforSec: () => this.setState({ arac: 'fosfor' }),
+      aracSilgiBg: aSi.bg, aracSilgiFg: aSi.fg, aracSilgiSec: () => this.setState({ arac: 'silgi' }),
+      geriAl: () => this.setState((prev) => {
+        const m = { ...prev.cizimler };
+        m[prev.aktifId] = (m[prev.aktifId] || []).slice(0, -1);
+        return { cizimler: m };
+      }),
+      geriAlOp: cizimVar ? '1' : '.35',
+      temizle: () => this.setState((prev) => {
+        const m = { ...prev.cizimler };
+        m[prev.aktifId] = [];
+        return { cizimler: m };
+      }),
+      temizleOp: cizimVar ? '1' : '.35',
+
+      toastVar: !!s.toast, toastMetin: s.toast || ''
+    };
+  }
+}
+</script>
+</body>
+</html>
