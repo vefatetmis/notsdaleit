@@ -62,6 +62,12 @@ android {
             } else {
                 signingConfigs.getByName("debug")
             }
+            // Yerel (native) kod çökme raporlarının Play Console'da okunur
+            // olması için sembol tablosunu AAB'ye göm (Play'deki "hata
+            // ayıklama sembolleri" uyarısını giderir).
+            ndk {
+                debugSymbolLevel = "SYMBOL_TABLE"
+            }
         }
     }
 }
