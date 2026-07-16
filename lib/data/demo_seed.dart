@@ -143,15 +143,16 @@ Future<void> seedDemoContent(AppDatabase db) async {
     ],
   );
 
-  // Kütüphanede PDF kartı görünsün diye (açılmaz — dosya yok).
+  // Kütüphanede PDF kartı görünsün diye (açılmaz — dosya yok). Tarihi taze
+  // tutulur ki listede üst sıralarda, ilk ekranda görünsün.
   await db.into(db.documents).insert(DocumentsCompanion.insert(
         type: 'pdf',
         title: const Value('Fizik Ders Notları'),
         folder: const Value('Ders Notları'),
         filePath: const Value('/demo/fizik.pdf'),
         pageCount: const Value(12),
-        createdAt: ago(days: 3, hours: 4),
-        updatedAt: ago(days: 3, hours: 4),
+        createdAt: ago(hours: 3),
+        updatedAt: ago(hours: 3),
       ));
 
   // ── Çizimler (normalize: her iki eksen ÷ genişlik) ──────
