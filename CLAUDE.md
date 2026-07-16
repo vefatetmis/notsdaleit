@@ -248,8 +248,9 @@ lib/
   kalın/italik/altı-üstü çizili/font boyutu + madde • ve onay kutusu ☐/☑ canvas'a
   çizilir), çizimler üstüne bindirilir. (Eski düz-metin `plainTextFromBody` yolu
   kaldırıldı.)
-- **animations**, **intl**: (geçiş yardımcıları / tarih). Çizim animasyonları
-  ve ekran geçişleri Flutter'ın kendi widget'larıyla yapılır.
+- Çizim animasyonları ve ekran geçişleri Flutter'ın kendi widget'larıyla
+  yapılır (`animations` paketi kullanılmıyordu, kaldırıldı; `intl` de daha
+  önce kaldırılmıştı).
 
 ## Sık kullanılan komutlar
 
@@ -264,15 +265,13 @@ flutter build apk --release
 flutter build appbundle --release
 ```
 
-### Ekran görüntüsü demosu
+### Ekran görüntüsü demosu (KALDIRILDI — gerekirse geri getirilebilir)
 
-Mağaza görselleri için içi dolu, doğal tarihli demo sürüm:
-`lib/data/demo_seed.dart` (`seedDemoContent` — yalnızca boş DB'ye tohumlar;
-notlar+çizimler+takvim+rutin geçmişi, kademeli tarihlerle). Üretmek için üç
-GEÇİCİ değişiklik: main.dart `kSeedDemoContent = true` + gradle
-`applicationId = "...notsdaleit.demo"` + manifest label "notsdaleit demo"
-→ `flutter build apk --release` → APK'yı `playstore/`a kopyala → üçünü GERİ AL.
-Gerçek uygulamanın yanına ikinci uygulama olarak kurulur, veriye dokunmaz.
+Mağaza görselleri alındıktan sonra demo tohumlayıcı silindi. Yeniden gerekirse
+`lib/data/demo_seed.dart` + main.dart `kSeedDemoContent` bayrağı git geçmişinde
+**3ef8868 / 3bf1a51** commit'lerinde duruyor (`git show 3bf1a51:lib/data/demo_seed.dart`).
+Kullanımı: bayrak true + gradle applicationId'ye ".demo" eki + manifest label
+"notsdaleit demo" → release APK → üç geçici değişikliği geri al.
 
 ### Yayın / imzalama
 
