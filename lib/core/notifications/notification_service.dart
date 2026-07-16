@@ -94,6 +94,16 @@ class NotificationService {
         priority: Priority.high,
       ),
     );
+    // Kesin alarm izni verildiyse tam zamanında; verilmediyse yaklaşık
+    // zamanlı planla (birkaç dakika sapabilir ama bildirim mutlaka gelir).
+    var mode = AndroidScheduleMode.inexactAllowWhileIdle;
+    try {
+      final android = _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      if (await android?.canScheduleExactNotifications() ?? false) {
+        mode = AndroidScheduleMode.exactAllowWhileIdle;
+      }
+    } catch (_) {}
     try {
       await _plugin.zonedSchedule(
         id,
@@ -101,7 +111,7 @@ class NotificationService {
         'notsdaleit hatırlatıcı',
         tz.TZDateTime.from(when, tz.local),
         details,
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode: mode,
       );
     } catch (_) {}
   }

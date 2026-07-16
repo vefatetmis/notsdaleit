@@ -7,9 +7,10 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
-    <!-- Hatırlatıcıların tam zamanında çalması için (alarm/hatırlatıcı
-         uygulamaları için otomatik verilir, kullanıcıdan izin istemez). -->
-    <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
+    <!-- Hatırlatıcıların tam zamanında çalması için. Yalnızca kullanıcı onaylı
+         SCHEDULE_EXACT_ALARM kullanılır; USE_EXACT_ALARM Play politikası gereği
+         yalnızca temel işlevi çalar saat/takvim olan uygulamalara açıktır ve
+         KALDIRILDI. İzin verilmezse bildirimler yaklaşık zamanlı planlanır. -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
 
     <application
