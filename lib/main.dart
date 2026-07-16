@@ -6,7 +6,14 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app.dart';
 import 'core/collab/collab_config.dart';
 import 'core/notifications/notification_service.dart';
+import 'data/data_providers.dart';
+import 'data/demo_seed.dart';
 import 'features/shell/shell_state.dart';
+
+/// EKRAN GÖRÜNTÜSÜ DEMOSU: true iken boş veritabanına örnek içerik tohumlar
+/// ve onboarding'i atlar. YALNIZCA mağaza görselleri için geçici derlemede
+/// (ayrı applicationId ile) açılır — normalde false kalmalı. Bkz. CLAUDE.md.
+const bool kSeedDemoContent = false;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,6 +47,10 @@ Future<void> main() async {
   final container = ProviderContainer(
     overrides: [sharedPrefsProvider.overrideWithValue(prefs)],
   );
+  if (kSeedDemoContent) {
+    await prefs.setBool('onboardingDone', true);
+    await seedDemoContent(container.read(databaseProvider));
+  }
 
   runApp(
     UncontrolledProviderScope(

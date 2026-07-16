@@ -1,6 +1,10 @@
 # Claude Code local settings (kişisel izin listeleri vb.)
 .claude/
 
+# Mağaza görselleri klasöründeki derlenmiş paketler (git'e girmez)
+playstore/*.apk
+playstore/*.aab
+
 # Miscellaneous
 *.class
 *.log

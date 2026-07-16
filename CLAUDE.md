@@ -264,6 +264,16 @@ flutter build apk --release
 flutter build appbundle --release
 ```
 
+### Ekran görüntüsü demosu
+
+Mağaza görselleri için içi dolu, doğal tarihli demo sürüm:
+`lib/data/demo_seed.dart` (`seedDemoContent` — yalnızca boş DB'ye tohumlar;
+notlar+çizimler+takvim+rutin geçmişi, kademeli tarihlerle). Üretmek için üç
+GEÇİCİ değişiklik: main.dart `kSeedDemoContent = true` + gradle
+`applicationId = "...notsdaleit.demo"` + manifest label "notsdaleit demo"
+→ `flutter build apk --release` → APK'yı `playstore/`a kopyala → üçünü GERİ AL.
+Gerçek uygulamanın yanına ikinci uygulama olarak kurulur, veriye dokunmaz.
+
 ### Yayın / imzalama
 
 - **applicationId:** `com.bronzecloud.notsdaleit`. **Sürüm:** pubspec `version`
