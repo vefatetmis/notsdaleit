@@ -322,6 +322,36 @@ Uygulama sırası: 1 → 4 → 5 → 3 → 2.
 
 Sürüm yayını: pubspec `1.1.0+3`, AAB → önce kapalı test kanalına.
 
+## PLANLANAN — Sürüm 1.2+ (kullanıcı onayladı, sıraya alındı)
+
+**1.2 — Yeni not pop-up'ı + şablon sistemi:**
+- "Yeni not" alt sayfası yerine zengin diyalog: not adı (opsiyonel) + yön/boyut
+  seçimi + kağıt rengi + şablon ızgarası (kategori sekmeleri: Temel / Yazı /
+  Planlar / İş ve Eğitim / Şablonlarım). KAPAK YOK (kart önizlemesi yeterli —
+  kullanıcı kararı; referans görsel: Huawei Notes benzeri popup).
+- Sayfa yönleri: `pageSize`'a 'yatay' (A4 yatay) ve 'telefon' (uzun ekran,
+  ~19.5:9) eklenecek → editör aspect haritası + PDF export formatları +
+  şema/migration güncellemesi.
+- Hazır şablonlar: uygulamaya gömülü Quill Delta gövdeleri (günlük plan,
+  haftalık plan, toplantı notu, Cornell, alışveriş...). Şablon = başlangıç
+  body + pageSize + pageColor (+ opsiyonel strokes) — .ntdl ile aynı model.
+- "Şablon olarak kaydet": not menüsünden → yerel `Templates` tablosu
+  (ayrı tablo, Documents kirletilmez; schemaVersion bump) → popup'ta
+  "Şablonlarım" sekmesi.
+
+**1.3 — Tablo bloğu (büyük iş):**
+- flutter_quill'de hazır tablo YOK → özel embed (delta'ya gömülü JSON tablo) +
+  widget renderer + düzenleme arayüzü (satır/sütun ekle-sil, hücre metni).
+- PDF export'ta (`_paintRichText`) tablo çizimi + canlı paylaşımda gövde
+  LWW ile sorunsuz taşınmalı. Kendi başına birkaç günlük iş, ayrı sürüm.
+
+**2.0 — Şablon mağazası:**
+- Aşama 1 (önce bu): KÜRATÖRLÜ katalog — Supabase `store_templates` tablosu
+  (public read; yalnızca bizim yüklediklerimiz), uygulamada mağaza sayfası +
+  indir → yerel Templates'e kopyala + indirme sayacı. Moderasyon yükü yok.
+- Aşama 2 (uygulama büyüyünce): kullanıcı yüklemesi — Play UGC politikası
+  gereği raporla/engelle mekanizması ZORUNLU; moderasyon planı gerektirir.
+
 ## Önemli notlar / gelecek oturumlar için
 
 - **Sürüm sabitleri:** Dart SDK 3.7.2 kullanıldığı için `flutter_riverpod` 2.6.x,
