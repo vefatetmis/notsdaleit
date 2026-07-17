@@ -284,6 +284,44 @@ Kullanımı: bayrak true + gradle applicationId'ye ".demo" eki + manifest label
   yedeklenmeli, kaybedilirse Play'de yükleme anahtarı sıfırlaması gerekir. (Play
   App Signing kullanılırsa uygulama imza anahtarını Google tutar.)
 
+## PLANLANAN — Sürüm 1.1 (kapalı test bitince, ŞİMDİ KOD YAZMA)
+
+Kullanıcı kararı: kapalı test (12 testçi × 14 gün) sürerken uygulama SABİT
+kalacak; bu maddeler test bitip üretim onayı gelince 1.1.0+3 olarak yapılacak.
+Uygulama sırası: 1 → 4 → 5 → 3 → 2.
+
+1. **Varsayılan mod yazı:** not açılınca `toolProvider = PenTool.yazi`
+   (PDF'te değişmez, `_resetTools` ayrışacak). Boş notta Quill autofocus
+   (klavye direkt gelsin); dolu notta dokununca. "Yazmaya başlayın…" tıklaması
+   klavyeyi açmalı.
+2. **Canlı paylaşımı durdurma:** paylaş menüsü → sahipse "Paylaşımı durdur"
+   (sunucuda shared_notes DELETE — RLS'te created_by kuralı VAR; yerelde
+   sharedId/shareCode NULL), üyeyse "Paylaşımdan ayrıl" (note_members kendi
+   satırını siler — RLS kuralı VAR; yerel kopya kişisel nota döner).
+   CollabSession: initial sync'te not 404/silinmişse sharedId'yi yerelde
+   temizle + tek seferlik "paylaşım sonlandırıldı" bildir. setup.sql'e ek
+   gerekirse kullanıcıya tek seferlik SQL verilecek.
+3. **Klasöre taşıma:** kütüphane çoklu seçim çubuğuna + not menüsüne
+   "Klasöre taşı" (mevcut `updateFolder` repo metodu hazır). Klasör seçme
+   diyaloğu: mevcut klasörler + yeni klasör girişi. Kalıcı klasörler için
+   yeni `Folders` tablosu (schemaVersion 8) — boş klasör yaşayabilsin;
+   `folderNamesProvider` tablo ∪ belge klasörleri.
+4. **Rutin bildirimi:** `Routines.remindAt` (gece yarısından dakika, int,
+   nullable — schemaVersion 8'e birlikte). Rutin satırında çan → saat seç;
+   uzun bas/tekrar → kaldır. Planlama: seçili her hafta günü için
+   `zonedSchedule` + `matchDateTimeComponents: dayOfWeekAndTime` (haftalık
+   tekrar); bildirim id = 100000 + routineId*10 + weekday (task id'leriyle
+   çakışmaz). Rutin silinince/kapatılınca cancel.
+5. **Seri + rozetler:** RoutineChecks'ten hesaplanır (şema değişikliği yok,
+   durum saklanmaz). Seri = bugünden geriye planlı günlerde kesintisiz done
+   (planlı olmayan gün seriyi BOZMAZ). Rozet eşikleri 3/7/14/30/100 (en uzun
+   geçmiş seriden). UI: rutin satırında 🔥N, eşik geçince kutlama snackbar,
+   geçmiş diyaloğunda rozet rafı. Ayarlar → "Seri ve rozetler" anahtarı
+   (SharedPreferences 'streaksEnabled', varsayılan açık; kapalıyken hiçbir
+   seri/rozet öğesi gösterilmez).
+
+Sürüm yayını: pubspec `1.1.0+3`, AAB → önce kapalı test kanalına.
+
 ## Önemli notlar / gelecek oturumlar için
 
 - **Sürüm sabitleri:** Dart SDK 3.7.2 kullanıldığı için `flutter_riverpod` 2.6.x,
