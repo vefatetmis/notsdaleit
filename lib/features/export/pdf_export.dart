@@ -13,6 +13,7 @@ import '../../data/data_providers.dart';
 import '../../data/database/database.dart';
 import '../drawing/drawing_state.dart';
 import '../drawing/stroke_painter.dart';
+import '../editor/editor_state.dart';
 
 String _safeName(String title) {
   final t = title.trim().isEmpty ? 'not' : title.trim();
@@ -35,13 +36,18 @@ Future<void> exportDocumentAsPdf(WidgetRef ref, Document doc) async {
   }
 
   final rows = await ref.read(drawingRepositoryProvider).getStrokes(doc.id);
-  final aspect = doc.pageSize == 'kare' ? 1.0 : 1.414;
+  final aspect = aspectForPageSize(doc.pageSize);
   final pageCount = doc.pageCount ?? 1;
   const w = 1240.0;
   final h = w * aspect;
-  final format = doc.pageSize == 'kare'
-      ? PdfPageFormat(PdfPageFormat.a4.width, PdfPageFormat.a4.width)
-      : PdfPageFormat.a4;
+  // Sayfa boyutuna uygun PDF formatı (yükseklik = genişlik × aspect).
+  final format = switch (doc.pageSize) {
+    'kare' => PdfPageFormat(PdfPageFormat.a4.width, PdfPageFormat.a4.width),
+    'yatay' => PdfPageFormat(PdfPageFormat.a4.height, PdfPageFormat.a4.width),
+    'telefon' =>
+      PdfPageFormat(PdfPageFormat.a4.width, PdfPageFormat.a4.width * aspect),
+    _ => PdfPageFormat.a4,
+  };
 
   final pdf = pw.Document();
   for (var i = 0; i < pageCount; i++) {

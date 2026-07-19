@@ -32,6 +32,41 @@ PaperStyle paperStyleFor(String? id) => kPaperStyles.firstWhere(
       orElse: () => kPaperStyles.first,
     );
 
+/// Sayfa yönü/boyutu seçeneği. [aspect] = yükseklik ÷ genişlik (editör ve PDF
+/// export sayfa yüksekliğini bu orandan hesaplar). Yeni not diyaloğunda seçilir.
+class PageSizeOption {
+  const PageSizeOption(this.id, this.tr, this.en, this.icon, this.aspect);
+  final String id;
+  final String tr;
+  final String en;
+  final IconData icon;
+  final double aspect;
+}
+
+const List<PageSizeOption> kPageSizes = [
+  PageSizeOption('a4', 'A4 dikey', 'A4 portrait',
+      Icons.description_outlined, 1.414),
+  PageSizeOption('yatay', 'A4 yatay', 'A4 landscape',
+      Icons.crop_landscape_outlined, 0.7072),
+  PageSizeOption('kare', 'Kare', 'Square', Icons.crop_square_outlined, 1.0),
+  PageSizeOption('telefon', 'Telefon', 'Phone',
+      Icons.stay_current_portrait_outlined, 2.1667),
+];
+
+/// Bir sayfa boyutu id'sinin en/boy oranını (yükseklik ÷ genişlik) döndürür.
+/// Bilinmeyen/eski değerler ('serbest' dâhil) A4 dikey kabul edilir.
+double aspectForPageSize(String? id) {
+  for (final p in kPageSizes) {
+    if (p.id == id) return p.aspect;
+  }
+  return 1.414;
+}
+
+PageSizeOption pageSizeOptionFor(String? id) => kPageSizes.firstWhere(
+      (p) => p.id == id,
+      orElse: () => kPageSizes.first,
+    );
+
 /// Yazı tipi boyutu seçenekleri (px). Quill 'size' özniteliği olarak uygulanır.
 const List<double> kFontSizes = [12, 14, 16, 18, 22, 28, 36];
 

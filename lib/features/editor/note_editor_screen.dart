@@ -202,7 +202,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     _controller.readOnly = !textMode;
 
     final pageSize = doc?.pageSize ?? 'a4';
-    final aspect = pageSize == 'kare' ? 1.0 : 1.414;
+    final aspect = aspectForPageSize(pageSize);
     final pageCount = doc?.pageCount ?? 1;
     final paper = paperStyleFor(doc?.pageColor);
 

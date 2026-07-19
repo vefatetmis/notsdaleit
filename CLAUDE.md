@@ -176,9 +176,14 @@ lib/
 ### Veri modeli (drift)
 
 - **Documents**: `type` ('not'|'pdf'), `title`, `folder`, `body` (not),
-  `filePath`+`pageCount` (pdf), `pageSize` ('serbest'|'a4'|'kare', not defteri),
-  `pageColor` ('beyaz'|'sari'|'yesil'|'siyah' — kağıt rengi; schemaVersion 5),
+  `filePath`+`pageCount` (pdf), `pageSize` ('serbest'|'a4'|'yatay'|'kare'|
+  'telefon', not defteri — aspect `aspectForPageSize`), `pageColor`
+  ('beyaz'|'sari'|'yesil'|'siyah' — kağıt rengi; schemaVersion 5),
   `createdAt`, `updatedAt`. (schemaVersion 2 — pageSize; 5 — pageColor.)
+- **Templates** (schemaVersion 9): `title`, `pageSize`, `pageColor`, `body`
+  (Delta JSON), `strokes` (JSON dizisi), `createdAt` — kullanıcının kaydettiği
+  not şablonları ("Şablonlarım"). Gömülü hazır şablonlar koddadır
+  (`features/templates/templates_data.dart`). Bkz. Sürüm 1.2 bölümü.
 - **Strokes**: `docId` (FK, cascade), `page`, `tool`, `color`, `width`,
   `points` (0..1 normalize edilmiş JSON). Normalize koordinat sayesinde çizimler
   yakınlaştırma/ekran boyutundan bağımsızdır.
@@ -364,22 +369,52 @@ Yapılanlar:
 
 Sürüm yayını: pubspec `1.1.0+3`, AAB → önce kapalı test kanalına.
 
-## PLANLANAN — Sürüm 1.2+ (kullanıcı onayladı, sıraya alındı)
+## Sürüm 1.2 — UYGULANDI (dev APK'da test bekliyor)
 
-**1.2 — Yeni not pop-up'ı + şablon sistemi:**
-- "Yeni not" alt sayfası yerine zengin diyalog: not adı (opsiyonel) + yön/boyut
-  seçimi + kağıt rengi + şablon ızgarası (kategori sekmeleri: Temel / Yazı /
-  Planlar / İş ve Eğitim / Şablonlarım). KAPAK YOK (kart önizlemesi yeterli —
-  kullanıcı kararı; referans görsel: Huawei Notes benzeri popup).
-- Sayfa yönleri: `pageSize`'a 'yatay' (A4 yatay) ve 'telefon' (uzun ekran,
-  ~19.5:9) eklenecek → editör aspect haritası + PDF export formatları +
-  şema/migration güncellemesi.
-- Hazır şablonlar: uygulamaya gömülü Quill Delta gövdeleri (günlük plan,
-  haftalık plan, toplantı notu, Cornell, alışveriş...). Şablon = başlangıç
-  body + pageSize + pageColor (+ opsiyonel strokes) — .ntdl ile aynı model.
-- "Şablon olarak kaydet": not menüsünden → yerel `Templates` tablosu
-  (ayrı tablo, Documents kirletilmez; schemaVersion bump) → popup'ta
-  "Şablonlarım" sekmesi.
+Yeni not pop-up'ı + şablon sistemi. Şema **v9** (Templates tablosu). Kod
+derleniyor, `flutter analyze` temiz, dev APK üretildi. Yapılanlar:
+
+1. **Sayfa yönü altyapısı** (`editor_state.dart`): merkezî `kPageSizes`
+   kataloğu + `aspectForPageSize(id)` (yükseklik ÷ genişlik). Değerler:
+   a4=1.414, **yatay** (A4 landscape)=0.7072, kare=1.0, **telefon**
+   (~19.5:9)=2.1667. Editör (`note_editor_screen`) ve `pdf_export` artık bu
+   helper'ı kullanır (eski sabit `== 'kare' ? 1.0 : 1.414` kaldırıldı). PDF
+   formatları: yatay → A4 landscape, telefon → uzun özel format, kare → kare.
+   `pageSizeOptionFor(id)` de var. Bilinmeyen/eski 'serbest' → A4.
+2. **Templates tablosu** (schemaVersion 9, `Templates`): `title, pageSize,
+   pageColor, body (Delta JSON), strokes (JSON dizisi), createdAt`. Yalnızca
+   **kullanıcının** kaydettikleri ("Şablonlarım") burada; gömülü hazır
+   şablonlar koddadır. `TemplateRepository` (add/watchAll/delete) +
+   `templateRepositoryProvider` + `userTemplatesProvider`. Migration
+   `from < 9 → createTable(templates)`.
+3. **Gömülü hazır şablonlar** (`features/templates/templates_data.dart`):
+   `NoteTemplate` modeli (id, kategori, TR/EN ad, ikon, pageSize, pageColor,
+   `buildBody(bool en)`) + `_Delta` builder (title/heading/para/bullet/check —
+   `size`/`bold`/`list` öznitelikleri, editör+PDF export ikisi de render eder).
+   Kategoriler `kTemplateCategories` (temel/yazi/planlar/is/benim). İçerik
+   **dile göre** (TR/EN). Şablonlar: Yapılacaklar, Basit not, Günlük, Fikir
+   defteri, Günlük plan, Haftalık plan (yatay), Alışveriş (telefon), Toplantı
+   notu, Cornell, Proje görevleri.
+4. **Yeni not diyaloğu** (`features/library/new_note_dialog.dart`,
+   `showNewNoteDialog`): eski `_pickNoteSize` alt sayfası KALDIRILDI. Zengin
+   diyalog — not adı (opsiyonel) + sayfa boyutu çipleri + kağıt rengi
+   noktaları + kategori sekmeleri + şablon ızgarası (Wrap, kapak yok). Şablon
+   seçince sayfa boyutu/rengi otomatik o şablonunki olur (kullanıcı yine
+   override edebilir). 'temel' sekmesinde ilk kutu = **Boş sayfa**. 'benim'
+   sekmesi kullanıcı şablonları (uzun bas → sil). Onayda
+   `createConfiguredNote` (actions.dart): notu body+pageSize+pageColor +
+   (şablon) çizimleriyle oluşturup açar. `createNote` artık bu diyaloğu açar.
+5. **Şablon olarak kaydet** (`features/templates/save_template.dart`,
+   `saveNoteAsTemplate`): not paylaş menüsünde (üst bar, yalnız notlarda) →
+   ad sor (başlıkla dolu) → mevcut body+pageSize+pageColor+çizimleri Templates
+   tablosuna yaz → "Şablonlarım" sekmesinde görünür. Snackbar onayı.
+
+**Bilinen sınır/ödünleşim:** şablon seçimi sekmeler arası korunur (başka
+kategoriye geçince o an seçili tile görünmez ama seçim geçerli kalır — Sayfa/
+Kağıt seçicileri yansıtır). Gömülü şablonlarda çizim yok; kullanıcı şablonları
+çizim taşıyabilir.
+
+## PLANLANAN — Sürüm 1.3+ (kullanıcı onayladı, sıraya alındı)
 
 **1.3 — Tablo bloğu (büyük iş):**
 - flutter_quill'de hazır tablo YOK → özel embed (delta'ya gömülü JSON tablo) +

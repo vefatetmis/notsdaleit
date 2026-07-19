@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
@@ -7,10 +8,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:pdfx/pdfx.dart';
 
 import '../../core/i18n/i18n.dart';
-import '../../core/theme/nd_colors.dart';
 import '../../data/data_providers.dart';
 import '../../data/database/database.dart';
 import '../drawing/drawing_state.dart';
+import '../library/new_note_dialog.dart';
 import 'shell_state.dart';
 
 /// Belge açılırken araçları sıfırlar. Notlar **yazı modunda** açılır (dokununca
@@ -27,81 +28,54 @@ void openDocument(WidgetRef ref, Document d) {
   ref.read(navProvider.notifier).openDoc(d.id, isPdf: isPdf);
 }
 
-/// Yeni not oluşturur. Önce sayfa boyutunu sorar (A4 / Kare), sonra editörde
-/// açar. Kullanıcı iptal ederse hiçbir şey yapmaz.
-Future<void> createNote(BuildContext context, WidgetRef ref) async {
-  final size = await _pickNoteSize(context);
-  if (size == null) return;
-
-  final id = await ref.read(documentRepositoryProvider).insertNote(
-        title: '',
-        body: '',
-        folder: 'Kişisel',
-        pageSize: size,
-        pageCount: 1,
-      );
-  _resetTools(ref, isPdf: false);
-  ref.read(navProvider.notifier).openDoc(id, isPdf: false);
+/// Yeni not oluşturma akışını başlatır: zengin diyalog (ad + sayfa boyutu +
+/// kağıt rengi + şablon ızgarası). Diyalog seçime göre notu oluşturup açar.
+Future<void> createNote(BuildContext context, WidgetRef ref) {
+  return showNewNoteDialog(context, ref);
 }
 
-Future<String?> _pickNoteSize(BuildContext context) {
-  final nd = context.nd;
-  Widget option(IconData icon, String title, String subtitle, String value) {
-    return ListTile(
-      leading: Icon(icon, color: nd.text2),
-      title: Text(title,
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-      subtitle: Text(subtitle,
-          style: TextStyle(fontSize: 12.5, color: nd.text2)),
-      onTap: () => Navigator.of(context).pop(value),
-    );
+/// Belirli bir yapılandırmayla (opsiyonel şablon gövdesi + çizimler) yeni not
+/// oluşturur ve editörde açar. Yeni not diyaloğu buradan çağırır.
+Future<void> createConfiguredNote(
+  WidgetRef ref, {
+  required String title,
+  required String pageSize,
+  required String pageColor,
+  required String body,
+  String strokesJson = '[]',
+}) async {
+  final id = await ref.read(documentRepositoryProvider).insertNote(
+        title: title,
+        body: body,
+        folder: 'Kişisel',
+        pageSize: pageSize,
+        pageColor: pageColor,
+        pageCount: 1,
+      );
+
+  // Şablon çizimleri (kullanıcı şablonlarında olabilir; gömülülerde yok).
+  List<dynamic> strokes = const [];
+  try {
+    final decoded = jsonDecode(strokesJson);
+    if (decoded is List) strokes = decoded;
+  } catch (_) {}
+  if (strokes.isNotEmpty) {
+    final drawRepo = ref.read(drawingRepositoryProvider);
+    for (final s in strokes) {
+      final m = (s as Map).cast<String, dynamic>();
+      await drawRepo.addStroke(
+        docId: id,
+        page: (m['page'] as int?) ?? 0,
+        tool: (m['tool'] as String?) ?? 'kalem',
+        color: (m['color'] as int?) ?? 0xFF262626,
+        width: (m['width'] as num?)?.toDouble() ?? 5,
+        pointsJson: (m['points'] as String?) ?? '[]',
+      );
+    }
   }
 
-  return showModalBottomSheet<String>(
-    context: context,
-    backgroundColor: nd.card,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-    ),
-    builder: (context) => SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SizedBox(height: 10),
-          Container(
-            width: 36,
-            height: 4,
-            decoration: BoxDecoration(
-              color: nd.border,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 4),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(context.t('Yeni not', 'New note'),
-                  style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w700)),
-            ),
-          ),
-          option(
-              Icons.description_outlined,
-              context.t('A4 sayfa', 'A4 page'),
-              context.t('Dikey sayfa · yaz veya çiz',
-                  'Portrait page · write or draw'),
-              'a4'),
-          option(
-              Icons.crop_square_outlined,
-              context.t('Kare sayfa', 'Square page'),
-              context.t('Kare sayfa · yaz veya çiz',
-                  'Square page · write or draw'),
-              'kare'),
-          const SizedBox(height: 10),
-        ],
-      ),
-    ),
-  );
+  _resetTools(ref, isPdf: false);
+  ref.read(navProvider.notifier).openDoc(id, isPdf: false);
 }
 
 /// Cihazdan bir PDF seçtirip uygulama klasörüne kopyalar ve görüntüleyicide açar.

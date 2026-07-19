@@ -8,6 +8,7 @@ import 'repositories/drawing_repository.dart';
 import 'repositories/folder_repository.dart';
 import 'repositories/routine_repository.dart';
 import 'repositories/task_repository.dart';
+import 'repositories/template_repository.dart';
 
 /// Uygulama boyunca açık kalan tek veritabanı.
 final databaseProvider = Provider<AppDatabase>((ref) {
@@ -39,6 +40,15 @@ final dayNoteRepositoryProvider = Provider<DayNoteRepository>((ref) {
 
 final folderRepositoryProvider = Provider<FolderRepository>((ref) {
   return FolderRepository(ref.watch(databaseProvider));
+});
+
+final templateRepositoryProvider = Provider<TemplateRepository>((ref) {
+  return TemplateRepository(ref.watch(databaseProvider));
+});
+
+/// Kullanıcının kaydettiği şablonlar ("Şablonlarım") — canlı akış.
+final userTemplatesProvider = StreamProvider<List<Template>>((ref) {
+  return ref.watch(templateRepositoryProvider).watchAll();
 });
 
 /// Kalıcı klasörler — canlı akış.

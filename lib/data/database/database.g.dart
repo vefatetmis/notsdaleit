@@ -2890,6 +2890,446 @@ class FoldersCompanion extends UpdateCompanion<Folder> {
   }
 }
 
+class $TemplatesTable extends Templates
+    with TableInfo<$TemplatesTable, Template> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TemplatesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _pageSizeMeta = const VerificationMeta(
+    'pageSize',
+  );
+  @override
+  late final GeneratedColumn<String> pageSize = GeneratedColumn<String>(
+    'page_size',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('a4'),
+  );
+  static const VerificationMeta _pageColorMeta = const VerificationMeta(
+    'pageColor',
+  );
+  @override
+  late final GeneratedColumn<String> pageColor = GeneratedColumn<String>(
+    'page_color',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('beyaz'),
+  );
+  static const VerificationMeta _bodyMeta = const VerificationMeta('body');
+  @override
+  late final GeneratedColumn<String> body = GeneratedColumn<String>(
+    'body',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _strokesMeta = const VerificationMeta(
+    'strokes',
+  );
+  @override
+  late final GeneratedColumn<String> strokes = GeneratedColumn<String>(
+    'strokes',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    title,
+    pageSize,
+    pageColor,
+    body,
+    strokes,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'templates';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Template> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    }
+    if (data.containsKey('page_size')) {
+      context.handle(
+        _pageSizeMeta,
+        pageSize.isAcceptableOrUnknown(data['page_size']!, _pageSizeMeta),
+      );
+    }
+    if (data.containsKey('page_color')) {
+      context.handle(
+        _pageColorMeta,
+        pageColor.isAcceptableOrUnknown(data['page_color']!, _pageColorMeta),
+      );
+    }
+    if (data.containsKey('body')) {
+      context.handle(
+        _bodyMeta,
+        body.isAcceptableOrUnknown(data['body']!, _bodyMeta),
+      );
+    }
+    if (data.containsKey('strokes')) {
+      context.handle(
+        _strokesMeta,
+        strokes.isAcceptableOrUnknown(data['strokes']!, _strokesMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Template map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Template(
+      id:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.int,
+            data['${effectivePrefix}id'],
+          )!,
+      title:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}title'],
+          )!,
+      pageSize:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}page_size'],
+          )!,
+      pageColor:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}page_color'],
+          )!,
+      body:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}body'],
+          )!,
+      strokes:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}strokes'],
+          )!,
+      createdAt:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.dateTime,
+            data['${effectivePrefix}created_at'],
+          )!,
+    );
+  }
+
+  @override
+  $TemplatesTable createAlias(String alias) {
+    return $TemplatesTable(attachedDatabase, alias);
+  }
+}
+
+class Template extends DataClass implements Insertable<Template> {
+  final int id;
+  final String title;
+  final String pageSize;
+  final String pageColor;
+  final String body;
+  final String strokes;
+  final DateTime createdAt;
+  const Template({
+    required this.id,
+    required this.title,
+    required this.pageSize,
+    required this.pageColor,
+    required this.body,
+    required this.strokes,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['title'] = Variable<String>(title);
+    map['page_size'] = Variable<String>(pageSize);
+    map['page_color'] = Variable<String>(pageColor);
+    map['body'] = Variable<String>(body);
+    map['strokes'] = Variable<String>(strokes);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  TemplatesCompanion toCompanion(bool nullToAbsent) {
+    return TemplatesCompanion(
+      id: Value(id),
+      title: Value(title),
+      pageSize: Value(pageSize),
+      pageColor: Value(pageColor),
+      body: Value(body),
+      strokes: Value(strokes),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory Template.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Template(
+      id: serializer.fromJson<int>(json['id']),
+      title: serializer.fromJson<String>(json['title']),
+      pageSize: serializer.fromJson<String>(json['pageSize']),
+      pageColor: serializer.fromJson<String>(json['pageColor']),
+      body: serializer.fromJson<String>(json['body']),
+      strokes: serializer.fromJson<String>(json['strokes']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'title': serializer.toJson<String>(title),
+      'pageSize': serializer.toJson<String>(pageSize),
+      'pageColor': serializer.toJson<String>(pageColor),
+      'body': serializer.toJson<String>(body),
+      'strokes': serializer.toJson<String>(strokes),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  Template copyWith({
+    int? id,
+    String? title,
+    String? pageSize,
+    String? pageColor,
+    String? body,
+    String? strokes,
+    DateTime? createdAt,
+  }) => Template(
+    id: id ?? this.id,
+    title: title ?? this.title,
+    pageSize: pageSize ?? this.pageSize,
+    pageColor: pageColor ?? this.pageColor,
+    body: body ?? this.body,
+    strokes: strokes ?? this.strokes,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  Template copyWithCompanion(TemplatesCompanion data) {
+    return Template(
+      id: data.id.present ? data.id.value : this.id,
+      title: data.title.present ? data.title.value : this.title,
+      pageSize: data.pageSize.present ? data.pageSize.value : this.pageSize,
+      pageColor: data.pageColor.present ? data.pageColor.value : this.pageColor,
+      body: data.body.present ? data.body.value : this.body,
+      strokes: data.strokes.present ? data.strokes.value : this.strokes,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Template(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('pageSize: $pageSize, ')
+          ..write('pageColor: $pageColor, ')
+          ..write('body: $body, ')
+          ..write('strokes: $strokes, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, title, pageSize, pageColor, body, strokes, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Template &&
+          other.id == this.id &&
+          other.title == this.title &&
+          other.pageSize == this.pageSize &&
+          other.pageColor == this.pageColor &&
+          other.body == this.body &&
+          other.strokes == this.strokes &&
+          other.createdAt == this.createdAt);
+}
+
+class TemplatesCompanion extends UpdateCompanion<Template> {
+  final Value<int> id;
+  final Value<String> title;
+  final Value<String> pageSize;
+  final Value<String> pageColor;
+  final Value<String> body;
+  final Value<String> strokes;
+  final Value<DateTime> createdAt;
+  const TemplatesCompanion({
+    this.id = const Value.absent(),
+    this.title = const Value.absent(),
+    this.pageSize = const Value.absent(),
+    this.pageColor = const Value.absent(),
+    this.body = const Value.absent(),
+    this.strokes = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  TemplatesCompanion.insert({
+    this.id = const Value.absent(),
+    this.title = const Value.absent(),
+    this.pageSize = const Value.absent(),
+    this.pageColor = const Value.absent(),
+    this.body = const Value.absent(),
+    this.strokes = const Value.absent(),
+    required DateTime createdAt,
+  }) : createdAt = Value(createdAt);
+  static Insertable<Template> custom({
+    Expression<int>? id,
+    Expression<String>? title,
+    Expression<String>? pageSize,
+    Expression<String>? pageColor,
+    Expression<String>? body,
+    Expression<String>? strokes,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (title != null) 'title': title,
+      if (pageSize != null) 'page_size': pageSize,
+      if (pageColor != null) 'page_color': pageColor,
+      if (body != null) 'body': body,
+      if (strokes != null) 'strokes': strokes,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  TemplatesCompanion copyWith({
+    Value<int>? id,
+    Value<String>? title,
+    Value<String>? pageSize,
+    Value<String>? pageColor,
+    Value<String>? body,
+    Value<String>? strokes,
+    Value<DateTime>? createdAt,
+  }) {
+    return TemplatesCompanion(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      pageSize: pageSize ?? this.pageSize,
+      pageColor: pageColor ?? this.pageColor,
+      body: body ?? this.body,
+      strokes: strokes ?? this.strokes,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (pageSize.present) {
+      map['page_size'] = Variable<String>(pageSize.value);
+    }
+    if (pageColor.present) {
+      map['page_color'] = Variable<String>(pageColor.value);
+    }
+    if (body.present) {
+      map['body'] = Variable<String>(body.value);
+    }
+    if (strokes.present) {
+      map['strokes'] = Variable<String>(strokes.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TemplatesCompanion(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('pageSize: $pageSize, ')
+          ..write('pageColor: $pageColor, ')
+          ..write('body: $body, ')
+          ..write('strokes: $strokes, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2900,6 +3340,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $RoutinesTable routines = $RoutinesTable(this);
   late final $RoutineChecksTable routineChecks = $RoutineChecksTable(this);
   late final $FoldersTable folders = $FoldersTable(this);
+  late final $TemplatesTable templates = $TemplatesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2912,6 +3353,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     routines,
     routineChecks,
     folders,
+    templates,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -4919,6 +5361,239 @@ typedef $$FoldersTableProcessedTableManager =
       Folder,
       PrefetchHooks Function()
     >;
+typedef $$TemplatesTableCreateCompanionBuilder =
+    TemplatesCompanion Function({
+      Value<int> id,
+      Value<String> title,
+      Value<String> pageSize,
+      Value<String> pageColor,
+      Value<String> body,
+      Value<String> strokes,
+      required DateTime createdAt,
+    });
+typedef $$TemplatesTableUpdateCompanionBuilder =
+    TemplatesCompanion Function({
+      Value<int> id,
+      Value<String> title,
+      Value<String> pageSize,
+      Value<String> pageColor,
+      Value<String> body,
+      Value<String> strokes,
+      Value<DateTime> createdAt,
+    });
+
+class $$TemplatesTableFilterComposer
+    extends Composer<_$AppDatabase, $TemplatesTable> {
+  $$TemplatesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get pageSize => $composableBuilder(
+    column: $table.pageSize,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get pageColor => $composableBuilder(
+    column: $table.pageColor,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get body => $composableBuilder(
+    column: $table.body,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get strokes => $composableBuilder(
+    column: $table.strokes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$TemplatesTableOrderingComposer
+    extends Composer<_$AppDatabase, $TemplatesTable> {
+  $$TemplatesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get pageSize => $composableBuilder(
+    column: $table.pageSize,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get pageColor => $composableBuilder(
+    column: $table.pageColor,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get body => $composableBuilder(
+    column: $table.body,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get strokes => $composableBuilder(
+    column: $table.strokes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$TemplatesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TemplatesTable> {
+  $$TemplatesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get pageSize =>
+      $composableBuilder(column: $table.pageSize, builder: (column) => column);
+
+  GeneratedColumn<String> get pageColor =>
+      $composableBuilder(column: $table.pageColor, builder: (column) => column);
+
+  GeneratedColumn<String> get body =>
+      $composableBuilder(column: $table.body, builder: (column) => column);
+
+  GeneratedColumn<String> get strokes =>
+      $composableBuilder(column: $table.strokes, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$TemplatesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TemplatesTable,
+          Template,
+          $$TemplatesTableFilterComposer,
+          $$TemplatesTableOrderingComposer,
+          $$TemplatesTableAnnotationComposer,
+          $$TemplatesTableCreateCompanionBuilder,
+          $$TemplatesTableUpdateCompanionBuilder,
+          (Template, BaseReferences<_$AppDatabase, $TemplatesTable, Template>),
+          Template,
+          PrefetchHooks Function()
+        > {
+  $$TemplatesTableTableManager(_$AppDatabase db, $TemplatesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer:
+              () => $$TemplatesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer:
+              () => $$TemplatesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer:
+              () => $$TemplatesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> pageSize = const Value.absent(),
+                Value<String> pageColor = const Value.absent(),
+                Value<String> body = const Value.absent(),
+                Value<String> strokes = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => TemplatesCompanion(
+                id: id,
+                title: title,
+                pageSize: pageSize,
+                pageColor: pageColor,
+                body: body,
+                strokes: strokes,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> pageSize = const Value.absent(),
+                Value<String> pageColor = const Value.absent(),
+                Value<String> body = const Value.absent(),
+                Value<String> strokes = const Value.absent(),
+                required DateTime createdAt,
+              }) => TemplatesCompanion.insert(
+                id: id,
+                title: title,
+                pageSize: pageSize,
+                pageColor: pageColor,
+                body: body,
+                strokes: strokes,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper:
+              (p0) =>
+                  p0
+                      .map(
+                        (e) => (
+                          e.readTable(table),
+                          BaseReferences(db, table, e),
+                        ),
+                      )
+                      .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$TemplatesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TemplatesTable,
+      Template,
+      $$TemplatesTableFilterComposer,
+      $$TemplatesTableOrderingComposer,
+      $$TemplatesTableAnnotationComposer,
+      $$TemplatesTableCreateCompanionBuilder,
+      $$TemplatesTableUpdateCompanionBuilder,
+      (Template, BaseReferences<_$AppDatabase, $TemplatesTable, Template>),
+      Template,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -4937,4 +5612,6 @@ class $AppDatabaseManager {
       $$RoutineChecksTableTableManager(_db, _db.routineChecks);
   $$FoldersTableTableManager get folders =>
       $$FoldersTableTableManager(_db, _db.folders);
+  $$TemplatesTableTableManager get templates =>
+      $$TemplatesTableTableManager(_db, _db.templates);
 }

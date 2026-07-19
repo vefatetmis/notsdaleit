@@ -86,6 +86,21 @@ class Folders extends Table {
   DateTimeColumn get createdAt => dateTime()();
 }
 
+/// Kullanıcının kaydettiği not şablonları ("Şablonlarım"). Gömülü hazır
+/// şablonlar koda gömülüdür; bu tablo yalnızca kullanıcının "Şablon olarak
+/// kaydet" ile oluşturduklarını tutar. Model .ntdl ile aynıdır: metin gövdesi
+/// (Quill Delta JSON) + sayfa boyutu/rengi + çizimler (JSON dizisi).
+class Templates extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get title => text().withDefault(const Constant(''))();
+  TextColumn get pageSize => text().withDefault(const Constant('a4'))();
+  TextColumn get pageColor => text().withDefault(const Constant('beyaz'))();
+  TextColumn get body => text().withDefault(const Constant(''))();
+  // Çizimler: [{page,tool,color,width,points}, ...] JSON dizisi (0..1 normalize).
+  TextColumn get strokes => text().withDefault(const Constant('[]'))();
+  DateTimeColumn get createdAt => dateTime()();
+}
+
 /// Bir rutinin belirli bir günde tamamlandığının kaydı. Satır varsa o gün
 /// yapılmış demektir; işaret kaldırılınca satır silinir.
 class RoutineChecks extends Table {
@@ -104,6 +119,7 @@ class RoutineChecks extends Table {
   Routines,
   RoutineChecks,
   Folders,
+  Templates,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
@@ -111,7 +127,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -141,6 +157,9 @@ class AppDatabase extends _$AppDatabase {
           if (from < 8) {
             await m.addColumn(routines, routines.remindAt);
             await m.createTable(folders);
+          }
+          if (from < 9) {
+            await m.createTable(templates);
           }
         },
         beforeOpen: (details) async {

@@ -17,6 +17,7 @@ import '../pdf/pdf_viewer_screen.dart';
 import '../routines/routines_screen.dart';
 import '../search/search_screen.dart';
 import '../settings/settings_screen.dart';
+import '../templates/save_template.dart';
 import 'actions.dart';
 import 'shell_state.dart';
 
@@ -528,6 +529,7 @@ class _TopBar extends ConsumerWidget {
               onSelected: (v) {
                 if (v == 'pdf') exportDocumentAsPdf(ref, activeDoc);
                 if (v == 'ntdl') exportNtdl(ref, activeDoc);
+                if (v == 'savetpl') saveNoteAsTemplate(context, ref, activeDoc);
                 if (v == 'live') shareLive(context, ref, activeDoc);
                 if (v == 'unshare') stopLive(context, ref, activeDoc);
               },
@@ -546,6 +548,11 @@ class _TopBar extends ConsumerWidget {
                 PopupMenuItem(
                     value: 'pdf',
                     child: Text(context.t('PDF olarak paylaş', 'Share as PDF'))),
+                if (activeDoc.type == 'not')
+                  PopupMenuItem(
+                      value: 'savetpl',
+                      child: Text(context.t(
+                          'Şablon olarak kaydet', 'Save as template'))),
                 if (activeDoc.type == 'not')
                   PopupMenuItem(
                       value: 'ntdl',
