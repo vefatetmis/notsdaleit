@@ -5,6 +5,7 @@ import 'database/database.dart';
 import 'repositories/day_note_repository.dart';
 import 'repositories/document_repository.dart';
 import 'repositories/drawing_repository.dart';
+import 'repositories/folder_repository.dart';
 import 'repositories/routine_repository.dart';
 import 'repositories/task_repository.dart';
 
@@ -34,6 +35,15 @@ final tasksProvider = StreamProvider<List<Task>>((ref) {
 
 final dayNoteRepositoryProvider = Provider<DayNoteRepository>((ref) {
   return DayNoteRepository(ref.watch(databaseProvider));
+});
+
+final folderRepositoryProvider = Provider<FolderRepository>((ref) {
+  return FolderRepository(ref.watch(databaseProvider));
+});
+
+/// Kalıcı klasörler — canlı akış.
+final foldersProvider = StreamProvider<List<Folder>>((ref) {
+  return ref.watch(folderRepositoryProvider).watchAll();
 });
 
 final routineRepositoryProvider = Provider<RoutineRepository>((ref) {
@@ -72,11 +82,16 @@ final activeDocumentProvider = Provider<Document?>((ref) {
   return null;
 });
 
-/// Belgelerden türetilen klasör adları (varsayılanlar + kullanılan klasörler).
+/// Klasör adları: varsayılanlar ∪ kalıcı klasörler (Folders tablosu) ∪
+/// belgelerin kullandığı klasörler ∪ oturumluk ekstralar.
 final folderNamesProvider = Provider<List<String>>((ref) {
   final docs = ref.watch(documentsProvider).valueOrNull ?? const [];
+  final persistent = ref.watch(foldersProvider).valueOrNull ?? const [];
   final extras = ref.watch(extraFoldersProvider);
   final result = <String>['Ders Notları', 'İş', 'Kişisel'];
+  for (final f in persistent) {
+    if (!result.contains(f.name)) result.add(f.name);
+  }
   for (final d in docs) {
     if (!result.contains(d.folder)) result.add(d.folder);
   }

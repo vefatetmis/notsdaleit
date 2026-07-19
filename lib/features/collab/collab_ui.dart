@@ -150,6 +150,46 @@ Future<void> showShareCodeDialog(BuildContext context, String code) {
   );
 }
 
+/// "Canlı paylaşımı durdur" akışı: onay iste → paylaşımı bırak (sahip siler,
+/// üye ayrılır); yerelde kişisel nota döner.
+Future<void> stopLive(BuildContext context, WidgetRef ref, Document doc) async {
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(context.t('Canlı paylaşımı durdur?', 'Stop live sharing?')),
+      content: Text(context.t(
+          'Bu not artık eşitlenmeyecek. Not ve çizimler cihazında kalır; '
+              'katılım kodu geçersiz olur.',
+          'This note will stop syncing. It stays on your device; the join '
+              'code becomes invalid.')),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: Text(context.t('Vazgeç', 'Cancel')),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          child: Text(context.t('Durdur', 'Stop')),
+        ),
+      ],
+    ),
+  );
+  if (ok != true) return;
+  try {
+    await ref.read(collabServiceProvider).unshare(doc);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(context.t(
+              'Canlı paylaşım durduruldu', 'Live sharing stopped'))));
+    }
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(collabErrorText(context, e))));
+    }
+  }
+}
+
 /// "Ortak nota katıl" diyaloğu: kod girilir, katılınca not açılır.
 Future<void> showJoinDialog(BuildContext context, WidgetRef ref) {
   return showDialog<void>(
@@ -187,7 +227,7 @@ class _JoinDialogState extends ConsumerState<_JoinDialog> {
       final docId = await ref.read(collabServiceProvider).joinByCode(code);
       if (!mounted) return;
       Navigator.of(context).pop();
-      ref.read(toolProvider.notifier).state = PenTool.el;
+      ref.read(toolProvider.notifier).state = PenTool.yazi;
       ref.read(zoomProvider.notifier).state = 1.0;
       ref.read(navProvider.notifier).openDoc(docId, isPdf: false);
     } catch (e) {

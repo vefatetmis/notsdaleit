@@ -35,6 +35,10 @@ class RemoteNoteUpdate {
 final remoteNoteUpdateProvider =
     StateProvider<RemoteNoteUpdate?>((ref) => null);
 
+/// Canlı paylaşım sona erdi (sahibi durdurdu ya da not silindi) — açık editör
+/// tek seferlik bilgilendirir. Her olayda artar.
+final collabEndedProvider = StateProvider<int>((ref) => 0);
+
 /// Aktif belge paylaşımlıysa oturumu açık tutar (editör build'de watch eder).
 final collabSessionProvider = Provider.autoDispose<CollabSession?>((ref) {
   if (!CollabConfig.enabled) return null;
@@ -113,6 +117,36 @@ class CollabService {
     // Çizimler not açılınca oturumun ilk eşitlemesiyle gelir.
     return id;
   }
+
+  /// Canlı paylaşımı bırakır. Sahipse sunucudaki notu siler (kod geçersizleşir),
+  /// üyeyse yalnızca kendi üyeliğini siler. Her durumda yerelde kişisel nota
+  /// döner (çizim ve metin yerelde kalır).
+  Future<void> unshare(Document doc) async {
+    final sid = doc.sharedId;
+    if (sid == null) return;
+    try {
+      await ensureSignedIn();
+      final uid = _client.auth.currentUser?.id;
+      final row = await _client
+          .from('shared_notes')
+          .select('created_by')
+          .eq('id', sid)
+          .maybeSingle();
+      final isOwner = row != null && row['created_by'] == uid;
+      if (isOwner) {
+        await _client.from('shared_notes').delete().eq('id', sid);
+      } else if (uid != null) {
+        await _client
+            .from('note_members')
+            .delete()
+            .eq('note_id', sid)
+            .eq('user_id', uid);
+      }
+    } catch (_) {
+      // Ağ hatası olsa da yerelde paylaşımı kaldırıyoruz (kullanıcı isteği).
+    }
+    await _ref.read(documentRepositoryProvider).clearShared(doc.id);
+  }
 }
 
 // ─────────────────────────── Oturum (gerçek zamanlı) ───────────────────────────
@@ -134,6 +168,7 @@ class CollabSession {
   StreamSubscription<Document?>? _docSub;
   Timer? _pushNoteTimer;
   bool _closed = false;
+  bool _ending = false; // paylaşım sonlanıyor → toplu silmeleri yok say
   int _seq = 0;
 
   // Yankı / çift kayıt önleme durumu.
@@ -200,6 +235,16 @@ class CollabSession {
           ),
           callback: (payload) => _onRemoteNoteUpdate(payload.newRecord),
         )
+        .onPostgresChanges(
+          // Sahibi paylaşımı durdurdu → not silindi. Filtresiz dinleyip PK
+          // eşleştiririz (DELETE payload'unda yalnız birincil anahtar var).
+          event: PostgresChangeEvent.delete,
+          schema: 'public',
+          table: 'shared_notes',
+          callback: (payload) {
+            if (payload.oldRecord['id'] == sharedId) _handleEnded();
+          },
+        )
         .subscribe((status, [error]) {
       if (_closed) return;
       if (status == RealtimeSubscribeStatus.subscribed) {
@@ -227,7 +272,13 @@ class CollabSession {
           .from('shared_notes')
           .select()
           .eq('id', sharedId)
-          .single();
+          .maybeSingle();
+      if (_closed) return;
+      if (row == null) {
+        // Not sunucuda yok (sahibi paylaşımı durdurdu) → kişisel nota dön.
+        await _handleEnded();
+        return;
+      }
       final local = await docRepo.getById(docId);
       if (_closed || local == null) return;
       final remoteUpdatedAt =
@@ -310,7 +361,7 @@ class CollabSession {
   }
 
   Future<void> _onRemoteStrokeDelete(Map<String, dynamic> rec) async {
-    if (_closed) return;
+    if (_closed || _ending) return; // paylaşım sonlanırken toplu silmeyi atla
     final rid = rec['id'] as String?;
     if (rid == null || !_knownRemoteIds.contains(rid)) return;
     _skipDeletePush.add(rid);
@@ -343,6 +394,19 @@ class CollabSession {
     try {
       _ref.read(remoteNoteUpdateProvider.notifier).state =
           RemoteNoteUpdate(docId, title, body, _seq++);
+    } catch (_) {}
+  }
+
+  /// Paylaşım sona erdi: yerelde kişisel nota dön + tek seferlik bilgilendir.
+  /// sharedId null olunca collabSessionProvider bu oturumu dispose eder.
+  Future<void> _handleEnded() async {
+    if (_closed || _ending) return;
+    _ending = true;
+    try {
+      await _ref.read(documentRepositoryProvider).clearShared(docId);
+    } catch (_) {}
+    try {
+      _ref.read(collabEndedProvider.notifier).state++;
     } catch (_) {}
   }
 

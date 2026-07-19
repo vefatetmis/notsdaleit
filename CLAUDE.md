@@ -187,10 +187,17 @@ lib/
   planlanır** (uzun bas → kaldır). Bildirim id'si = task.id.
 - **DayNotes** (schemaVersion 4): `day`, `body` — güne ait serbest not (takvimde
   gün seçince altta yazılır, otomatik kaydeder).
-- **Routines + RoutineChecks** (schemaVersion 6): rutin/alışkanlık takibi.
-  `Routines.days` = Pzt..Paz için 7 karakterlik '1'/'0' maskesi ('1111111' =
-  her gün). `RoutineChecks` = (routineId, day) → o gün yapıldı; işaret kaldırınca
-  satır silinir (işaretler böylece her gün "yenilenir"). Ekran:
+- **Routines + RoutineChecks** (schemaVersion 6; `remindAt` schemaVersion 8):
+  rutin/alışkanlık takibi. `Routines.days` = Pzt..Paz için 7 karakterlik '1'/'0'
+  maskesi ('1111111' = her gün). `Routines.remindAt` = gece yarısından dakika
+  (nullable) → seçili günlerde haftalık bildirim (`scheduleRoutine`, id =
+  100000+routineId*10+weekday). `RoutineChecks` = (routineId, day) → o gün
+  yapıldı; işaret kaldırınca satır silinir. **Seri/rozet** (`streaks.dart`):
+  RoutineChecks'ten türetilir (durum saklanmaz); eşik 3/7/14/30/100; Ayarlar'da
+  `streaksEnabledProvider` ile aç/kapa.
+- **Folders** (schemaVersion 8): kalıcı klasörler (boş klasör yaşasın).
+  `folderNamesProvider` = varsayılanlar ∪ tablo ∪ belge klasörleri. Kütüphane
+  çoklu seçim çubuğunda "Klasöre taşı" (`move_to_folder.dart`). Ekran:
   `features/routines/routines_screen.dart` — yan panelde **Rutinler** sekmesi;
   "Rutin oluştur" (başlık + haftanın günleri çipleri), bugünün listesi onay
   kutulu, rutine dokununca **geçmiş takvimi** diyaloğu (aylık ızgara: yapıldı =
@@ -284,11 +291,11 @@ Kullanımı: bayrak true + gradle applicationId'ye ".demo" eki + manifest label
   yedeklenmeli, kaybedilirse Play'de yükleme anahtarı sıfırlaması gerekir. (Play
   App Signing kullanılırsa uygulama imza anahtarını Google tutar.)
 
-## PLANLANAN — Sürüm 1.1 (kapalı test bitince, ŞİMDİ KOD YAZMA)
+## Sürüm 1.1 — UYGULANDI (yayın bekliyor, pubspec 1.1.0+3)
 
-Kullanıcı kararı: kapalı test (12 testçi × 14 gün) sürerken uygulama SABİT
-kalacak; bu maddeler test bitip üretim onayı gelince 1.1.0+3 olarak yapılacak.
-Uygulama sırası: 1 → 4 → 5 → 3 → 2.
+Kod hazır ve derleniyor; kapalı test bitip üretim onayı gelince AAB yüklenecek
+(mağazada hâlâ 1.0). Şema **v8** (Routines.remindAt + Folders tablosu).
+Yapılanlar:
 
 1. **Varsayılan mod yazı:** not açılınca `toolProvider = PenTool.yazi`
    (PDF'te değişmez, `_resetTools` ayrışacak). Boş notta Quill autofocus

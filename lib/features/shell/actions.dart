@@ -13,15 +13,18 @@ import '../../data/database/database.dart';
 import '../drawing/drawing_state.dart';
 import 'shell_state.dart';
 
-void _resetTools(WidgetRef ref) {
-  ref.read(toolProvider.notifier).state = PenTool.el;
+/// Belge açılırken araçları sıfırlar. Notlar **yazı modunda** açılır (dokununca
+/// klavye gelir); PDF'te çizim/el modunda kalır.
+void _resetTools(WidgetRef ref, {required bool isPdf}) {
+  ref.read(toolProvider.notifier).state = isPdf ? PenTool.el : PenTool.yazi;
   ref.read(zoomProvider.notifier).state = 1.0;
 }
 
 /// Var olan bir belgeyi açar (not → editör, pdf → görüntüleyici).
 void openDocument(WidgetRef ref, Document d) {
-  _resetTools(ref);
-  ref.read(navProvider.notifier).openDoc(d.id, isPdf: d.type == 'pdf');
+  final isPdf = d.type == 'pdf';
+  _resetTools(ref, isPdf: isPdf);
+  ref.read(navProvider.notifier).openDoc(d.id, isPdf: isPdf);
 }
 
 /// Yeni not oluşturur. Önce sayfa boyutunu sorar (A4 / Kare), sonra editörde
@@ -37,7 +40,7 @@ Future<void> createNote(BuildContext context, WidgetRef ref) async {
         pageSize: size,
         pageCount: 1,
       );
-  _resetTools(ref);
+  _resetTools(ref, isPdf: false);
   ref.read(navProvider.notifier).openDoc(id, isPdf: false);
 }
 
@@ -149,7 +152,7 @@ Future<void> openPdfFromPath(WidgetRef ref, String srcPath, {String? name}) asyn
         pageCount: pages,
         folder: 'Kişisel',
       );
-  _resetTools(ref);
+  _resetTools(ref, isPdf: true);
   ref.read(navProvider.notifier).openDoc(id, isPdf: true);
 }
 

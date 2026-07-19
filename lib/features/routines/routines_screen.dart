@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/i18n/i18n.dart';
+import '../../core/notifications/notification_service.dart';
 import '../../core/theme/nd_colors.dart';
 import '../../data/data_providers.dart';
 import '../../data/database/database.dart';
 import '../calendar/calendar_state.dart';
 import '../shared/empty_state.dart';
+import 'streaks.dart';
 
 /// Rutinler (alışkanlık takibi) ekranı. Kullanıcı başında onay kutusu olan
 /// rutinler tanımlar; işaretler her gün (ya da seçilen günlerde) yenilenir.
@@ -22,12 +24,19 @@ class RoutinesScreen extends ConsumerWidget {
 
     final today = dayOnly(DateTime.now());
     final todayIndex = today.weekday - 1; // Pzt=0..Paz=6
+    final streaksEnabled = ref.watch(streaksEnabledProvider);
 
     // Bugün işaretli rutin id'leri.
     final doneToday = <int>{
       for (final c in checks)
         if (sameDay(c.day, today)) c.routineId,
     };
+
+    // Her rutinin tüm işaretli günleri (seri/rozet + tile için).
+    final checkedByRoutine = <int, Set<DateTime>>{};
+    for (final c in checks) {
+      (checkedByRoutine[c.routineId] ??= <DateTime>{}).add(dayOnly(c.day));
+    }
 
     final scheduledToday = <Routine>[
       for (final r in routines)
@@ -89,6 +98,9 @@ class RoutinesScreen extends ConsumerWidget {
                         routine: r,
                         done: doneToday.contains(r.id),
                         checkable: true,
+                        checkedDays:
+                            checkedByRoutine[r.id] ?? const <DateTime>{},
+                        streaksEnabled: streaksEnabled,
                       ),
                   if (others.isNotEmpty) ...[
                     const SizedBox(height: 16),
@@ -100,7 +112,14 @@ class RoutinesScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 10),
                     for (final r in others)
-                      _RoutineTile(routine: r, done: false, checkable: false),
+                      _RoutineTile(
+                        routine: r,
+                        done: false,
+                        checkable: false,
+                        checkedDays:
+                            checkedByRoutine[r.id] ?? const <DateTime>{},
+                        streaksEnabled: streaksEnabled,
+                      ),
                   ],
                 ],
               ),
@@ -132,11 +151,47 @@ class _RoutineTile extends ConsumerWidget {
     required this.routine,
     required this.done,
     required this.checkable,
+    required this.checkedDays,
+    required this.streaksEnabled,
   });
 
   final Routine routine;
   final bool done;
   final bool checkable;
+  final Set<DateTime> checkedDays;
+  final bool streaksEnabled;
+
+  String _fmtTime(int m) => '${(m ~/ 60).toString().padLeft(2, '0')}:'
+      '${(m % 60).toString().padLeft(2, '0')}';
+
+  Future<void> _pickReminder(BuildContext context, WidgetRef ref) async {
+    final body = context.t('Rutin hatırlatıcısı', 'Routine reminder');
+    final r = routine.remindAt;
+    final initial = r != null
+        ? TimeOfDay(hour: r ~/ 60, minute: r % 60)
+        : const TimeOfDay(hour: 9, minute: 0);
+    final picked = await showTimePicker(context: context, initialTime: initial);
+    if (picked == null) return;
+    final minutes = picked.hour * 60 + picked.minute;
+    await ref
+        .read(routineRepositoryProvider)
+        .setRemindAt(id: routine.id, minutes: minutes);
+    await NotificationService.instance.requestPermission();
+    await NotificationService.instance.scheduleRoutine(
+      routineId: routine.id,
+      title: routine.title,
+      body: body,
+      days: routine.days,
+      minuteOfDay: minutes,
+    );
+  }
+
+  Future<void> _removeReminder(WidgetRef ref) async {
+    await ref
+        .read(routineRepositoryProvider)
+        .setRemindAt(id: routine.id, minutes: null);
+    await NotificationService.instance.cancelRoutine(routine.id);
+  }
 
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
     final ok = await showDialog<bool>(
@@ -159,6 +214,7 @@ class _RoutineTile extends ConsumerWidget {
       ),
     );
     if (ok == true) {
+      await NotificationService.instance.cancelRoutine(routine.id);
       await ref.read(routineRepositoryProvider).delete(routine.id);
     }
   }
@@ -166,6 +222,12 @@ class _RoutineTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final nd = context.nd;
+    final today = dayOnly(DateTime.now());
+    final created = dayOnly(routine.createdAt);
+    final streak = streaksEnabled
+        ? currentStreak(routine.days, checkedDays, today, created)
+        : 0;
+    final hasReminder = routine.remindAt != null;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -182,7 +244,7 @@ class _RoutineTile extends ConsumerWidget {
         ),
         onLongPress: () => _confirmDelete(context, ref),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(8, 8, 12, 8),
+          padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
           child: Row(
             children: [
               // Onay kutusu (bugün planlı değilse soluk ve pasif).
@@ -191,18 +253,27 @@ class _RoutineTile extends ConsumerWidget {
                 icon: Icon(
                   done ? Icons.check_circle : Icons.radio_button_unchecked,
                   size: 24,
-                  color: checkable
-                      ? (done ? nd.text : nd.text2)
-                      : nd.border,
+                  color: checkable ? (done ? nd.text : nd.text2) : nd.border,
                 ),
                 onPressed: checkable
-                    ? () => ref.read(routineRepositoryProvider).toggle(
-                          routineId: routine.id,
-                          day: DateTime.now(),
-                        )
+                    ? () async {
+                        final wasDone = done;
+                        await ref.read(routineRepositoryProvider).toggle(
+                            routineId: routine.id, day: DateTime.now());
+                        if (!wasDone && streaksEnabled && context.mounted) {
+                          final projected = currentStreak(routine.days,
+                              {...checkedDays, today}, today, created);
+                          if (kBadgeThresholds.contains(projected)) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                content: Text(context.t(
+                                    '🔥 $projected günlük seri! Rozet kazandın 🏅',
+                                    '🔥 $projected-day streak! Badge earned 🏅'))));
+                          }
+                        }
+                      }
                     : null,
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 2),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -214,8 +285,9 @@ class _RoutineTile extends ConsumerWidget {
                       style: TextStyle(
                         fontSize: 14.5,
                         color: checkable && done ? nd.text2 : nd.text,
-                        decoration:
-                            checkable && done ? TextDecoration.lineThrough : null,
+                        decoration: checkable && done
+                            ? TextDecoration.lineThrough
+                            : null,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -226,7 +298,42 @@ class _RoutineTile extends ConsumerWidget {
                   ],
                 ),
               ),
-              Icon(Icons.insights_outlined, size: 18, color: nd.text2),
+              if (streak >= 2)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child: Text('🔥$streak',
+                      style: const TextStyle(
+                          fontSize: 13, fontWeight: FontWeight.w700)),
+                ),
+              // Bildirim çanı: dokun → saat seç/değiştir, uzun bas → kaldır.
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => _pickReminder(context, ref),
+                onLongPress: hasReminder ? () => _removeReminder(ref) : null,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (hasReminder) ...[
+                        Text(_fmtTime(routine.remindAt!),
+                            style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: nd.text)),
+                        const SizedBox(width: 3),
+                      ],
+                      Icon(
+                        hasReminder
+                            ? Icons.notifications_active
+                            : Icons.notifications_none,
+                        size: 18,
+                        color: hasReminder ? nd.text : nd.text2,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -488,6 +595,7 @@ class _RoutineHistoryDialogState
   Widget build(BuildContext context) {
     final nd = context.nd;
     final r = widget.routine;
+    final streaksEnabled = ref.watch(streaksEnabledProvider);
     final checks = ref.watch(routineChecksProvider).valueOrNull ?? const [];
     final checkedDays = <DateTime>{
       for (final c in checks)
@@ -625,6 +733,12 @@ class _RoutineHistoryDialogState
                     }),
                 ],
               ),
+              if (streaksEnabled) ...[
+                const SizedBox(height: 12),
+                _BadgeShelf(
+                    longest:
+                        longestStreak(r.days, checkedDays, today, created)),
+              ],
               const SizedBox(height: 10),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -723,6 +837,53 @@ class _HistoryCell extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Center(child: child),
+    );
+  }
+}
+
+class _BadgeShelf extends StatelessWidget {
+  const _BadgeShelf({required this.longest});
+
+  final int longest;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final t in kBadgeThresholds)
+          _BadgePill(threshold: t, earned: longest >= t),
+      ],
+    );
+  }
+}
+
+class _BadgePill extends StatelessWidget {
+  const _BadgePill({required this.threshold, required this.earned});
+
+  final int threshold;
+  final bool earned;
+
+  @override
+  Widget build(BuildContext context) {
+    final nd = context.nd;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: earned ? nd.accent : Colors.transparent,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: earned ? nd.accent : nd.border),
+      ),
+      child: Text(
+        earned ? '🏅 $threshold' : '🔒 $threshold',
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          color: earned ? nd.accentFg : nd.text2,
+        ),
+      ),
     );
   }
 }

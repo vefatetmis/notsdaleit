@@ -2030,6 +2030,17 @@ class $RoutinesTable extends Routines with TableInfo<$RoutinesTable, Routine> {
     requiredDuringInsert: false,
     defaultValue: const Constant('1111111'),
   );
+  static const VerificationMeta _remindAtMeta = const VerificationMeta(
+    'remindAt',
+  );
+  @override
+  late final GeneratedColumn<int> remindAt = GeneratedColumn<int>(
+    'remind_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -2042,7 +2053,7 @@ class $RoutinesTable extends Routines with TableInfo<$RoutinesTable, Routine> {
     requiredDuringInsert: true,
   );
   @override
-  List<GeneratedColumn> get $columns => [id, title, days, createdAt];
+  List<GeneratedColumn> get $columns => [id, title, days, remindAt, createdAt];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -2070,6 +2081,12 @@ class $RoutinesTable extends Routines with TableInfo<$RoutinesTable, Routine> {
       context.handle(
         _daysMeta,
         days.isAcceptableOrUnknown(data['days']!, _daysMeta),
+      );
+    }
+    if (data.containsKey('remind_at')) {
+      context.handle(
+        _remindAtMeta,
+        remindAt.isAcceptableOrUnknown(data['remind_at']!, _remindAtMeta),
       );
     }
     if (data.containsKey('created_at')) {
@@ -2104,6 +2121,10 @@ class $RoutinesTable extends Routines with TableInfo<$RoutinesTable, Routine> {
             DriftSqlType.string,
             data['${effectivePrefix}days'],
           )!,
+      remindAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}remind_at'],
+      ),
       createdAt:
           attachedDatabase.typeMapping.read(
             DriftSqlType.dateTime,
@@ -2122,11 +2143,13 @@ class Routine extends DataClass implements Insertable<Routine> {
   final int id;
   final String title;
   final String days;
+  final int? remindAt;
   final DateTime createdAt;
   const Routine({
     required this.id,
     required this.title,
     required this.days,
+    this.remindAt,
     required this.createdAt,
   });
   @override
@@ -2135,6 +2158,9 @@ class Routine extends DataClass implements Insertable<Routine> {
     map['id'] = Variable<int>(id);
     map['title'] = Variable<String>(title);
     map['days'] = Variable<String>(days);
+    if (!nullToAbsent || remindAt != null) {
+      map['remind_at'] = Variable<int>(remindAt);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -2144,6 +2170,10 @@ class Routine extends DataClass implements Insertable<Routine> {
       id: Value(id),
       title: Value(title),
       days: Value(days),
+      remindAt:
+          remindAt == null && nullToAbsent
+              ? const Value.absent()
+              : Value(remindAt),
       createdAt: Value(createdAt),
     );
   }
@@ -2157,6 +2187,7 @@ class Routine extends DataClass implements Insertable<Routine> {
       id: serializer.fromJson<int>(json['id']),
       title: serializer.fromJson<String>(json['title']),
       days: serializer.fromJson<String>(json['days']),
+      remindAt: serializer.fromJson<int?>(json['remindAt']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -2167,6 +2198,7 @@ class Routine extends DataClass implements Insertable<Routine> {
       'id': serializer.toJson<int>(id),
       'title': serializer.toJson<String>(title),
       'days': serializer.toJson<String>(days),
+      'remindAt': serializer.toJson<int?>(remindAt),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -2175,11 +2207,13 @@ class Routine extends DataClass implements Insertable<Routine> {
     int? id,
     String? title,
     String? days,
+    Value<int?> remindAt = const Value.absent(),
     DateTime? createdAt,
   }) => Routine(
     id: id ?? this.id,
     title: title ?? this.title,
     days: days ?? this.days,
+    remindAt: remindAt.present ? remindAt.value : this.remindAt,
     createdAt: createdAt ?? this.createdAt,
   );
   Routine copyWithCompanion(RoutinesCompanion data) {
@@ -2187,6 +2221,7 @@ class Routine extends DataClass implements Insertable<Routine> {
       id: data.id.present ? data.id.value : this.id,
       title: data.title.present ? data.title.value : this.title,
       days: data.days.present ? data.days.value : this.days,
+      remindAt: data.remindAt.present ? data.remindAt.value : this.remindAt,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -2197,13 +2232,14 @@ class Routine extends DataClass implements Insertable<Routine> {
           ..write('id: $id, ')
           ..write('title: $title, ')
           ..write('days: $days, ')
+          ..write('remindAt: $remindAt, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, title, days, createdAt);
+  int get hashCode => Object.hash(id, title, days, remindAt, createdAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2211,6 +2247,7 @@ class Routine extends DataClass implements Insertable<Routine> {
           other.id == this.id &&
           other.title == this.title &&
           other.days == this.days &&
+          other.remindAt == this.remindAt &&
           other.createdAt == this.createdAt);
 }
 
@@ -2218,17 +2255,20 @@ class RoutinesCompanion extends UpdateCompanion<Routine> {
   final Value<int> id;
   final Value<String> title;
   final Value<String> days;
+  final Value<int?> remindAt;
   final Value<DateTime> createdAt;
   const RoutinesCompanion({
     this.id = const Value.absent(),
     this.title = const Value.absent(),
     this.days = const Value.absent(),
+    this.remindAt = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
   RoutinesCompanion.insert({
     this.id = const Value.absent(),
     required String title,
     this.days = const Value.absent(),
+    this.remindAt = const Value.absent(),
     required DateTime createdAt,
   }) : title = Value(title),
        createdAt = Value(createdAt);
@@ -2236,12 +2276,14 @@ class RoutinesCompanion extends UpdateCompanion<Routine> {
     Expression<int>? id,
     Expression<String>? title,
     Expression<String>? days,
+    Expression<int>? remindAt,
     Expression<DateTime>? createdAt,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (title != null) 'title': title,
       if (days != null) 'days': days,
+      if (remindAt != null) 'remind_at': remindAt,
       if (createdAt != null) 'created_at': createdAt,
     });
   }
@@ -2250,12 +2292,14 @@ class RoutinesCompanion extends UpdateCompanion<Routine> {
     Value<int>? id,
     Value<String>? title,
     Value<String>? days,
+    Value<int?>? remindAt,
     Value<DateTime>? createdAt,
   }) {
     return RoutinesCompanion(
       id: id ?? this.id,
       title: title ?? this.title,
       days: days ?? this.days,
+      remindAt: remindAt ?? this.remindAt,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -2272,6 +2316,9 @@ class RoutinesCompanion extends UpdateCompanion<Routine> {
     if (days.present) {
       map['days'] = Variable<String>(days.value);
     }
+    if (remindAt.present) {
+      map['remind_at'] = Variable<int>(remindAt.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -2284,6 +2331,7 @@ class RoutinesCompanion extends UpdateCompanion<Routine> {
           ..write('id: $id, ')
           ..write('title: $title, ')
           ..write('days: $days, ')
+          ..write('remindAt: $remindAt, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -2595,6 +2643,253 @@ class RoutineChecksCompanion extends UpdateCompanion<RoutineCheck> {
   }
 }
 
+class $FoldersTable extends Folders with TableInfo<$FoldersTable, Folder> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $FoldersTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, name, createdAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'folders';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Folder> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Folder map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Folder(
+      id:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.int,
+            data['${effectivePrefix}id'],
+          )!,
+      name:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}name'],
+          )!,
+      createdAt:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.dateTime,
+            data['${effectivePrefix}created_at'],
+          )!,
+    );
+  }
+
+  @override
+  $FoldersTable createAlias(String alias) {
+    return $FoldersTable(attachedDatabase, alias);
+  }
+}
+
+class Folder extends DataClass implements Insertable<Folder> {
+  final int id;
+  final String name;
+  final DateTime createdAt;
+  const Folder({required this.id, required this.name, required this.createdAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['name'] = Variable<String>(name);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  FoldersCompanion toCompanion(bool nullToAbsent) {
+    return FoldersCompanion(
+      id: Value(id),
+      name: Value(name),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory Folder.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Folder(
+      id: serializer.fromJson<int>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'name': serializer.toJson<String>(name),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  Folder copyWith({int? id, String? name, DateTime? createdAt}) => Folder(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  Folder copyWithCompanion(FoldersCompanion data) {
+    return Folder(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Folder(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, name, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Folder &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.createdAt == this.createdAt);
+}
+
+class FoldersCompanion extends UpdateCompanion<Folder> {
+  final Value<int> id;
+  final Value<String> name;
+  final Value<DateTime> createdAt;
+  const FoldersCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  FoldersCompanion.insert({
+    this.id = const Value.absent(),
+    required String name,
+    required DateTime createdAt,
+  }) : name = Value(name),
+       createdAt = Value(createdAt);
+  static Insertable<Folder> custom({
+    Expression<int>? id,
+    Expression<String>? name,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  FoldersCompanion copyWith({
+    Value<int>? id,
+    Value<String>? name,
+    Value<DateTime>? createdAt,
+  }) {
+    return FoldersCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FoldersCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2604,6 +2899,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $DayNotesTable dayNotes = $DayNotesTable(this);
   late final $RoutinesTable routines = $RoutinesTable(this);
   late final $RoutineChecksTable routineChecks = $RoutineChecksTable(this);
+  late final $FoldersTable folders = $FoldersTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2615,6 +2911,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     dayNotes,
     routines,
     routineChecks,
+    folders,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -3868,6 +4165,7 @@ typedef $$RoutinesTableCreateCompanionBuilder =
       Value<int> id,
       required String title,
       Value<String> days,
+      Value<int?> remindAt,
       required DateTime createdAt,
     });
 typedef $$RoutinesTableUpdateCompanionBuilder =
@@ -3875,6 +4173,7 @@ typedef $$RoutinesTableUpdateCompanionBuilder =
       Value<int> id,
       Value<String> title,
       Value<String> days,
+      Value<int?> remindAt,
       Value<DateTime> createdAt,
     });
 
@@ -3922,6 +4221,11 @@ class $$RoutinesTableFilterComposer
 
   ColumnFilters<String> get days => $composableBuilder(
     column: $table.days,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get remindAt => $composableBuilder(
+    column: $table.remindAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3980,6 +4284,11 @@ class $$RoutinesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get remindAt => $composableBuilder(
+    column: $table.remindAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -4003,6 +4312,9 @@ class $$RoutinesTableAnnotationComposer
 
   GeneratedColumn<String> get days =>
       $composableBuilder(column: $table.days, builder: (column) => column);
+
+  GeneratedColumn<int> get remindAt =>
+      $composableBuilder(column: $table.remindAt, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -4064,11 +4376,13 @@ class $$RoutinesTableTableManager
                 Value<int> id = const Value.absent(),
                 Value<String> title = const Value.absent(),
                 Value<String> days = const Value.absent(),
+                Value<int?> remindAt = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => RoutinesCompanion(
                 id: id,
                 title: title,
                 days: days,
+                remindAt: remindAt,
                 createdAt: createdAt,
               ),
           createCompanionCallback:
@@ -4076,11 +4390,13 @@ class $$RoutinesTableTableManager
                 Value<int> id = const Value.absent(),
                 required String title,
                 Value<String> days = const Value.absent(),
+                Value<int?> remindAt = const Value.absent(),
                 required DateTime createdAt,
               }) => RoutinesCompanion.insert(
                 id: id,
                 title: title,
                 days: days,
+                remindAt: remindAt,
                 createdAt: createdAt,
               ),
           withReferenceMapper:
@@ -4450,6 +4766,159 @@ typedef $$RoutineChecksTableProcessedTableManager =
       RoutineCheck,
       PrefetchHooks Function({bool routineId})
     >;
+typedef $$FoldersTableCreateCompanionBuilder =
+    FoldersCompanion Function({
+      Value<int> id,
+      required String name,
+      required DateTime createdAt,
+    });
+typedef $$FoldersTableUpdateCompanionBuilder =
+    FoldersCompanion Function({
+      Value<int> id,
+      Value<String> name,
+      Value<DateTime> createdAt,
+    });
+
+class $$FoldersTableFilterComposer
+    extends Composer<_$AppDatabase, $FoldersTable> {
+  $$FoldersTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$FoldersTableOrderingComposer
+    extends Composer<_$AppDatabase, $FoldersTable> {
+  $$FoldersTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$FoldersTableAnnotationComposer
+    extends Composer<_$AppDatabase, $FoldersTable> {
+  $$FoldersTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$FoldersTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $FoldersTable,
+          Folder,
+          $$FoldersTableFilterComposer,
+          $$FoldersTableOrderingComposer,
+          $$FoldersTableAnnotationComposer,
+          $$FoldersTableCreateCompanionBuilder,
+          $$FoldersTableUpdateCompanionBuilder,
+          (Folder, BaseReferences<_$AppDatabase, $FoldersTable, Folder>),
+          Folder,
+          PrefetchHooks Function()
+        > {
+  $$FoldersTableTableManager(_$AppDatabase db, $FoldersTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer:
+              () => $$FoldersTableFilterComposer($db: db, $table: table),
+          createOrderingComposer:
+              () => $$FoldersTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer:
+              () => $$FoldersTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => FoldersCompanion(id: id, name: name, createdAt: createdAt),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String name,
+                required DateTime createdAt,
+              }) => FoldersCompanion.insert(
+                id: id,
+                name: name,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper:
+              (p0) =>
+                  p0
+                      .map(
+                        (e) => (
+                          e.readTable(table),
+                          BaseReferences(db, table, e),
+                        ),
+                      )
+                      .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$FoldersTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $FoldersTable,
+      Folder,
+      $$FoldersTableFilterComposer,
+      $$FoldersTableOrderingComposer,
+      $$FoldersTableAnnotationComposer,
+      $$FoldersTableCreateCompanionBuilder,
+      $$FoldersTableUpdateCompanionBuilder,
+      (Folder, BaseReferences<_$AppDatabase, $FoldersTable, Folder>),
+      Folder,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -4466,4 +4935,6 @@ class $AppDatabaseManager {
       $$RoutinesTableTableManager(_db, _db.routines);
   $$RoutineChecksTableTableManager get routineChecks =>
       $$RoutineChecksTableTableManager(_db, _db.routineChecks);
+  $$FoldersTableTableManager get folders =>
+      $$FoldersTableTableManager(_db, _db.folders);
 }

@@ -529,6 +529,7 @@ class _TopBar extends ConsumerWidget {
                 if (v == 'pdf') exportDocumentAsPdf(ref, activeDoc);
                 if (v == 'ntdl') exportNtdl(ref, activeDoc);
                 if (v == 'live') shareLive(context, ref, activeDoc);
+                if (v == 'unshare') stopLive(context, ref, activeDoc);
               },
               itemBuilder: (context) => [
                 if (CollabConfig.enabled && activeDoc.type == 'not')
@@ -537,6 +538,11 @@ class _TopBar extends ConsumerWidget {
                       child: Text(activeDoc.sharedId == null
                           ? context.t('Canlı paylaş', 'Share live')
                           : context.t('Paylaşım kodu', 'Share code'))),
+                if (CollabConfig.enabled && activeDoc.sharedId != null)
+                  PopupMenuItem(
+                      value: 'unshare',
+                      child: Text(context.t(
+                          'Canlı paylaşımı durdur', 'Stop live sharing'))),
                 PopupMenuItem(
                     value: 'pdf',
                     child: Text(context.t('PDF olarak paylaş', 'Share as PDF'))),

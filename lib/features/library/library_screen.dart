@@ -7,6 +7,7 @@ import '../../core/utils/date_format.dart';
 import '../../core/utils/note_text.dart';
 import '../../data/data_providers.dart';
 import '../../data/database/database.dart';
+import '../folders/move_to_folder.dart';
 import '../shell/actions.dart';
 import '../shell/shell_state.dart';
 import '../shared/empty_state.dart';
@@ -306,6 +307,11 @@ class _SelectionBar extends ConsumerWidget {
           style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
         ),
         const Spacer(),
+        IconButton(
+          icon: Icon(Icons.drive_file_move_outlined, size: 20, color: nd.text),
+          tooltip: context.t('Klasöre taşı', 'Move to folder'),
+          onPressed: () => showMoveToFolderDialog(context, ref, selection),
+        ),
         IconButton(
           icon: Icon(Icons.delete_outline, size: 20, color: nd.text),
           tooltip: context.t('Sil', 'Delete'),

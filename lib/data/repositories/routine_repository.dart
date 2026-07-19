@@ -30,6 +30,13 @@ class RoutineRepository {
   Future<void> delete(int id) =>
       (_db.delete(_db.routines)..where((t) => t.id.equals(id))).go();
 
+  /// Rutinin bildirim saatini ayarlar: [minutes] gece yarısından dakika, null
+  /// ise hatırlatıcıyı kaldırır.
+  Future<void> setRemindAt({required int id, required int? minutes}) {
+    return (_db.update(_db.routines)..where((t) => t.id.equals(id)))
+        .write(RoutinesCompanion(remindAt: Value(minutes)));
+  }
+
   /// Bir günün işaretini değiştirir: varsa kaldırır, yoksa ekler.
   /// [day] gün hassasiyetine indirgenir (00:00).
   Future<void> toggle({required int routineId, required DateTime day}) async {

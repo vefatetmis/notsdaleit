@@ -71,6 +71,18 @@ class Routines extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get title => text()();
   TextColumn get days => text().withDefault(const Constant('1111111'))();
+  // Bildirim saati: gece yarısından itibaren dakika (0..1439). Null ise
+  // hatırlatıcı yok. Seçili her gün için o saatte bildirim planlanır.
+  IntColumn get remindAt => integer().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+}
+
+/// Kalıcı klasörler. Belgelerin `folder` alanından türeyen klasörlere ek
+/// olarak, kullanıcının oluşturduğu (henüz belgesi olmayan) boş klasörler de
+/// yaşasın diye ayrı tabloda tutulur.
+class Folders extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text().unique()();
   DateTimeColumn get createdAt => dateTime()();
 }
 
@@ -84,15 +96,22 @@ class RoutineChecks extends Table {
   DateTimeColumn get createdAt => dateTime()();
 }
 
-@DriftDatabase(
-    tables: [Documents, Strokes, Tasks, DayNotes, Routines, RoutineChecks])
+@DriftDatabase(tables: [
+  Documents,
+  Strokes,
+  Tasks,
+  DayNotes,
+  Routines,
+  RoutineChecks,
+  Folders,
+])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -118,6 +137,10 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(documents, documents.sharedId);
             await m.addColumn(documents, documents.shareCode);
             await m.addColumn(strokes, strokes.remoteId);
+          }
+          if (from < 8) {
+            await m.addColumn(routines, routines.remindAt);
+            await m.createTable(folders);
           }
         },
         beforeOpen: (details) async {

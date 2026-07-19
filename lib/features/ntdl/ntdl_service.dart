@@ -93,7 +93,7 @@ Future<void> importNtdlFromPath(WidgetRef ref, String srcPath) async {
     );
   }
 
-  ref.read(toolProvider.notifier).state = PenTool.el;
+  ref.read(toolProvider.notifier).state = PenTool.yazi;
   ref.read(zoomProvider.notifier).state = 1.0;
   ref.read(navProvider.notifier).openDoc(id, isPdf: false);
 }

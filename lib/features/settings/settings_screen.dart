@@ -5,6 +5,7 @@ import '../../core/i18n/i18n.dart';
 import '../../core/theme/nd_colors.dart';
 import '../drawing/color_picker.dart';
 import '../drawing/drawing_state.dart';
+import '../routines/streaks.dart';
 import '../shell/shell_state.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -20,6 +21,7 @@ class SettingsScreen extends ConsumerWidget {
     final palette = ref.watch(penPaletteProvider);
     final sizeIndex = ref.watch(sizeIndexProvider);
     final isEn = ref.watch(localeProvider).languageCode == 'en';
+    final streaksEnabled = ref.watch(streaksEnabledProvider);
 
     return Align(
       alignment: Alignment.topCenter,
@@ -174,6 +176,35 @@ class SettingsScreen extends ConsumerWidget {
                         ],
                       ),
                     ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            _Card(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(context.t('Seri ve rozetler', 'Streaks & badges'),
+                            style: const TextStyle(fontSize: 14)),
+                        const SizedBox(height: 2),
+                        Text(
+                            context.t(
+                                'Rutinlerde 🔥 seri ve 🏅 rozet göster',
+                                'Show 🔥 streaks and 🏅 badges on routines'),
+                            style:
+                                TextStyle(fontSize: 11.5, color: nd.text2)),
+                      ],
+                    ),
+                  ),
+                  Switch(
+                    value: streaksEnabled,
+                    activeColor: nd.accent,
+                    onChanged: (v) =>
+                        ref.read(streaksEnabledProvider.notifier).set(v),
                   ),
                 ],
               ),

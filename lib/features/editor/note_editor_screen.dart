@@ -65,9 +65,14 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     if (!_loaded) _load();
     _controller.addListener(_scheduleSave);
 
+    // Boş not + yazı modunda açılıyorsa klavye direkt gelsin (yeni not akışı).
+    final emptyOnOpen = _loaded && (doc?.body ?? '').trim().isEmpty;
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        ref.read(activeQuillControllerProvider.notifier).state = _controller;
+      if (!mounted) return;
+      ref.read(activeQuillControllerProvider.notifier).state = _controller;
+      if (emptyOnOpen && ref.read(toolProvider) == PenTool.yazi) {
+        _focus.requestFocus();
       }
     });
   }
@@ -179,6 +184,14 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     ref.watch(collabSessionProvider);
     ref.listen(remoteNoteUpdateProvider, (_, next) {
       if (next != null) _applyRemoteUpdate(next);
+    });
+    // Paylaşım sona erdiyse (sahibi durdurdu) tek seferlik bilgilendir.
+    ref.listen(collabEndedProvider, (prev, next) {
+      if (prev != null && next != prev && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(context.t(
+                'Canlı paylaşım sonlandırıldı', 'Live sharing ended'))));
+      }
     });
 
     final doc = ref.watch(activeDocumentProvider);

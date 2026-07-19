@@ -149,6 +149,7 @@ class _FolderTile extends ConsumerWidget {
           .read(documentRepositoryProvider)
           .reassignFolder(from: name, to: 'Kişisel');
     }
+    await ref.read(folderRepositoryProvider).deleteByName(name);
     ref.read(extraFoldersProvider.notifier).remove(name);
   }
 
@@ -285,7 +286,7 @@ class _NewFolderButton extends ConsumerWidget {
       onTap: () async {
         final name = await _promptName(context);
         if (name != null && name.trim().isNotEmpty) {
-          ref.read(extraFoldersProvider.notifier).add(name.trim());
+          await ref.read(folderRepositoryProvider).add(name.trim());
           ref.read(openFoldersProvider.notifier).open(name.trim());
         }
       },

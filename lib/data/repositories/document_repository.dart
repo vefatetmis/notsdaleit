@@ -48,6 +48,16 @@ class DocumentRepository {
     );
   }
 
+  /// Paylaşımı yereldeki nottan kaldırır (kişisel nota döner). Çizimler kalır.
+  Future<void> clearShared(int id) {
+    return (_db.update(_db.documents)..where((t) => t.id.equals(id))).write(
+      const DocumentsCompanion(
+        sharedId: Value(null),
+        shareCode: Value(null),
+      ),
+    );
+  }
+
   /// Uzaktan gelen not içeriğini yerel belgeye uygular (canlı paylaşım).
   Future<void> applyRemote({
     required int id,
