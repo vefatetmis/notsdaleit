@@ -1,0 +1,9 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <!-- Paralel (dev) sürüm: yalnızca launcher etiketini değiştirir; gerisi
+         src/main manifestinden gelir. Böylece telefonda gerçek uygulamayla
+         yan yana kolayca ayırt edilir. -->
+    <application
+        android:label="notdaleit dev"
+        tools:replace="android:label" />
+</manifest>

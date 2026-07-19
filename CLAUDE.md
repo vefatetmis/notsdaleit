@@ -261,16 +261,48 @@ lib/
 
 ## Sık kullanılan komutlar
 
+> **İKİ FLAVOR (prod/dev) → her build/run'a `--flavor` ZORUNLU.** Flavor'sız
+> `flutter build apk` artık hata verir. Ayrıntı: aşağıdaki "Paralel (dev) APK".
+
 ```bash
 flutter pub get
 # Documents/Strokes tablolarını değiştirdikten sonra ÇALIŞTIR:
 dart run build_runner build
 flutter analyze
-# Release APK (çıktı: build/app/outputs/flutter-apk/app-release.apk):
-flutter build apk --release
-# Play Store için imzalı App Bundle (çıktı: build/app/outputs/bundle/release/app-release.aab):
-flutter build appbundle --release
+
+# ── PARALEL (dev) SÜRÜM — günlük geliştirme/test buradan ──
+# Kurulabilir dev APK (çıktı: build/app/outputs/flutter-apk/app-dev-release.apk):
+flutter build apk --release --flavor dev
+# Cihaza takıp çalıştırma / sıcak yeniden yükleme:
+flutter run --flavor dev
+
+# ── PROD SÜRÜM — sadece Play'e yükleme anında ──
+# Release APK (çıktı: build/app/outputs/flutter-apk/app-prod-release.apk):
+flutter build apk --release --flavor prod
+# Play için imzalı App Bundle
+# (çıktı: build/app/outputs/bundle/prodRelease/app-prod-release.aab):
+flutter build appbundle --release --flavor prod
 ```
+
+### Paralel (dev) APK — geliştirme akışı
+
+Play kanalı (kapalı test / üretim) ve günlük geliştirme birbirini bozmasın diye
+**iki Android flavor** var (`app/build.gradle.kts`, `flavorDimensions "track"`):
+
+- **prod** → applicationId `com.bronzecloud.notsdaleit` (bugünküyle **birebir
+  aynı**; Play'e giden tek sürüm). Manifest/etiket `src/main`'den.
+- **dev** → applicationId `com.bronzecloud.notsdaleit.dev`, versionName sonuna
+  `-dev`, launcher adı **"notdaleit dev"** (`src/dev/AndroidManifest.xml` sadece
+  `android:label`'ı override eder). Farklı applicationId sayesinde gerçek
+  uygulamanın **yanına** kurulur, üstüne yazmaz; Play'e **asla** yüklenmez.
+  Eklenti FileProvider'ları `${applicationId}` kullandığından dev sağlayıcıları
+  otomatik `...dev.*` olur → prod ile çakışmaz.
+
+**İş akışı (kullanıcı kararı):** bundan sonraki tüm geliştirme **dev APK**
+üzerinden yapılır; biriktirilen özellikler kapalı testten geçince **prod** AAB
+tek seferde yayınlanır. Yani prod'a dokunmadan istediğin kadar dev sürüm
+denenir. Yeni sürümü kullanıcıya verirken: `flutter build apk --release
+--flavor dev` → `build/app/outputs/flutter-apk/app-dev-release.apk`.
 
 ### Ekran görüntüsü demosu (KALDIRILDI — gerekirse geri getirilebilir)
 
@@ -282,9 +314,12 @@ Kullanımı: bayrak true + gradle applicationId'ye ".demo" eki + manifest label
 
 ### Yayın / imzalama
 
-- **applicationId:** `com.bronzecloud.notsdaleit`. **Sürüm:** pubspec `version`
-  (`1.0.0+1` → versionName 1.0.0, versionCode 1). Her Play yüklemesinde
-  **versionCode artırılmalı** (pubspec `+2`, `+3`…).
+- **applicationId:** `com.bronzecloud.notsdaleit` (yalnızca **prod** flavor;
+  dev flavor `.dev` ekiyle ayrı kurulur, Play'e gitmez). **Sürüm:** pubspec
+  `version` (`1.0.0+1` → versionName 1.0.0, versionCode 1). Her Play
+  yüklemesinde **versionCode artırılmalı** (pubspec `+2`, `+3`…).
+- **Play'e yüklenecek AAB:** her zaman `flutter build appbundle --release
+  --flavor prod` (flavor'sız komut artık çalışmaz).
 - **İmza:** `android/upload-keystore.jks` (alias `upload`), şifreler
   `android/key.properties`'te. `app/build.gradle.kts` bu dosyayı okuyup release'i
   imzalar; `key.properties` yoksa debug'a düşer. **Bu iki dosya gizli + kritik:**

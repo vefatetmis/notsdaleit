@@ -43,6 +43,24 @@ android {
         versionName = flutter.versionName
     }
 
+    // İki paralel kanal. "prod" = Play'e giden sürüm (applicationId aynen
+    // com.bronzecloud.notsdaleit kalır). "dev" = geliştirme/paralel sürüm:
+    // farklı applicationId (.dev) ile GERÇEK uygulamanın YANINA kurulur,
+    // üstüne yazmaz; Play'e ASLA yüklenmez. Etiketi src/dev manifestinde
+    // "notdaleit dev" olarak override edilir. Flavor eklendiği için artık her
+    // flutter build/run komutuna --flavor prod|dev vermek ZORUNLU.
+    flavorDimensions += "track"
+    productFlavors {
+        create("prod") {
+            dimension = "track"
+        }
+        create("dev") {
+            dimension = "track"
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-dev"
+        }
+    }
+
     signingConfigs {
         create("release") {
             if (keystorePropertiesFile.exists()) {
