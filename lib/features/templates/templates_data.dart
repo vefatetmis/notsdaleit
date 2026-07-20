@@ -3,8 +3,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 
 /// Uygulamaya gömülü hazır not şablonları. Her şablon bir başlangıç metni
-/// (Quill Delta ops JSON'u) + sayfa boyutu + kağıt rengi taşır. Kullanıcının
-/// kendi kaydettikleri ("Şablonlarım") ayrı olarak Templates tablosundadır.
+/// (Quill Delta ops JSON'u) + sayfa boyutu + kağıt rengi + sayfa deseni taşır.
+/// İçerik ve düzen, Claude Design "Not Şablonları" handoff'una göre kurulmuştur
+/// (pragmatik: metin + bölüm etiketi + kutucuk + çizgili/noktalı arka plan;
+/// gerçek ızgara/2-kolon düzen editör tablo bloğu gelince tam yapılacak).
 
 /// Şablon kategorileri (yeni not diyaloğundaki sekmeler). 'benim' sekmesi
 /// kullanıcı şablonları içindir ve buradaki gömülü listede yer almaz.
@@ -33,6 +35,7 @@ class NoteTemplate {
     required this.icon,
     required this.pageSize,
     required this.pageColor,
+    required this.pageBackground,
     required this.buildBody,
   });
 
@@ -43,6 +46,7 @@ class NoteTemplate {
   final IconData icon;
   final String pageSize;
   final String pageColor;
+  final String pageBackground;
   final String Function(bool en) buildBody;
 
   String name(bool en) => en ? this.en : tr;
@@ -52,7 +56,8 @@ class NoteTemplate {
 /// Delta (Quill ops) gövdesi kurmak için küçük yardımcı. Blok öznitelikleri
 /// (list) satır sonundaki '\n' üzerinde taşınır; satır-içi öznitelikler
 /// (bold/size) metin parçası üzerinde. Editör ve PDF export'un ikisi de
-/// bold/size/list('bullet'|'checked'|'unchecked') render eder.
+/// bold/size/list('bullet'|'checked'|'unchecked') render eder. Renk özniteliği
+/// kullanılmaz → yazı rengi kâğıda göre otomatik ayarlanır (siyah kâğıtta beyaz).
 class _Delta {
   final List<Map<String, dynamic>> _ops = [];
 
@@ -70,13 +75,21 @@ class _Delta {
     });
   }
 
+  /// Büyük başlık.
   void title(String s) {
-    _run(s, {'bold': true, 'size': '28'});
+    _run(s, {'bold': true, 'size': '22'});
     _nl();
   }
 
+  /// Orta başlık (bölüm başlığı).
   void heading(String s) {
-    _run(s, {'bold': true, 'size': '22'});
+    _run(s, {'bold': true, 'size': '18'});
+    _nl();
+  }
+
+  /// Küçük büyük-harf bölüm etiketi (design'daki "BUGÜN", "PROGRAM" gibi).
+  void label(String s) {
+    _run(s.toUpperCase(), {'bold': true, 'size': '12'});
     _nl();
   }
 
@@ -106,7 +119,8 @@ String _delta(void Function(_Delta b) build) {
   return b.encode();
 }
 
-/// Tüm gömülü hazır şablonlar.
+/// Tüm gömülü hazır şablonlar (kategoriler design ile birebir: Temel 1 + Boş
+/// sayfa tile'ı, Yazı 2, Planlar 3, İş ve Eğitim 3).
 const List<NoteTemplate> kBuiltInTemplates = [
   // ── Temel ──────────────────────────────────────────────────────────
   NoteTemplate(
@@ -117,17 +131,8 @@ const List<NoteTemplate> kBuiltInTemplates = [
     icon: Icons.checklist_rounded,
     pageSize: 'a4',
     pageColor: 'beyaz',
+    pageBackground: 'duz',
     buildBody: _todoBody,
-  ),
-  NoteTemplate(
-    id: 'simple',
-    category: 'temel',
-    tr: 'Basit not',
-    en: 'Simple note',
-    icon: Icons.notes_rounded,
-    pageSize: 'a4',
-    pageColor: 'beyaz',
-    buildBody: _simpleBody,
   ),
   // ── Yazı ───────────────────────────────────────────────────────────
   NoteTemplate(
@@ -138,6 +143,7 @@ const List<NoteTemplate> kBuiltInTemplates = [
     icon: Icons.auto_stories_rounded,
     pageSize: 'a4',
     pageColor: 'sari',
+    pageBackground: 'cizgili',
     buildBody: _journalBody,
   ),
   NoteTemplate(
@@ -148,6 +154,7 @@ const List<NoteTemplate> kBuiltInTemplates = [
     icon: Icons.lightbulb_outline_rounded,
     pageSize: 'a4',
     pageColor: 'beyaz',
+    pageBackground: 'noktali',
     buildBody: _ideaBody,
   ),
   // ── Planlar ────────────────────────────────────────────────────────
@@ -159,6 +166,7 @@ const List<NoteTemplate> kBuiltInTemplates = [
     icon: Icons.today_rounded,
     pageSize: 'a4',
     pageColor: 'beyaz',
+    pageBackground: 'duz',
     buildBody: _dailyBody,
   ),
   NoteTemplate(
@@ -169,6 +177,7 @@ const List<NoteTemplate> kBuiltInTemplates = [
     icon: Icons.view_week_rounded,
     pageSize: 'yatay',
     pageColor: 'beyaz',
+    pageBackground: 'duz',
     buildBody: _weeklyBody,
   ),
   NoteTemplate(
@@ -179,6 +188,7 @@ const List<NoteTemplate> kBuiltInTemplates = [
     icon: Icons.shopping_cart_outlined,
     pageSize: 'telefon',
     pageColor: 'beyaz',
+    pageBackground: 'duz',
     buildBody: _shoppingBody,
   ),
   // ── İş ve Eğitim ───────────────────────────────────────────────────
@@ -190,6 +200,7 @@ const List<NoteTemplate> kBuiltInTemplates = [
     icon: Icons.groups_outlined,
     pageSize: 'a4',
     pageColor: 'beyaz',
+    pageBackground: 'cizgili',
     buildBody: _meetingBody,
   ),
   NoteTemplate(
@@ -200,6 +211,7 @@ const List<NoteTemplate> kBuiltInTemplates = [
     icon: Icons.school_outlined,
     pageSize: 'a4',
     pageColor: 'beyaz',
+    pageBackground: 'cizgili',
     buildBody: _cornellBody,
   ),
   NoteTemplate(
@@ -210,6 +222,7 @@ const List<NoteTemplate> kBuiltInTemplates = [
     icon: Icons.task_alt_rounded,
     pageSize: 'a4',
     pageColor: 'beyaz',
+    pageBackground: 'duz',
     buildBody: _projectBody,
   ),
 ];
@@ -219,23 +232,23 @@ const List<NoteTemplate> kBuiltInTemplates = [
 String _todoBody(bool en) => _delta((b) {
       b.title(en ? 'To-do' : 'Yapılacaklar');
       b.blank();
-      b.check(en ? 'First task' : 'İlk görev');
-      b.check(en ? 'Second task' : 'İkinci görev');
-      b.check(en ? 'Third task' : 'Üçüncü görev');
-    });
-
-String _simpleBody(bool en) => _delta((b) {
-      b.title(en ? 'Title' : 'Başlık');
-      b.blank();
-      b.para(en ? 'Start writing here…' : 'Buraya yazmaya başlayın…');
+      b.label(en ? 'Today' : 'Bugün');
+      b.check('');
+      b.check('');
+      b.check('');
+      b.check('');
+      b.check('');
+      b.check('');
     });
 
 String _journalBody(bool en) => _delta((b) {
-      b.title(en ? 'Dear diary' : 'Sevgili günlük');
+      b.label(en ? 'Journal' : 'Günlük');
+      b.title(en ? 'Today' : 'Bugün');
       b.para(en ? 'Date: ____ / ____ / ______' : 'Tarih: ____ / ____ / ______');
       b.blank();
       b.heading(en ? 'How I feel today' : 'Bugün nasıl hissediyorum');
-      b.para(en ? 'Write here…' : 'Buraya yazın…');
+      b.para('');
+      b.para('');
       b.blank();
       b.heading(en ? 'Grateful for' : 'Şükrettiklerim');
       b.bullet('');
@@ -245,48 +258,73 @@ String _journalBody(bool en) => _delta((b) {
 String _ideaBody(bool en) => _delta((b) {
       b.title(en ? 'Idea' : 'Fikir');
       b.blank();
-      b.heading(en ? 'What is it?' : 'Nedir?');
-      b.para(en ? 'Describe the idea…' : 'Fikri anlatın…');
+      b.label(en ? 'In one sentence' : 'Tek cümlede');
+      b.para(en ? 'What does this idea do?' : 'Bu fikir ne yapıyor?');
       b.blank();
-      b.heading(en ? 'Next steps' : 'Sonraki adımlar');
-      b.check(en ? 'Step one' : 'Birinci adım');
-      b.check(en ? 'Step two' : 'İkinci adım');
+      b.label(en ? 'Why it matters' : 'Neden önemli');
+      b.para('');
+      b.para('');
+      b.blank();
+      b.label(en ? 'Next steps' : 'Sonraki adımlar');
+      b.check('');
+      b.check('');
     });
 
 String _dailyBody(bool en) => _delta((b) {
-      b.title(en ? 'Daily plan' : 'Günlük plan');
-      b.para(en ? 'Date: ____ / ____ / ______' : 'Tarih: ____ / ____ / ______');
+      b.title(en ? 'Daily Plan' : 'Günlük Plan');
+      b.para(en ? 'Date: ______' : 'Tarih: ______');
       b.blank();
-      b.heading(en ? 'Top 3 priorities' : 'Öncelikli 3 iş');
+      b.label(en ? 'Top 3 priorities' : 'İlk 3 öncelik');
       b.check('');
       b.check('');
       b.check('');
       b.blank();
-      b.heading(en ? 'Schedule' : 'Program');
-      b.bullet(en ? '09:00 · ' : '09:00 · ');
-      b.bullet(en ? '12:00 · ' : '12:00 · ');
-      b.bullet(en ? '15:00 · ' : '15:00 · ');
-      b.bullet(en ? '18:00 · ' : '18:00 · ');
-      b.blank();
-      b.heading(en ? 'Notes' : 'Notlar');
-      b.para('');
+      b.label(en ? 'Schedule' : 'Program');
+      for (final h in [
+        '07:00',
+        '08:00',
+        '09:00',
+        '10:00',
+        '11:00',
+        '12:00',
+        '13:00',
+        '14:00',
+        '15:00',
+        '16:00',
+        '17:00',
+        '18:00'
+      ]) {
+        b.para('$h · ');
+      }
     });
 
 String _weeklyBody(bool en) => _delta((b) {
-      b.title(en ? 'Weekly plan' : 'Haftalık plan');
+      b.title(en ? 'Weekly Plan' : 'Haftalık Plan');
+      b.para(en ? 'Week: ______   ·   Goal: ______'
+          : 'Hafta: ______   ·   Hedef: ______');
       b.blank();
       final days = en
-          ? ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Weekend']
+          ? [
+              'Monday',
+              'Tuesday',
+              'Wednesday',
+              'Thursday',
+              'Friday',
+              'Saturday',
+              'Sunday'
+            ]
           : [
               'Pazartesi',
               'Salı',
               'Çarşamba',
               'Perşembe',
               'Cuma',
-              'Hafta sonu'
+              'Cumartesi',
+              'Pazar'
             ];
       for (final d in days) {
         b.heading(d);
+        b.check('');
         b.check('');
         b.blank();
       }
@@ -295,58 +333,75 @@ String _weeklyBody(bool en) => _delta((b) {
 String _shoppingBody(bool en) => _delta((b) {
       b.title(en ? 'Shopping' : 'Alışveriş');
       b.blank();
+      b.label(en ? 'Fruit & veg' : 'Meyve & sebze');
       b.check('');
       b.check('');
       b.check('');
+      b.blank();
+      b.label(en ? 'Dairy & breakfast' : 'Süt & kahvaltı');
       b.check('');
+      b.check('');
+      b.check('');
+      b.blank();
+      b.label(en ? 'Other' : 'Diğer');
       b.check('');
       b.check('');
     });
 
 String _meetingBody(bool en) => _delta((b) {
-      b.title(en ? 'Meeting notes' : 'Toplantı notu');
-      b.para(en ? 'Date: ______   ·   Attendees: ______'
-          : 'Tarih: ______   ·   Katılımcılar: ______');
+      b.title(en ? 'Meeting Notes' : 'Toplantı Notu');
+      b.para(en ? 'Date: ______   ·   Time: ______'
+          : 'Tarih: ______   ·   Saat: ______');
+      b.para(en ? 'Attendees: ______' : 'Katılımcılar: ______');
+      b.para(en ? 'Subject: ______' : 'Konu: ______');
       b.blank();
-      b.heading(en ? 'Agenda' : 'Gündem');
-      b.bullet('');
-      b.bullet('');
+      b.label(en ? 'Agenda' : 'Gündem');
+      b.para('1. ');
+      b.para('2. ');
+      b.para('3. ');
       b.blank();
-      b.heading(en ? 'Decisions' : 'Kararlar');
-      b.bullet('');
+      b.label(en ? 'Notes & decisions' : 'Notlar & kararlar');
+      b.para('');
+      b.para('');
       b.blank();
-      b.heading(en ? 'Action items' : 'Yapılacaklar');
+      b.label(en ? 'Action items' : 'Aksiyonlar');
       b.check('');
       b.check('');
     });
 
 String _cornellBody(bool en) => _delta((b) {
-      b.title(en ? 'Cornell notes' : 'Cornell notu');
+      b.title(en ? 'Cornell Notes' : 'Cornell Notu');
       b.para(en ? 'Topic: ______   ·   Date: ______'
-          : 'Konu: ______   ·   Tarih: ______');
+          : 'Ders/Konu: ______   ·   Tarih: ______');
       b.blank();
-      b.heading(en ? 'Cues / Questions' : 'İpuçları / Sorular');
+      b.label(en ? 'Cues / Questions' : 'Sorular / İpuçları');
+      b.bullet('');
       b.bullet('');
       b.blank();
-      b.heading(en ? 'Notes' : 'Notlar');
+      b.label(en ? 'Notes' : 'Notlar');
+      b.para('');
       b.para('');
       b.para('');
       b.blank();
-      b.heading(en ? 'Summary' : 'Özet');
+      b.label(en ? 'Summary' : 'Özet');
       b.para('');
     });
 
 String _projectBody(bool en) => _delta((b) {
-      b.title(en ? 'Project' : 'Proje');
+      b.title(en ? 'Project Tasks' : 'Proje Görevleri');
+      b.para(en ? 'Project: ______   ·   Due: ______'
+          : 'Proje: ______   ·   Hedef tarih: ______');
       b.blank();
-      b.heading(en ? 'Goal' : 'Hedef');
-      b.para('');
-      b.blank();
-      b.heading(en ? 'Tasks' : 'Görevler');
+      b.label(en ? 'To do' : 'Yapılacak');
       b.check('');
       b.check('');
       b.check('');
       b.blank();
-      b.heading(en ? 'Blocked' : 'Bekleyenler');
-      b.bullet('');
+      b.label(en ? 'In progress' : 'Devam ediyor');
+      b.check('');
+      b.check('');
+      b.blank();
+      b.label(en ? 'Done' : 'Tamamlandı');
+      b.check('');
+      b.check('');
     });

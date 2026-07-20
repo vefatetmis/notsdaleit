@@ -18,6 +18,9 @@ class Documents extends Table {
   TextColumn get pageSize => text().withDefault(const Constant('serbest'))();
   // Kağıt (sayfa) rengi: 'beyaz' | 'sari' | 'yesil' | 'siyah'.
   TextColumn get pageColor => text().withDefault(const Constant('beyaz'))();
+  // Sayfa arka planı (kâğıt deseni): 'duz' | 'cizgili' | 'kareli' | 'noktali'.
+  TextColumn get pageBackground =>
+      text().withDefault(const Constant('duz'))();
   // Canlı ortak not: Supabase'teki shared_notes.id (uuid). Dolu ise bu not
   // paylaşımlıdır ve açıkken gerçek zamanlı eşitlenir.
   TextColumn get sharedId => text().nullable()();
@@ -95,6 +98,8 @@ class Templates extends Table {
   TextColumn get title => text().withDefault(const Constant(''))();
   TextColumn get pageSize => text().withDefault(const Constant('a4'))();
   TextColumn get pageColor => text().withDefault(const Constant('beyaz'))();
+  TextColumn get pageBackground =>
+      text().withDefault(const Constant('duz'))();
   TextColumn get body => text().withDefault(const Constant(''))();
   // Çizimler: [{page,tool,color,width,points}, ...] JSON dizisi (0..1 normalize).
   TextColumn get strokes => text().withDefault(const Constant('[]'))();
@@ -127,7 +132,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -160,6 +165,10 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 9) {
             await m.createTable(templates);
+          }
+          if (from < 10) {
+            await m.addColumn(documents, documents.pageBackground);
+            await m.addColumn(templates, templates.pageBackground);
           }
         },
         beforeOpen: (details) async {

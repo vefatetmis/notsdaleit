@@ -42,6 +42,7 @@ Future<void> createConfiguredNote(
   required String pageSize,
   required String pageColor,
   required String body,
+  String pageBackground = 'duz',
   String strokesJson = '[]',
 }) async {
   final id = await ref.read(documentRepositoryProvider).insertNote(
@@ -50,6 +51,7 @@ Future<void> createConfiguredNote(
         folder: 'Kişisel',
         pageSize: pageSize,
         pageColor: pageColor,
+        pageBackground: pageBackground,
         pageCount: 1,
       );
 

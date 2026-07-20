@@ -61,6 +61,7 @@ Future<void> exportDocumentAsPdf(WidgetRef ref, Document doc) async {
       pageStrokes,
       // Metin (biçimli) yalnızca ilk sayfaya çizilir.
       body: i == 0 ? doc.body : null,
+      background: doc.pageBackground,
     );
     final memImage = pw.MemoryImage(imageBytes);
     pdf.addPage(
@@ -77,12 +78,14 @@ Future<void> exportDocumentAsPdf(WidgetRef ref, Document doc) async {
   await Printing.sharePdf(bytes: await pdf.save(), filename: filename);
 }
 
-/// Bir sayfayı (beyaz zemin + varsa biçimli metin + çizimler) PNG'ye çizer.
+/// Bir sayfayı (beyaz zemin + kâğıt deseni + varsa biçimli metin + çizimler)
+/// PNG'ye çizer.
 Future<Uint8List> _renderPageImage(
   double w,
   double h,
   List<PenStroke> strokes, {
   String? body,
+  String background = 'duz',
 }) async {
   final recorder = ui.PictureRecorder();
   final canvas = Canvas(recorder);
@@ -94,6 +97,9 @@ Future<Uint8List> _renderPageImage(
     Rect.fromLTWH(0, 0, w, h),
     Paint()..color = const Color(0xFFFFFFFF),
   );
+
+  // Kâğıt deseni (çizgili/kareli/noktalı) — editörle aynı yardımcı.
+  paintPageBackground(canvas, Size(w, h), background, const Color(0xFFE7E5DF));
 
   if (body != null && body.trim().isNotEmpty) {
     final pad = 22.0 * scale;

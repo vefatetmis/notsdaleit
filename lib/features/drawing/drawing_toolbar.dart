@@ -607,6 +607,16 @@ class _PaperButtonState extends ConsumerState<_PaperButton> {
     _remove();
   }
 
+  void _setBg(String id) {
+    final docId = widget.docId;
+    if (docId != null) {
+      ref
+          .read(documentRepositoryProvider)
+          .setPageBackground(id: docId, value: id);
+    }
+    _remove();
+  }
+
   void _open() {
     if (_entry != null) {
       _remove();
@@ -615,6 +625,8 @@ class _PaperButtonState extends ConsumerState<_PaperButton> {
     if (widget.docId == null) return;
     final nd = context.nd;
     final current = ref.read(activeDocumentProvider)?.pageColor ?? 'beyaz';
+    final currentBg =
+        ref.read(activeDocumentProvider)?.pageBackground ?? 'duz';
     _entry = OverlayEntry(
       builder: (context) => Stack(
         children: [
@@ -641,48 +653,90 @@ class _PaperButtonState extends ConsumerState<_PaperButton> {
                   border: Border.all(color: nd.border),
                   boxShadow: nd.shadow,
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    for (final p in kPaperStyles)
-                      InkWell(
-                        onTap: () => _set(p.id),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 10),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 22,
-                                height: 22,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  color: p.background,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: nd.border),
-                                ),
-                                child: Text('A',
-                                    style: TextStyle(
-                                        color: p.text,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w700)),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 420),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        for (final p in kPaperStyles)
+                          InkWell(
+                            onTap: () => _set(p.id),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 10),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 22,
+                                    height: 22,
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                      color: p.background,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: nd.border),
+                                    ),
+                                    child: Text('A',
+                                        style: TextStyle(
+                                            color: p.text,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w700)),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                        context.isEn
+                                            ? _paperLabelEn(p.id)
+                                            : p.label,
+                                        style: TextStyle(
+                                            fontSize: 14, color: nd.text)),
+                                  ),
+                                  if (p.id == current)
+                                    Icon(Icons.check,
+                                        size: 16, color: nd.text),
+                                ],
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                    context.isEn
-                                        ? _paperLabelEn(p.id)
-                                        : p.label,
-                                    style: TextStyle(
-                                        fontSize: 14, color: nd.text)),
-                              ),
-                              if (p.id == current)
-                                Icon(Icons.check, size: 16, color: nd.text),
-                            ],
+                            ),
+                          ),
+                        Divider(height: 1, color: nd.border),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(14, 9, 14, 4),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              context.t('Sayfa deseni', 'Page pattern'),
+                              style: TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: nd.text2),
+                            ),
                           ),
                         ),
-                      ),
-                  ],
+                        for (final b in kPageBackgrounds)
+                          InkWell(
+                            onTap: () => _setBg(b.id),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 10),
+                              child: Row(
+                                children: [
+                                  Icon(b.icon, size: 20, color: nd.text2),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(context.isEn ? b.en : b.tr,
+                                        style: TextStyle(
+                                            fontSize: 14, color: nd.text)),
+                                  ),
+                                  if (b.id == currentBg)
+                                    Icon(Icons.check,
+                                        size: 16, color: nd.text),
+                                ],
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),

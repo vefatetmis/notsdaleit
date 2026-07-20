@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -29,6 +31,7 @@ class _NewNoteDialogState extends ConsumerState<_NewNoteDialog> {
   final _name = TextEditingController();
   String _pageSize = 'a4';
   String _pageColor = 'beyaz';
+  String _pageBackground = 'duz';
   String _category = 'temel';
   // 'blank' | 'builtin:<id>' | 'user:<id>'
   String _selectedKey = 'blank';
@@ -44,6 +47,7 @@ class _NewNoteDialogState extends ConsumerState<_NewNoteDialog> {
       _selectedKey = 'builtin:${t.id}';
       _pageSize = t.pageSize;
       _pageColor = t.pageColor;
+      _pageBackground = t.pageBackground;
     });
   }
 
@@ -52,6 +56,7 @@ class _NewNoteDialogState extends ConsumerState<_NewNoteDialog> {
       _selectedKey = 'user:${t.id}';
       _pageSize = t.pageSize;
       _pageColor = t.pageColor;
+      _pageBackground = t.pageBackground;
     });
   }
 
@@ -84,6 +89,7 @@ class _NewNoteDialogState extends ConsumerState<_NewNoteDialog> {
       title: _name.text.trim(),
       pageSize: _pageSize,
       pageColor: _pageColor,
+      pageBackground: _pageBackground,
       body: body,
       strokesJson: strokes,
     );
@@ -260,13 +266,19 @@ class _NewNoteDialogState extends ConsumerState<_NewNoteDialog> {
   Widget _grid(BuildContext context, bool en) {
     final tiles = <Widget>[];
 
-    // 'Temel' sekmesinde ilk kutu = boş sayfa.
+    // 'Temel' sekmesinde ilk kutu = boş sayfa (o an seçili boyut/renkte).
     if (_category == 'temel') {
       tiles.add(_TemplateTile(
-        icon: Icons.insert_drive_file_outlined,
         label: context.t('Boş sayfa', 'Blank page'),
+        body: '',
+        pageSize: _pageSize,
+        pageColor: _pageColor,
+        pageBackground: 'duz',
         selected: _selectedKey == 'blank',
-        onTap: () => setState(() => _selectedKey = 'blank'),
+        onTap: () => setState(() {
+          _selectedKey = 'blank';
+          _pageBackground = 'duz';
+        }),
       ));
     }
 
@@ -278,8 +290,11 @@ class _NewNoteDialogState extends ConsumerState<_NewNoteDialog> {
       }
       for (final t in userTemplates) {
         tiles.add(_TemplateTile(
-          icon: Icons.bookmark_outline_rounded,
           label: t.title.isEmpty ? context.t('Adsız', 'Untitled') : t.title,
+          body: t.body,
+          pageSize: t.pageSize,
+          pageColor: t.pageColor,
+          pageBackground: t.pageBackground,
           selected: _selectedKey == 'user:${t.id}',
           onTap: () => _selectUser(t),
           onLongPress: () => _deleteUserTemplate(t),
@@ -289,15 +304,18 @@ class _NewNoteDialogState extends ConsumerState<_NewNoteDialog> {
       for (final t
           in kBuiltInTemplates.where((e) => e.category == _category)) {
         tiles.add(_TemplateTile(
-          icon: t.icon,
           label: t.name(en),
+          body: t.body(en),
+          pageSize: t.pageSize,
+          pageColor: t.pageColor,
+          pageBackground: t.pageBackground,
           selected: _selectedKey == 'builtin:${t.id}',
           onTap: () => _selectBuiltIn(t),
         ));
       }
     }
 
-    return Wrap(spacing: 10, runSpacing: 10, children: tiles);
+    return Wrap(spacing: 12, runSpacing: 14, children: tiles);
   }
 
   Widget _emptyMyTemplates(BuildContext context) {
@@ -461,17 +479,25 @@ class _CategoryChip extends StatelessWidget {
   }
 }
 
+/// Şablon kartı: üstte gerçek sayfa önizlemesi (boyut + kâğıt rengi + desen +
+/// içeriğin şematiği), altta ad.
 class _TemplateTile extends StatelessWidget {
   const _TemplateTile({
-    required this.icon,
     required this.label,
+    required this.body,
+    required this.pageSize,
+    required this.pageColor,
+    required this.pageBackground,
     required this.selected,
     required this.onTap,
     this.onLongPress,
   });
 
-  final IconData icon;
   final String label;
+  final String body;
+  final String pageSize;
+  final String pageColor;
+  final String pageBackground;
   final bool selected;
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
@@ -479,27 +505,38 @@ class _TemplateTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final nd = context.nd;
+    const tileW = 132.0;
     return InkWell(
       onTap: onTap,
       onLongPress: onLongPress,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        width: 128,
-        height: 92,
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: selected ? nd.accent.withValues(alpha: 0.10) : nd.bg,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: selected ? nd.accent : nd.border,
-            width: selected ? 1.6 : 1,
-          ),
-        ),
+      borderRadius: BorderRadius.circular(14),
+      child: SizedBox(
+        width: tileW,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, size: 22, color: selected ? nd.accent : nd.text2),
-            const Spacer(),
+            Container(
+              width: tileW,
+              height: 120,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: selected ? nd.accent.withValues(alpha: 0.10) : nd.bg,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: selected ? nd.accent : nd.border,
+                  width: selected ? 1.6 : 1,
+                ),
+              ),
+              child: _TemplatePreview(
+                body: body,
+                pageSize: pageSize,
+                pageColor: pageColor,
+                pageBackground: pageBackground,
+                boxWidth: tileW - 24,
+                boxHeight: 100,
+              ),
+            ),
+            const SizedBox(height: 7),
             Text(
               label,
               maxLines: 2,
@@ -516,4 +553,170 @@ class _TemplateTile extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Bir şablonun küçük sayfa önizlemesi (doğru en/boy oranı + kâğıt rengi +
+/// arka plan deseni + içeriğin şematik satırları).
+class _TemplatePreview extends StatelessWidget {
+  const _TemplatePreview({
+    required this.body,
+    required this.pageSize,
+    required this.pageColor,
+    required this.pageBackground,
+    required this.boxWidth,
+    required this.boxHeight,
+  });
+
+  final String body;
+  final String pageSize;
+  final String pageColor;
+  final String pageBackground;
+  final double boxWidth;
+  final double boxHeight;
+
+  @override
+  Widget build(BuildContext context) {
+    final aspect = aspectForPageSize(pageSize);
+    double pageH = boxHeight;
+    double pageW = pageH / aspect;
+    if (pageW > boxWidth) {
+      pageW = boxWidth;
+      pageH = pageW * aspect;
+    }
+    final paper = paperStyleFor(pageColor);
+    return Container(
+      width: pageW,
+      height: pageH,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: paper.background,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: const Color(0x22000000), width: 0.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.10),
+            blurRadius: 5,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: CustomPaint(
+        painter: _PreviewPainter(body, pageBackground, paper),
+        size: Size(pageW, pageH),
+      ),
+    );
+  }
+}
+
+enum _PL { title, heading, label, para, bullet, check }
+
+/// Şablon gövdesini (Quill Delta) şematik satır tiplerine ayırır — önizleme için.
+List<_PL> _previewLines(String body) {
+  final out = <_PL>[];
+  dynamic data;
+  try {
+    data = jsonDecode(body);
+  } catch (_) {
+    data = null;
+  }
+  if (data is! List) return out;
+  double? size;
+  for (final op in data) {
+    if (op is! Map) continue;
+    final ins = op['insert'];
+    if (ins is! String) continue;
+    final attrs = (op['attributes'] as Map?) ?? const {};
+    final parts = ins.split('\n');
+    for (var i = 0; i < parts.length; i++) {
+      if (parts[i].isNotEmpty) {
+        final s = attrs['size'];
+        if (s != null) size = double.tryParse(s.toString());
+      }
+      if (i < parts.length - 1) {
+        final list = attrs['list'];
+        _PL type;
+        if (list == 'bullet') {
+          type = _PL.bullet;
+        } else if (list == 'checked' || list == 'unchecked') {
+          type = _PL.check;
+        } else if (size != null && size >= 22) {
+          type = _PL.title;
+        } else if (size != null && size >= 17) {
+          type = _PL.heading;
+        } else if (size != null && size <= 13) {
+          type = _PL.label;
+        } else {
+          type = _PL.para;
+        }
+        out.add(type);
+        size = null;
+      }
+    }
+  }
+  return out;
+}
+
+class _PreviewPainter extends CustomPainter {
+  _PreviewPainter(this.body, this.background, this.paper);
+
+  final String body;
+  final String background;
+  final PaperStyle paper;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    paintPageBackground(canvas, size, background, paper.line);
+
+    final lines = _previewLines(body);
+    if (lines.isEmpty) return;
+
+    final pad = size.width * 0.13;
+    final innerW = size.width - pad * 2;
+    final rowH = size.height / 12.0;
+    final ink = paper.text;
+    var y = pad * 0.9;
+
+    void bar(double x, double w, double h, Color c, {double radius = 1}) {
+      final r = RRect.fromRectAndRadius(
+        Rect.fromLTWH(x, y - h / 2, w, h),
+        Radius.circular(radius),
+      );
+      canvas.drawRRect(r, Paint()..color = c);
+    }
+
+    for (final ln in lines) {
+      if (y > size.height - pad * 0.6) break;
+      switch (ln) {
+        case _PL.title:
+          bar(pad, innerW * 0.62, 3.4, ink.withValues(alpha: 0.85));
+        case _PL.heading:
+          bar(pad, innerW * 0.5, 2.8, ink.withValues(alpha: 0.7));
+        case _PL.label:
+          bar(pad, innerW * 0.32, 2.0, paper.muted);
+        case _PL.para:
+          bar(pad, innerW * 0.9, 1.8, ink.withValues(alpha: 0.22));
+        case _PL.bullet:
+          canvas.drawCircle(
+              Offset(pad + 2, y), 1.5, Paint()..color = ink.withValues(alpha: 0.5));
+          bar(pad + 8, innerW * 0.72, 1.8, ink.withValues(alpha: 0.28));
+        case _PL.check:
+          final box = Rect.fromLTWH(pad, y - 3, 6, 6);
+          canvas.drawRRect(
+            RRect.fromRectAndRadius(box, const Radius.circular(1.5)),
+            Paint()
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 1
+              ..color = paper.muted,
+          );
+          bar(pad + 11, innerW * 0.72, 1.8, ink.withValues(alpha: 0.28));
+      }
+      y += rowH;
+    }
+  }
+
+  @override
+  bool shouldRepaint(_PreviewPainter old) =>
+      old.body != body ||
+      old.background != background ||
+      old.paper.id != paper.id;
 }

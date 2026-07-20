@@ -111,6 +111,18 @@ class $DocumentsTable extends Documents
     requiredDuringInsert: false,
     defaultValue: const Constant('beyaz'),
   );
+  static const VerificationMeta _pageBackgroundMeta = const VerificationMeta(
+    'pageBackground',
+  );
+  @override
+  late final GeneratedColumn<String> pageBackground = GeneratedColumn<String>(
+    'page_background',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('duz'),
+  );
   static const VerificationMeta _sharedIdMeta = const VerificationMeta(
     'sharedId',
   );
@@ -166,6 +178,7 @@ class $DocumentsTable extends Documents
     pageCount,
     pageSize,
     pageColor,
+    pageBackground,
     sharedId,
     shareCode,
     createdAt,
@@ -234,6 +247,15 @@ class $DocumentsTable extends Documents
       context.handle(
         _pageColorMeta,
         pageColor.isAcceptableOrUnknown(data['page_color']!, _pageColorMeta),
+      );
+    }
+    if (data.containsKey('page_background')) {
+      context.handle(
+        _pageBackgroundMeta,
+        pageBackground.isAcceptableOrUnknown(
+          data['page_background']!,
+          _pageBackgroundMeta,
+        ),
       );
     }
     if (data.containsKey('shared_id')) {
@@ -316,6 +338,11 @@ class $DocumentsTable extends Documents
             DriftSqlType.string,
             data['${effectivePrefix}page_color'],
           )!,
+      pageBackground:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}page_background'],
+          )!,
       sharedId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}shared_id'],
@@ -353,6 +380,7 @@ class Document extends DataClass implements Insertable<Document> {
   final int? pageCount;
   final String pageSize;
   final String pageColor;
+  final String pageBackground;
   final String? sharedId;
   final String? shareCode;
   final DateTime createdAt;
@@ -367,6 +395,7 @@ class Document extends DataClass implements Insertable<Document> {
     this.pageCount,
     required this.pageSize,
     required this.pageColor,
+    required this.pageBackground,
     this.sharedId,
     this.shareCode,
     required this.createdAt,
@@ -388,6 +417,7 @@ class Document extends DataClass implements Insertable<Document> {
     }
     map['page_size'] = Variable<String>(pageSize);
     map['page_color'] = Variable<String>(pageColor);
+    map['page_background'] = Variable<String>(pageBackground);
     if (!nullToAbsent || sharedId != null) {
       map['shared_id'] = Variable<String>(sharedId);
     }
@@ -416,6 +446,7 @@ class Document extends DataClass implements Insertable<Document> {
               : Value(pageCount),
       pageSize: Value(pageSize),
       pageColor: Value(pageColor),
+      pageBackground: Value(pageBackground),
       sharedId:
           sharedId == null && nullToAbsent
               ? const Value.absent()
@@ -444,6 +475,7 @@ class Document extends DataClass implements Insertable<Document> {
       pageCount: serializer.fromJson<int?>(json['pageCount']),
       pageSize: serializer.fromJson<String>(json['pageSize']),
       pageColor: serializer.fromJson<String>(json['pageColor']),
+      pageBackground: serializer.fromJson<String>(json['pageBackground']),
       sharedId: serializer.fromJson<String?>(json['sharedId']),
       shareCode: serializer.fromJson<String?>(json['shareCode']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -463,6 +495,7 @@ class Document extends DataClass implements Insertable<Document> {
       'pageCount': serializer.toJson<int?>(pageCount),
       'pageSize': serializer.toJson<String>(pageSize),
       'pageColor': serializer.toJson<String>(pageColor),
+      'pageBackground': serializer.toJson<String>(pageBackground),
       'sharedId': serializer.toJson<String?>(sharedId),
       'shareCode': serializer.toJson<String?>(shareCode),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -480,6 +513,7 @@ class Document extends DataClass implements Insertable<Document> {
     Value<int?> pageCount = const Value.absent(),
     String? pageSize,
     String? pageColor,
+    String? pageBackground,
     Value<String?> sharedId = const Value.absent(),
     Value<String?> shareCode = const Value.absent(),
     DateTime? createdAt,
@@ -494,6 +528,7 @@ class Document extends DataClass implements Insertable<Document> {
     pageCount: pageCount.present ? pageCount.value : this.pageCount,
     pageSize: pageSize ?? this.pageSize,
     pageColor: pageColor ?? this.pageColor,
+    pageBackground: pageBackground ?? this.pageBackground,
     sharedId: sharedId.present ? sharedId.value : this.sharedId,
     shareCode: shareCode.present ? shareCode.value : this.shareCode,
     createdAt: createdAt ?? this.createdAt,
@@ -510,6 +545,10 @@ class Document extends DataClass implements Insertable<Document> {
       pageCount: data.pageCount.present ? data.pageCount.value : this.pageCount,
       pageSize: data.pageSize.present ? data.pageSize.value : this.pageSize,
       pageColor: data.pageColor.present ? data.pageColor.value : this.pageColor,
+      pageBackground:
+          data.pageBackground.present
+              ? data.pageBackground.value
+              : this.pageBackground,
       sharedId: data.sharedId.present ? data.sharedId.value : this.sharedId,
       shareCode: data.shareCode.present ? data.shareCode.value : this.shareCode,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
@@ -529,6 +568,7 @@ class Document extends DataClass implements Insertable<Document> {
           ..write('pageCount: $pageCount, ')
           ..write('pageSize: $pageSize, ')
           ..write('pageColor: $pageColor, ')
+          ..write('pageBackground: $pageBackground, ')
           ..write('sharedId: $sharedId, ')
           ..write('shareCode: $shareCode, ')
           ..write('createdAt: $createdAt, ')
@@ -548,6 +588,7 @@ class Document extends DataClass implements Insertable<Document> {
     pageCount,
     pageSize,
     pageColor,
+    pageBackground,
     sharedId,
     shareCode,
     createdAt,
@@ -566,6 +607,7 @@ class Document extends DataClass implements Insertable<Document> {
           other.pageCount == this.pageCount &&
           other.pageSize == this.pageSize &&
           other.pageColor == this.pageColor &&
+          other.pageBackground == this.pageBackground &&
           other.sharedId == this.sharedId &&
           other.shareCode == this.shareCode &&
           other.createdAt == this.createdAt &&
@@ -582,6 +624,7 @@ class DocumentsCompanion extends UpdateCompanion<Document> {
   final Value<int?> pageCount;
   final Value<String> pageSize;
   final Value<String> pageColor;
+  final Value<String> pageBackground;
   final Value<String?> sharedId;
   final Value<String?> shareCode;
   final Value<DateTime> createdAt;
@@ -596,6 +639,7 @@ class DocumentsCompanion extends UpdateCompanion<Document> {
     this.pageCount = const Value.absent(),
     this.pageSize = const Value.absent(),
     this.pageColor = const Value.absent(),
+    this.pageBackground = const Value.absent(),
     this.sharedId = const Value.absent(),
     this.shareCode = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -611,6 +655,7 @@ class DocumentsCompanion extends UpdateCompanion<Document> {
     this.pageCount = const Value.absent(),
     this.pageSize = const Value.absent(),
     this.pageColor = const Value.absent(),
+    this.pageBackground = const Value.absent(),
     this.sharedId = const Value.absent(),
     this.shareCode = const Value.absent(),
     required DateTime createdAt,
@@ -628,6 +673,7 @@ class DocumentsCompanion extends UpdateCompanion<Document> {
     Expression<int>? pageCount,
     Expression<String>? pageSize,
     Expression<String>? pageColor,
+    Expression<String>? pageBackground,
     Expression<String>? sharedId,
     Expression<String>? shareCode,
     Expression<DateTime>? createdAt,
@@ -643,6 +689,7 @@ class DocumentsCompanion extends UpdateCompanion<Document> {
       if (pageCount != null) 'page_count': pageCount,
       if (pageSize != null) 'page_size': pageSize,
       if (pageColor != null) 'page_color': pageColor,
+      if (pageBackground != null) 'page_background': pageBackground,
       if (sharedId != null) 'shared_id': sharedId,
       if (shareCode != null) 'share_code': shareCode,
       if (createdAt != null) 'created_at': createdAt,
@@ -660,6 +707,7 @@ class DocumentsCompanion extends UpdateCompanion<Document> {
     Value<int?>? pageCount,
     Value<String>? pageSize,
     Value<String>? pageColor,
+    Value<String>? pageBackground,
     Value<String?>? sharedId,
     Value<String?>? shareCode,
     Value<DateTime>? createdAt,
@@ -675,6 +723,7 @@ class DocumentsCompanion extends UpdateCompanion<Document> {
       pageCount: pageCount ?? this.pageCount,
       pageSize: pageSize ?? this.pageSize,
       pageColor: pageColor ?? this.pageColor,
+      pageBackground: pageBackground ?? this.pageBackground,
       sharedId: sharedId ?? this.sharedId,
       shareCode: shareCode ?? this.shareCode,
       createdAt: createdAt ?? this.createdAt,
@@ -712,6 +761,9 @@ class DocumentsCompanion extends UpdateCompanion<Document> {
     if (pageColor.present) {
       map['page_color'] = Variable<String>(pageColor.value);
     }
+    if (pageBackground.present) {
+      map['page_background'] = Variable<String>(pageBackground.value);
+    }
     if (sharedId.present) {
       map['shared_id'] = Variable<String>(sharedId.value);
     }
@@ -739,6 +791,7 @@ class DocumentsCompanion extends UpdateCompanion<Document> {
           ..write('pageCount: $pageCount, ')
           ..write('pageSize: $pageSize, ')
           ..write('pageColor: $pageColor, ')
+          ..write('pageBackground: $pageBackground, ')
           ..write('sharedId: $sharedId, ')
           ..write('shareCode: $shareCode, ')
           ..write('createdAt: $createdAt, ')
@@ -2943,6 +2996,18 @@ class $TemplatesTable extends Templates
     requiredDuringInsert: false,
     defaultValue: const Constant('beyaz'),
   );
+  static const VerificationMeta _pageBackgroundMeta = const VerificationMeta(
+    'pageBackground',
+  );
+  @override
+  late final GeneratedColumn<String> pageBackground = GeneratedColumn<String>(
+    'page_background',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('duz'),
+  );
   static const VerificationMeta _bodyMeta = const VerificationMeta('body');
   @override
   late final GeneratedColumn<String> body = GeneratedColumn<String>(
@@ -2982,6 +3047,7 @@ class $TemplatesTable extends Templates
     title,
     pageSize,
     pageColor,
+    pageBackground,
     body,
     strokes,
     createdAt,
@@ -3017,6 +3083,15 @@ class $TemplatesTable extends Templates
       context.handle(
         _pageColorMeta,
         pageColor.isAcceptableOrUnknown(data['page_color']!, _pageColorMeta),
+      );
+    }
+    if (data.containsKey('page_background')) {
+      context.handle(
+        _pageBackgroundMeta,
+        pageBackground.isAcceptableOrUnknown(
+          data['page_background']!,
+          _pageBackgroundMeta,
+        ),
       );
     }
     if (data.containsKey('body')) {
@@ -3068,6 +3143,11 @@ class $TemplatesTable extends Templates
             DriftSqlType.string,
             data['${effectivePrefix}page_color'],
           )!,
+      pageBackground:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}page_background'],
+          )!,
       body:
           attachedDatabase.typeMapping.read(
             DriftSqlType.string,
@@ -3097,6 +3177,7 @@ class Template extends DataClass implements Insertable<Template> {
   final String title;
   final String pageSize;
   final String pageColor;
+  final String pageBackground;
   final String body;
   final String strokes;
   final DateTime createdAt;
@@ -3105,6 +3186,7 @@ class Template extends DataClass implements Insertable<Template> {
     required this.title,
     required this.pageSize,
     required this.pageColor,
+    required this.pageBackground,
     required this.body,
     required this.strokes,
     required this.createdAt,
@@ -3116,6 +3198,7 @@ class Template extends DataClass implements Insertable<Template> {
     map['title'] = Variable<String>(title);
     map['page_size'] = Variable<String>(pageSize);
     map['page_color'] = Variable<String>(pageColor);
+    map['page_background'] = Variable<String>(pageBackground);
     map['body'] = Variable<String>(body);
     map['strokes'] = Variable<String>(strokes);
     map['created_at'] = Variable<DateTime>(createdAt);
@@ -3128,6 +3211,7 @@ class Template extends DataClass implements Insertable<Template> {
       title: Value(title),
       pageSize: Value(pageSize),
       pageColor: Value(pageColor),
+      pageBackground: Value(pageBackground),
       body: Value(body),
       strokes: Value(strokes),
       createdAt: Value(createdAt),
@@ -3144,6 +3228,7 @@ class Template extends DataClass implements Insertable<Template> {
       title: serializer.fromJson<String>(json['title']),
       pageSize: serializer.fromJson<String>(json['pageSize']),
       pageColor: serializer.fromJson<String>(json['pageColor']),
+      pageBackground: serializer.fromJson<String>(json['pageBackground']),
       body: serializer.fromJson<String>(json['body']),
       strokes: serializer.fromJson<String>(json['strokes']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -3157,6 +3242,7 @@ class Template extends DataClass implements Insertable<Template> {
       'title': serializer.toJson<String>(title),
       'pageSize': serializer.toJson<String>(pageSize),
       'pageColor': serializer.toJson<String>(pageColor),
+      'pageBackground': serializer.toJson<String>(pageBackground),
       'body': serializer.toJson<String>(body),
       'strokes': serializer.toJson<String>(strokes),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -3168,6 +3254,7 @@ class Template extends DataClass implements Insertable<Template> {
     String? title,
     String? pageSize,
     String? pageColor,
+    String? pageBackground,
     String? body,
     String? strokes,
     DateTime? createdAt,
@@ -3176,6 +3263,7 @@ class Template extends DataClass implements Insertable<Template> {
     title: title ?? this.title,
     pageSize: pageSize ?? this.pageSize,
     pageColor: pageColor ?? this.pageColor,
+    pageBackground: pageBackground ?? this.pageBackground,
     body: body ?? this.body,
     strokes: strokes ?? this.strokes,
     createdAt: createdAt ?? this.createdAt,
@@ -3186,6 +3274,10 @@ class Template extends DataClass implements Insertable<Template> {
       title: data.title.present ? data.title.value : this.title,
       pageSize: data.pageSize.present ? data.pageSize.value : this.pageSize,
       pageColor: data.pageColor.present ? data.pageColor.value : this.pageColor,
+      pageBackground:
+          data.pageBackground.present
+              ? data.pageBackground.value
+              : this.pageBackground,
       body: data.body.present ? data.body.value : this.body,
       strokes: data.strokes.present ? data.strokes.value : this.strokes,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
@@ -3199,6 +3291,7 @@ class Template extends DataClass implements Insertable<Template> {
           ..write('title: $title, ')
           ..write('pageSize: $pageSize, ')
           ..write('pageColor: $pageColor, ')
+          ..write('pageBackground: $pageBackground, ')
           ..write('body: $body, ')
           ..write('strokes: $strokes, ')
           ..write('createdAt: $createdAt')
@@ -3207,8 +3300,16 @@ class Template extends DataClass implements Insertable<Template> {
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, title, pageSize, pageColor, body, strokes, createdAt);
+  int get hashCode => Object.hash(
+    id,
+    title,
+    pageSize,
+    pageColor,
+    pageBackground,
+    body,
+    strokes,
+    createdAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -3217,6 +3318,7 @@ class Template extends DataClass implements Insertable<Template> {
           other.title == this.title &&
           other.pageSize == this.pageSize &&
           other.pageColor == this.pageColor &&
+          other.pageBackground == this.pageBackground &&
           other.body == this.body &&
           other.strokes == this.strokes &&
           other.createdAt == this.createdAt);
@@ -3227,6 +3329,7 @@ class TemplatesCompanion extends UpdateCompanion<Template> {
   final Value<String> title;
   final Value<String> pageSize;
   final Value<String> pageColor;
+  final Value<String> pageBackground;
   final Value<String> body;
   final Value<String> strokes;
   final Value<DateTime> createdAt;
@@ -3235,6 +3338,7 @@ class TemplatesCompanion extends UpdateCompanion<Template> {
     this.title = const Value.absent(),
     this.pageSize = const Value.absent(),
     this.pageColor = const Value.absent(),
+    this.pageBackground = const Value.absent(),
     this.body = const Value.absent(),
     this.strokes = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -3244,6 +3348,7 @@ class TemplatesCompanion extends UpdateCompanion<Template> {
     this.title = const Value.absent(),
     this.pageSize = const Value.absent(),
     this.pageColor = const Value.absent(),
+    this.pageBackground = const Value.absent(),
     this.body = const Value.absent(),
     this.strokes = const Value.absent(),
     required DateTime createdAt,
@@ -3253,6 +3358,7 @@ class TemplatesCompanion extends UpdateCompanion<Template> {
     Expression<String>? title,
     Expression<String>? pageSize,
     Expression<String>? pageColor,
+    Expression<String>? pageBackground,
     Expression<String>? body,
     Expression<String>? strokes,
     Expression<DateTime>? createdAt,
@@ -3262,6 +3368,7 @@ class TemplatesCompanion extends UpdateCompanion<Template> {
       if (title != null) 'title': title,
       if (pageSize != null) 'page_size': pageSize,
       if (pageColor != null) 'page_color': pageColor,
+      if (pageBackground != null) 'page_background': pageBackground,
       if (body != null) 'body': body,
       if (strokes != null) 'strokes': strokes,
       if (createdAt != null) 'created_at': createdAt,
@@ -3273,6 +3380,7 @@ class TemplatesCompanion extends UpdateCompanion<Template> {
     Value<String>? title,
     Value<String>? pageSize,
     Value<String>? pageColor,
+    Value<String>? pageBackground,
     Value<String>? body,
     Value<String>? strokes,
     Value<DateTime>? createdAt,
@@ -3282,6 +3390,7 @@ class TemplatesCompanion extends UpdateCompanion<Template> {
       title: title ?? this.title,
       pageSize: pageSize ?? this.pageSize,
       pageColor: pageColor ?? this.pageColor,
+      pageBackground: pageBackground ?? this.pageBackground,
       body: body ?? this.body,
       strokes: strokes ?? this.strokes,
       createdAt: createdAt ?? this.createdAt,
@@ -3303,6 +3412,9 @@ class TemplatesCompanion extends UpdateCompanion<Template> {
     if (pageColor.present) {
       map['page_color'] = Variable<String>(pageColor.value);
     }
+    if (pageBackground.present) {
+      map['page_background'] = Variable<String>(pageBackground.value);
+    }
     if (body.present) {
       map['body'] = Variable<String>(body.value);
     }
@@ -3322,6 +3434,7 @@ class TemplatesCompanion extends UpdateCompanion<Template> {
           ..write('title: $title, ')
           ..write('pageSize: $pageSize, ')
           ..write('pageColor: $pageColor, ')
+          ..write('pageBackground: $pageBackground, ')
           ..write('body: $body, ')
           ..write('strokes: $strokes, ')
           ..write('createdAt: $createdAt')
@@ -3385,6 +3498,7 @@ typedef $$DocumentsTableCreateCompanionBuilder =
       Value<int?> pageCount,
       Value<String> pageSize,
       Value<String> pageColor,
+      Value<String> pageBackground,
       Value<String?> sharedId,
       Value<String?> shareCode,
       required DateTime createdAt,
@@ -3401,6 +3515,7 @@ typedef $$DocumentsTableUpdateCompanionBuilder =
       Value<int?> pageCount,
       Value<String> pageSize,
       Value<String> pageColor,
+      Value<String> pageBackground,
       Value<String?> sharedId,
       Value<String?> shareCode,
       Value<DateTime> createdAt,
@@ -3482,6 +3597,11 @@ class $$DocumentsTableFilterComposer
 
   ColumnFilters<String> get pageColor => $composableBuilder(
     column: $table.pageColor,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get pageBackground => $composableBuilder(
+    column: $table.pageBackground,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3585,6 +3705,11 @@ class $$DocumentsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get pageBackground => $composableBuilder(
+    column: $table.pageBackground,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get sharedId => $composableBuilder(
     column: $table.sharedId,
     builder: (column) => ColumnOrderings(column),
@@ -3641,6 +3766,11 @@ class $$DocumentsTableAnnotationComposer
 
   GeneratedColumn<String> get pageColor =>
       $composableBuilder(column: $table.pageColor, builder: (column) => column);
+
+  GeneratedColumn<String> get pageBackground => $composableBuilder(
+    column: $table.pageBackground,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get sharedId =>
       $composableBuilder(column: $table.sharedId, builder: (column) => column);
@@ -3717,6 +3847,7 @@ class $$DocumentsTableTableManager
                 Value<int?> pageCount = const Value.absent(),
                 Value<String> pageSize = const Value.absent(),
                 Value<String> pageColor = const Value.absent(),
+                Value<String> pageBackground = const Value.absent(),
                 Value<String?> sharedId = const Value.absent(),
                 Value<String?> shareCode = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -3731,6 +3862,7 @@ class $$DocumentsTableTableManager
                 pageCount: pageCount,
                 pageSize: pageSize,
                 pageColor: pageColor,
+                pageBackground: pageBackground,
                 sharedId: sharedId,
                 shareCode: shareCode,
                 createdAt: createdAt,
@@ -3747,6 +3879,7 @@ class $$DocumentsTableTableManager
                 Value<int?> pageCount = const Value.absent(),
                 Value<String> pageSize = const Value.absent(),
                 Value<String> pageColor = const Value.absent(),
+                Value<String> pageBackground = const Value.absent(),
                 Value<String?> sharedId = const Value.absent(),
                 Value<String?> shareCode = const Value.absent(),
                 required DateTime createdAt,
@@ -3761,6 +3894,7 @@ class $$DocumentsTableTableManager
                 pageCount: pageCount,
                 pageSize: pageSize,
                 pageColor: pageColor,
+                pageBackground: pageBackground,
                 sharedId: sharedId,
                 shareCode: shareCode,
                 createdAt: createdAt,
@@ -5367,6 +5501,7 @@ typedef $$TemplatesTableCreateCompanionBuilder =
       Value<String> title,
       Value<String> pageSize,
       Value<String> pageColor,
+      Value<String> pageBackground,
       Value<String> body,
       Value<String> strokes,
       required DateTime createdAt,
@@ -5377,6 +5512,7 @@ typedef $$TemplatesTableUpdateCompanionBuilder =
       Value<String> title,
       Value<String> pageSize,
       Value<String> pageColor,
+      Value<String> pageBackground,
       Value<String> body,
       Value<String> strokes,
       Value<DateTime> createdAt,
@@ -5408,6 +5544,11 @@ class $$TemplatesTableFilterComposer
 
   ColumnFilters<String> get pageColor => $composableBuilder(
     column: $table.pageColor,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get pageBackground => $composableBuilder(
+    column: $table.pageBackground,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5456,6 +5597,11 @@ class $$TemplatesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get pageBackground => $composableBuilder(
+    column: $table.pageBackground,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get body => $composableBuilder(
     column: $table.body,
     builder: (column) => ColumnOrderings(column),
@@ -5492,6 +5638,11 @@ class $$TemplatesTableAnnotationComposer
 
   GeneratedColumn<String> get pageColor =>
       $composableBuilder(column: $table.pageColor, builder: (column) => column);
+
+  GeneratedColumn<String> get pageBackground => $composableBuilder(
+    column: $table.pageBackground,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get body =>
       $composableBuilder(column: $table.body, builder: (column) => column);
@@ -5535,6 +5686,7 @@ class $$TemplatesTableTableManager
                 Value<String> title = const Value.absent(),
                 Value<String> pageSize = const Value.absent(),
                 Value<String> pageColor = const Value.absent(),
+                Value<String> pageBackground = const Value.absent(),
                 Value<String> body = const Value.absent(),
                 Value<String> strokes = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -5543,6 +5695,7 @@ class $$TemplatesTableTableManager
                 title: title,
                 pageSize: pageSize,
                 pageColor: pageColor,
+                pageBackground: pageBackground,
                 body: body,
                 strokes: strokes,
                 createdAt: createdAt,
@@ -5553,6 +5706,7 @@ class $$TemplatesTableTableManager
                 Value<String> title = const Value.absent(),
                 Value<String> pageSize = const Value.absent(),
                 Value<String> pageColor = const Value.absent(),
+                Value<String> pageBackground = const Value.absent(),
                 Value<String> body = const Value.absent(),
                 Value<String> strokes = const Value.absent(),
                 required DateTime createdAt,
@@ -5561,6 +5715,7 @@ class $$TemplatesTableTableManager
                 title: title,
                 pageSize: pageSize,
                 pageColor: pageColor,
+                pageBackground: pageBackground,
                 body: body,
                 strokes: strokes,
                 createdAt: createdAt,

@@ -22,6 +22,7 @@ class TemplateRepository {
     required String pageSize,
     required String pageColor,
     required String body,
+    String pageBackground = 'duz',
     String strokes = '[]',
   }) {
     return _db.into(_db.templates).insert(
@@ -29,6 +30,7 @@ class TemplateRepository {
             title: Value(title),
             pageSize: Value(pageSize),
             pageColor: Value(pageColor),
+            pageBackground: Value(pageBackground),
             body: Value(body),
             strokes: Value(strokes),
             createdAt: DateTime.now(),

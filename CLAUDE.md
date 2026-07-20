@@ -179,10 +179,13 @@ lib/
   `filePath`+`pageCount` (pdf), `pageSize` ('serbest'|'a4'|'yatay'|'kare'|
   'telefon', not defteri — aspect `aspectForPageSize`), `pageColor`
   ('beyaz'|'sari'|'yesil'|'siyah' — kağıt rengi; schemaVersion 5),
-  `createdAt`, `updatedAt`. (schemaVersion 2 — pageSize; 5 — pageColor.)
-- **Templates** (schemaVersion 9): `title`, `pageSize`, `pageColor`, `body`
-  (Delta JSON), `strokes` (JSON dizisi), `createdAt` — kullanıcının kaydettiği
-  not şablonları ("Şablonlarım"). Gömülü hazır şablonlar koddadır
+  `pageBackground` ('duz'|'cizgili'|'kareli'|'noktali' — sayfa deseni;
+  schemaVersion 10), `createdAt`, `updatedAt`. (schemaVersion 2 — pageSize;
+  5 — pageColor; 10 — pageBackground.)
+- **Templates** (schemaVersion 9; `pageBackground` schemaVersion 10): `title`,
+  `pageSize`, `pageColor`, `pageBackground`, `body` (Delta JSON), `strokes`
+  (JSON dizisi), `createdAt` — kullanıcının kaydettiği not şablonları
+  ("Şablonlarım"). Gömülü hazır şablonlar koddadır
   (`features/templates/templates_data.dart`). Bkz. Sürüm 1.2 bölümü.
 - **Strokes**: `docId` (FK, cascade), `page`, `tool`, `color`, `width`,
   `points` (0..1 normalize edilmiş JSON). Normalize koordinat sayesinde çizimler
@@ -413,6 +416,41 @@ derleniyor, `flutter analyze` temiz, dev APK üretildi. Yapılanlar:
 kategoriye geçince o an seçili tile görünmez ama seçim geçerli kalır — Sayfa/
 Kağıt seçicileri yansıtır). Gömülü şablonlarda çizim yok; kullanıcı şablonları
 çizim taşıyabilir.
+
+### Sürüm 1.2 — şablon yeniden tasarımı (pragmatik, Claude Design handoff)
+
+İlk şablonlar zayıftı (seçicide sadece ikon, içerik düz metin). Kullanıcı
+Claude Design'da "Not Şablonları" tasarımı üretti
+(`design/uygulama-not-ablonlar/`): 10 şablon telefon editörü içinde, gerçek
+düzenle (çizgili kâğıt, işaretlenebilir kutucuklar, etiketli alanlar, ızgaralar).
+Tasarım **yapısal/form notu** ima ediyor; mevcut editör flutter_quill + serbest
+kalem olduğundan ızgara/2-kolon düzenler birebir çıkmaz. **Karar: pragmatik yol**
+(metin + bölüm etiketi + kutucuk + kâğıt deseni; gerçek ızgaralar tablo bloğu
+1.3'e ertelendi). Şema **v10**. Yapılanlar:
+
+1. **Kâğıt paleti** (`editor_state.dart` `kPaperStyles`) design THEMES'e hizalandı
+   (white/cream/mint/black) ve `PaperStyle`'a `line`/`muted`/`faint` renkleri
+   eklendi (arka plan çizgisi + soluk etiket + hafif dolgu; kâğıda göre).
+2. **Sayfa deseni** (`pageBackground`: duz/cizgili/kareli/noktali) — Documents +
+   Templates'e kolon (v10 migration). Ortak `paintPageBackground()`
+   (`editor_state.dart`) editör (`_PageBackgroundPainter`, metin+çizim arkasında)
+   ve `pdf_export` (`_renderPageImage`) tarafından çizilir → ekranda ne varsa
+   PDF'te de. Aralıklar sayfa genişliğine oranlı. **Not:** PDF export hâlâ beyaz
+   zemin + koyu mürekkep kullanıyor (kâğıt rengi export sadakati ayrı iş);
+   sadece desen eklendi.
+3. **Arka plan seçici:** pen bar kâğıt düğmesi menüsüne "Sayfa deseni" bölümü
+   (`_setBg` → `setPageBackground`).
+4. **Şablonlar yeniden** (`templates_data.dart`): kategoriler design'la birebir
+   (Temel 1 + Boş sayfa tile; Yazı 2; Planlar 3; İş 3). `NoteTemplate.pageBackground`
+   eklendi; gövdeler bölüm etiketi (küçük büyük-harf)/checklist/çizgili-noktalı
+   arka planla zenginleşti. Renk özniteliği YOK → yazı rengi kâğıda göre kalır.
+   **Sadeleştirilmiş:** Haftalık plan + Cornell (gerçek ızgara/2-kolon tablo
+   bloğu 1.3'te).
+5. **Gerçek önizleme kartları** (`new_note_dialog.dart` `_TemplatePreview` +
+   `_PreviewPainter` + `_previewLines`): her tile artık doğru en/boy oranında,
+   kâğıt renginde, desenli mini sayfa + içeriğin şematik satırları (başlık/
+   etiket/paragraf/kutucuk/madde çubukları). Boş sayfa tile'ı o anki boyut/
+   renkte boş önizleme.
 
 ## PLANLANAN — Sürüm 1.3+ (kullanıcı onayladı, sıraya alındı)
 

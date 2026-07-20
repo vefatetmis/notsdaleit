@@ -205,6 +205,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     final aspect = aspectForPageSize(pageSize);
     final pageCount = doc?.pageCount ?? 1;
     final paper = paperStyleFor(doc?.pageColor);
+    final pageBackground = doc?.pageBackground ?? 'duz';
 
     return Column(
       children: [
@@ -264,6 +265,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                             pageHeight: pageHBase,
                             pageCount: pageCount,
                             paper: paper,
+                            background: pageBackground,
                           ),
                           const SizedBox(height: 16),
                           _AddPageButton(onTap: _addPage),
@@ -317,6 +319,7 @@ class _Sheet extends ConsumerWidget {
     required this.pageHeight,
     required this.pageCount,
     required this.paper,
+    required this.background,
   });
 
   final int? docId;
@@ -327,6 +330,7 @@ class _Sheet extends ConsumerWidget {
   final double pageHeight;
   final int pageCount;
   final PaperStyle paper;
+  final String background;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -351,6 +355,12 @@ class _Sheet extends ConsumerWidget {
         borderRadius: BorderRadius.circular(6),
         child: Stack(
           children: [
+            // Sayfa arka planı (kâğıt deseni: çizgili/kareli/noktalı) — en altta.
+            Positioned.fill(
+              child: CustomPaint(
+                painter: _PageBackgroundPainter(background, paper.line),
+              ),
+            ),
             // Sayfa ayırıcıları (metnin arkasında) — sayfalar arası boşluk hissi.
             Positioned.fill(
               child: CustomPaint(
@@ -437,6 +447,23 @@ class _AddPageButton extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Sayfa arka planı (kâğıt deseni) — metin ve çizimlerin arkasında.
+class _PageBackgroundPainter extends CustomPainter {
+  _PageBackgroundPainter(this.type, this.lineColor);
+
+  final String type; // duz | cizgili | kareli | noktali
+  final Color lineColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    paintPageBackground(canvas, size, type, lineColor);
+  }
+
+  @override
+  bool shouldRepaint(_PageBackgroundPainter old) =>
+      old.type != type || old.lineColor != lineColor;
 }
 
 class _PageLinesPainter extends CustomPainter {

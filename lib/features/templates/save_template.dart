@@ -61,6 +61,7 @@ Future<void> saveNoteAsTemplate(
         title: name,
         pageSize: doc.pageSize,
         pageColor: doc.pageColor,
+        pageBackground: doc.pageBackground,
         body: doc.body,
         strokes: strokesJson,
       );

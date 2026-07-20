@@ -83,6 +83,7 @@ class DocumentRepository {
     String folder = 'Kişisel',
     String pageSize = 'serbest',
     String pageColor = 'beyaz',
+    String pageBackground = 'duz',
     int? pageCount,
   }) {
     final now = DateTime.now();
@@ -94,11 +95,22 @@ class DocumentRepository {
             folder: Value(folder),
             pageSize: Value(pageSize),
             pageColor: Value(pageColor),
+            pageBackground: Value(pageBackground),
             pageCount: Value(pageCount),
             createdAt: now,
             updatedAt: now,
           ),
         );
+  }
+
+  /// Notun sayfa arka planını (kâğıt deseni) günceller.
+  Future<void> setPageBackground({required int id, required String value}) {
+    return (_db.update(_db.documents)..where((t) => t.id.equals(id))).write(
+      DocumentsCompanion(
+        pageBackground: Value(value),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
   }
 
   /// Not defterine sayfa sayısını günceller (yeni sayfa eklerken).
