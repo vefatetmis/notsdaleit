@@ -452,13 +452,55 @@ kalem olduğundan ızgara/2-kolon düzenler birebir çıkmaz. **Karar: pragmatik
    etiket/paragraf/kutucuk/madde çubukları). Boş sayfa tile'ı o anki boyut/
    renkte boş önizleme.
 
-## PLANLANAN — Sürüm 1.3+ (kullanıcı onayladı, sıraya alındı)
+## YOL HARİTASI — genel tablo (nerede olduğumuz)
 
-**1.3 — Tablo bloğu (büyük iş):**
-- flutter_quill'de hazır tablo YOK → özel embed (delta'ya gömülü JSON tablo) +
-  widget renderer + düzenleme arayüzü (satır/sütun ekle-sil, hücre metni).
-- PDF export'ta (`_paintRichText`) tablo çizimi + canlı paylaşımda gövde
-  LWW ile sorunsuz taşınmalı. Kendi başına birkaç günlük iş, ayrı sürüm.
+**Sürüm durumları (üç kanal):**
+
+| Kanal | Sürüm | Durum |
+|-------|-------|-------|
+| Play üretim | 1.0 (mağazada) | Yayında |
+| Play kapalı test | 1.1 (pubspec 1.1.0+3) | Yayın bekliyor |
+| Dev / paralel APK | 1.2 + şablon yeniden tasarımı | **Aktif geliştirme burada** |
+
+**Strateji (kullanıcı kararı):** tüm geliştirme dev APK üzerinden; biriken her
+şey (1.1 + 1.2 + …) kapalı testten geçince **tek AAB** olarak yayınlanır.
+Prod'a ara sürüm çıkılmaz.
+
+**Tamamlanan:** 1.1 (varsayılan yazı modu, paylaşımı durdur, klasöre taşı, rutin
+bildirimi, seri/rozet) · 1.2 (yeni not pop-up, şablon sistemi, sayfa yönleri) ·
+1.2 şablon yeniden tasarımı (kâğıt paleti, sayfa desenleri, gerçek önizleme
+kartları, pragmatik şablonlar — bkz. üstteki bölümler).
+
+## PLANLANAN — sonraki işler (sıralı)
+
+### Tasarımdaki "form/yapısal sayfa" hedefine giden yol
+
+Claude Design'daki şablonlar **etkileşimli form** (ızgara, 2-kolon, etiketli
+alan, saat çizelgesi). Mevcut editör flutter_quill + serbest kalem olduğundan
+bunlar birebir çıkmıyor. Tasarıma ulaşmanın **tek büyük kaldıracı = tablo/ızgara
+bloğu**. O gelince Haftalık (7-sütun), Cornell (2-kolon), Günlük plan (saat
+çizelgesi), Toplantı (alanlar) **gerçek** olur.
+
+**1.3 — Tablo/ızgara bloğu (büyük iş, tasarım sadakatinin anahtarı):**
+1. flutter_quill özel embed (`BlockEmbed`) → Delta'ya gömülü JSON tablo (satır/
+   sütun/hücre; hücre = metin + opsiyonel kutucuk). Delta'da durduğu için canlı
+   paylaşım gövde LWW ile **otomatik** taşır.
+2. Editörde tablo renderer + düzenleme arayüzü (satır/sütun ekle-sil, hücre
+   metni, hücre kutucuğu).
+3. PDF export'ta tablo çizimi (`_paintRichText`).
+4. Önizleme kartında tablo şematiği (`_previewLines`/`_PreviewPainter`).
+5. Şablonları gerçekle: **Haftalık plan · Cornell · Günlük plan (saat) ·
+   Toplantı (alan ızgarası)** yeniden kurulur.
+
+**1.4 — Tasarım cilası (tam sadakat, opsiyonel/1.3 sonrası):**
+- Etiketli alan bloğu (TARİH ____ gibi hizalı alanlar), bölüm etiketi rengi
+  (kâğıda uyan muted — kalıcı çözüm için renk özniteliği yerine "label" blok
+  stili), ruh hâli satırı, eskiz kutusu, alışverişte adet sütunu.
+- **PDF export kâğıt rengi + arka plan sadakati** (şu an beyaz zemin + koyu
+  mürekkep; kâğıt rengi/deseni PDF'e yansıtılacak — `_renderPageImage`'e ink +
+  paper.background threading).
+- Yeni-not diyaloğu stilini design'a tam getirme (kâğıt noktaları büyük halka,
+  kategori sekmesi koyu-pill vurgusu).
 
 **2.0 — Şablon mağazası:**
 - Aşama 1 (önce bu): KÜRATÖRLÜ katalog — Supabase `store_templates` tablosu
@@ -466,6 +508,17 @@ kalem olduğundan ızgara/2-kolon düzenler birebir çıkmaz. **Karar: pragmatik
   indir → yerel Templates'e kopyala + indirme sayacı. Moderasyon yükü yok.
 - Aşama 2 (uygulama büyüyünce): kullanıcı yüklemesi — Play UGC politikası
   gereği raporla/engelle mekanizması ZORUNLU; moderasyon planı gerektirir.
+
+### Backlog (sürüme bağlı değil, sıra bekleyen)
+
+- **Gerçek bulut senkron** — Ayarlar'daki "Bağlan" hâlâ temsilî; `data/`
+  katmanına gerçek senkron eklenmeli (canlı ortak not altyapısı temel veriyor).
+- **Kalan Türkçe metinlerin çevirisi** — klasörler/arama ekranları, bazı araç
+  çubuğu tooltip'leri, `date_format` göreli tarihler henüz TR.
+- **Kalıcı etiketler** — şu an statik; ayrı tablo gerekir (klasör tablosu deseni).
+- **Yeni platformlar** — iOS/Windows/macOS/Linux/Web (`flutter create
+  --platforms=…`; web'de drift WASM + pdfx pdf.js).
+- **Küçük düzeltmeler** — dev APK test geri bildirimlerinden çıkacak liste.
 
 ## Önemli notlar / gelecek oturumlar için
 
