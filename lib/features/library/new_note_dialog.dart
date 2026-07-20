@@ -616,7 +616,8 @@ class _TemplatePreview extends StatelessWidget {
 
 enum _PL { title, heading, label, para, bullet, check, table }
 
-/// Şablon gövdesini (Quill Delta) şematik satır tiplerine ayırır — önizleme için.
+/// Şablon gövdesini (Quill Delta veya form-not) şematik satır tiplerine
+/// ayırır — önizleme için.
 List<_PL> _previewLines(String body) {
   final out = <_PL>[];
   dynamic data;
@@ -624,6 +625,41 @@ List<_PL> _previewLines(String body) {
     data = jsonDecode(body);
   } catch (_) {
     data = null;
+  }
+  // Form-not: blok tipleri doğrudan şematiğe çevrilir.
+  if (data is Map && data['ndform'] == 1) {
+    for (final raw in (data['blocks'] as List? ?? const [])) {
+      if (raw is! Map) continue;
+      switch (raw['type']) {
+        case 'title':
+          out.add(_PL.title);
+        case 'label':
+          out.add(_PL.label);
+        case 'fields':
+          out.add(_PL.para);
+        case 'check':
+          final n = (raw['i'] as List?)?.length ?? 2;
+          for (var k = 0; k < (n > 3 ? 3 : n); k++) {
+            out.add(_PL.check);
+          }
+        case 'num':
+          final n = (raw['i'] as List?)?.length ?? 2;
+          for (var k = 0; k < (n > 3 ? 3 : n); k++) {
+            out.add(_PL.bullet);
+          }
+        case 'area':
+          out.addAll([_PL.para, _PL.para]);
+        case 'mood':
+          out.add(_PL.para);
+        case 'hours':
+        case 'week':
+        case 'cornell':
+          out.add(_PL.table);
+        case 'sketch':
+          out.add(_PL.table);
+      }
+    }
+    return out;
   }
   if (data is! List) return out;
   double? size;

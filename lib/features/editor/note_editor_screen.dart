@@ -12,6 +12,8 @@ import '../../data/data_providers.dart';
 import '../collab/collab_service.dart';
 import '../drawing/drawing_layer.dart';
 import '../drawing/drawing_state.dart';
+import '../forms/form_model.dart';
+import '../forms/form_page.dart';
 import '../shell/shell_state.dart';
 import 'editor_state.dart';
 import 'table_embed.dart';
@@ -52,13 +54,19 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   bool _applyingRemote = false;
   DateTime _lastLocalEdit = DateTime.fromMillisecondsSinceEpoch(0);
 
+  // Form-not (şablon sayfası): body `{"ndform":1,...}` ise Quill yerine
+  // FormPage çizilir; kaydetme/uzak güncelleme de form yolundan gider.
+  FormDoc? _form;
+
   @override
   void initState() {
     super.initState();
     _docId = ref.read(navProvider).activeDocId;
     final doc = ref.read(activeDocumentProvider);
+    final body = doc?.body ?? '';
+    if (isFormBody(body)) _form = FormDoc.tryParse(body);
     _controller = QuillController(
-      document: _parseDoc(doc?.body ?? ''),
+      document: _form != null ? Document() : _parseDoc(body),
       selection: const TextSelection.collapsed(offset: 0),
     );
     _titleController.text = doc?.title ?? '';
@@ -67,11 +75,13 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     _controller.addListener(_scheduleSave);
 
     // Boş not + yazı modunda açılıyorsa klavye direkt gelsin (yeni not akışı).
-    final emptyOnOpen = _loaded && (doc?.body ?? '').trim().isEmpty;
+    final emptyOnOpen = _loaded && _form == null && body.trim().isEmpty;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      ref.read(activeQuillControllerProvider.notifier).state = _controller;
+      if (_form == null) {
+        ref.read(activeQuillControllerProvider.notifier).state = _controller;
+      }
       if (emptyOnOpen && ref.read(toolProvider) == PenTool.yazi) {
         _focus.requestFocus();
       }
@@ -97,6 +107,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     final doc = await ref.read(documentRepositoryProvider).getById(id);
     if (!mounted || doc == null) return;
     _titleController.text = doc.title;
+    if (isFormBody(doc.body)) _form = FormDoc.tryParse(doc.body);
     setState(() => _loaded = true);
   }
 
@@ -113,6 +124,23 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     // Kullanıcı şu an yazıyorsa dokunma; onun sürümü sunucuya gidecek (LWW).
     if (DateTime.now().difference(_lastLocalEdit) <
         const Duration(seconds: 3)) {
+      return;
+    }
+    if (_form != null) {
+      // Form-not: tüm gövde LWW ile değiştirilir (FormPage controller
+      // metinlerini didUpdateWidget'ta eşitler).
+      _applyingRemote = true;
+      try {
+        if (u.body != _form!.encode() && isFormBody(u.body)) {
+          final next = FormDoc.tryParse(u.body);
+          if (next != null) setState(() => _form = next);
+        }
+        if (_titleController.text != u.title) {
+          _titleController.text = u.title;
+        }
+      } finally {
+        _applyingRemote = false;
+      }
       return;
     }
     _applyingRemote = true;
@@ -140,10 +168,12 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   void _save() {
     final id = _docId;
     if (id == null || !_loaded) return;
-    final json = jsonEncode(_controller.document.toDelta().toJson());
+    final body = _form != null
+        ? _form!.encode()
+        : jsonEncode(_controller.document.toDelta().toJson());
     ref
         .read(documentRepositoryProvider)
-        .updateNote(id: id, title: _titleController.text.trim(), body: json);
+        .updateNote(id: id, title: _titleController.text.trim(), body: body);
   }
 
   Future<void> _addPage() async {
@@ -267,6 +297,9 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                             pageCount: pageCount,
                             paper: paper,
                             background: pageBackground,
+                            form: _form,
+                            formEditable: textMode,
+                            onFormChanged: _scheduleSave,
                           ),
                           const SizedBox(height: 16),
                           _AddPageButton(onTap: _addPage),
@@ -321,6 +354,9 @@ class _Sheet extends ConsumerWidget {
     required this.pageCount,
     required this.paper,
     required this.background,
+    required this.form,
+    required this.formEditable,
+    required this.onFormChanged,
   });
 
   final int? docId;
@@ -332,6 +368,9 @@ class _Sheet extends ConsumerWidget {
   final int pageCount;
   final PaperStyle paper;
   final String background;
+  final FormDoc? form;
+  final bool formEditable;
+  final VoidCallback onFormChanged;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -370,13 +409,22 @@ class _Sheet extends ConsumerWidget {
             ),
             // Minimum yükseklik (sayfa sayısına göre).
             SizedBox(width: width, height: minHeight),
-            // Zengin metin — renkler kağıda göre zorlanır (temadan bağımsız).
+            // Zengin metin veya form sayfası — renkler kağıda göre zorlanır
+            // (temadan bağımsız).
             Padding(
               padding: const EdgeInsets.fromLTRB(22, 22, 22, 22),
               child: Theme(
                 data: paper.isDark ? AppTheme.dark() : AppTheme.light(),
                 child: Builder(
                   builder: (ctx) {
+                    if (form != null) {
+                      return FormPage(
+                        form: form!,
+                        paper: paper,
+                        editable: formEditable,
+                        onChanged: onFormChanged,
+                      );
+                    }
                     return DefaultTextStyle(
                       style: TextStyle(color: paper.text),
                       child: QuillEditor(

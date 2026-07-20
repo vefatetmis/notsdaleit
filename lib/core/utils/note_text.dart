@@ -1,7 +1,9 @@
 import 'dart:convert';
 
-/// Not gövdesi (Quill Delta JSON veya eski düz metin) → düz metin.
-/// Kütüphane önizlemesi, arama ve PDF dışa aktarma için kullanılır.
+import '../../features/forms/form_model.dart';
+
+/// Not gövdesi (Quill Delta JSON, form-not JSON'u veya eski düz metin) →
+/// düz metin. Kütüphane önizlemesi, arama ve PDF dışa aktarma için kullanılır.
 String plainTextFromBody(String body) {
   if (body.trim().isEmpty) return '';
   try {
@@ -14,6 +16,9 @@ String plainTextFromBody(String body) {
         }
       }
       return sb.toString().trim();
+    }
+    if (data is Map && data['ndform'] == 1) {
+      return FormDoc.tryParse(body)?.plainText() ?? '';
     }
   } catch (_) {
     // Eski düz metin notu.

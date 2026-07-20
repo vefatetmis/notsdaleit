@@ -482,27 +482,52 @@ bunlar birebir çıkmıyor. Tasarıma ulaşmanın **tek büyük kaldıracı = ta
 bloğu**. O gelince Haftalık (7-sütun), Cornell (2-kolon), Günlük plan (saat
 çizelgesi), Toplantı (alanlar) **gerçek** olur.
 
-**1.3 — Tablo/ızgara bloğu — v1 UYGULANDI (dev APK'da test bekliyor):**
-`features/editor/table_embed.dart` — `'ndtable'` özel embed'i (flutter_quill
-`EmbedBuilder`, editörde `embedBuilders: [TableEmbedBuilder()]`). JSON modeli
-(Delta gövdesinde saklanır → kaydetme/canlı paylaşım LWW/.ntdl otomatik taşır):
-`{"w":[flex...], "h":1(başlık satırı), "r":[[hücre...]...]}`; hücre
-`{"t":metin, "k":0|1 kutucuk, "m":1 soluk, "f":1 hafif zemin, "n":min satır}`.
-- **Editör:** kâğıt rengine duyarlı çizim (paper.line/muted/faint); hücreye
-  dokun → metin düzenleme diyaloğu; kutucuğa dokun → işaretle; tabloya uzun
-  bas → satır ekle / son satırı sil. Yazı modu dışında (readOnly) etkileşim yok.
-- **PDF export:** `_parseDelta` artık `List<Object>` (satır + `_PdfTable`)
-  döner; `_paintTable` ızgara/zemin/kutucuk/metni çizer.
-- **Önizleme kartı:** `_PL.table` → küçük ızgara şematiği.
-- **Şablonlar gerçek düzende:** Haftalık plan (7 sütun, hafta sonu faint),
-  Cornell (2 kolon + ÖZET kutusu), Günlük plan (07-18 saat çizelgesi),
-  Toplantı (TARİH/SAAT + KATILIMCILAR/KONU alan ızgaraları + AKSİYON/KİM
-  tablosu), Alışveriş (kutucuk + adet sütunu).
+**1.3 — FORM-NOT SAYFALARI — UYGULANDI (dev APK'da test bekliyor):**
 
-**1.3 kalanlar (v1 sonrası cila):**
-- Araç çubuğundan elle tablo ekleme (şu an tablolar yalnızca şablonlardan gelir).
-- Sütun ekleme/silme arayüzü; hücre içinde satır-içi (inline) yazma (şimdilik
-  diyalogla düzenleniyor — kalem/odak çakışmaları nedeniyle bilinçli v1 kararı).
+İlk deneme (ndtable: Quill'e gömülü tablo embed'i) sahada BAŞARISIZ oldu —
+imleç embed hizasına giriyor, embed satırına yazılan harfler tablonun yanına
+dikey akıyordu (Quill metin akışı + dev WidgetSpan + dokunmatik düzenleme
+uyumsuz). **Karar: şablon sayfaları Quill'e gömülmez; native form sayfası
+olarak çizilir.**
+
+- **`features/forms/form_model.dart`:** `FormDoc` — gövde
+  `{"ndform":1,"blocks":[...]}` olarak Documents.body'de durur (kaydetme,
+  canlı paylaşım LWW, .ntdl, şablon kaydetme otomatik taşır). Blok tipleri:
+  `title` (sayaçlı: done n/m veya count+birim) · `fields` (etiket + altı
+  çizili alan, flex kolonlar) · `label` (küçük büyük-harf bölüm etiketi) ·
+  `check` (kutucuklu satırlar; sağ küçük alan: adet '1'/'Kim?'; opsiyonel
+  "satır ekle") · `num` (numaralı çipli satırlar) · `area` (çizgili çok
+  satırlı alan) · `mood` (ruh hâli daireleri) · `hours` (saat çizelgesi) ·
+  `week` (7 kolon gün kartları, hafta sonu faint) · `cornell` (2 kolon +
+  özet kutusu) · `sketch` (kesikli çerçeve + noktalı eskiz kutusu).
+- **`features/forms/form_page.dart`:** blokların native Flutter karşılığı —
+  gerçek TextField'lar (klavye/odak sorunsuz), kutucuk/mood dokunuşları,
+  kâğıt rengine duyarlı (paper.line/muted/faint). `didUpdateWidget` uzak
+  güncellemede controller metinlerini eşitler.
+- **Editör entegrasyonu (`note_editor_screen`):** `isFormBody(body)` ise
+  Quill yerine `FormPage` (aynı sayfa zarfı: arka plan deseni + DrawingLayer
+  üstte → kalemle çizim form üzerinde de çalışır). `_save`/`_applyRemoteUpdate`
+  form yolu; form notlarında `activeQuillControllerProvider` set edilmez.
+  Form alanları yalnızca **yazı modunda** düzenlenebilir.
+- **PDF export:** `_paintForm` — tüm blokları canvas'a çizer (FormPage
+  düzeninin birebir PDF karşılığı).
+- **Şablonlar:** 9 gömülü şablonun tamamı form üretir (Boş sayfa Quill kalır):
+  Yapılacaklar (sayaç+tarih+8 görev+ekle), Günlük (GÜNLÜK etiketi+tarih
+  başlığı+ruh hâli+çizgili alan), Fikir defteri (tek cümle/neden önemli/
+  adımlar/eskiz kutusu), Günlük plan (öncelik çipleri+07-18 çizelge),
+  Haftalık plan (hafta/hedef+7 gün ızgarası), Alışveriş (3 kategori+adet),
+  Toplantı (alanlar+gündem+aksiyon/Kim?), Cornell, Proje görevleri
+  (yapılacak/devam/tamam bölümleri).
+- `plainTextFromBody` form metnini çıkarır (arama/önizleme); yeni-not
+  önizleme kartları form bloklarını şematiğe çevirir.
+- **ndtable embed kodu duruyor** (`table_embed.dart` hâlâ kayıtlı — eski test
+  notları bozulmasın); yeni şablonlar onu KULLANMAZ. İleride tamamen
+  kaldırılabilir.
+
+**1.3 kalanlar (cila):**
+- Form notlarında Aa araç çubuğundaki biçim düğmeleri işlevsiz (gizlenebilir).
+- Checklist'te satır silme arayüzü yok (uzun bas → sil eklenebilir).
+- PDF export kâğıt rengi hâlâ beyaz (desen + form çiziliyor; renk ayrı iş).
 
 **1.4 — Tasarım cilası (tam sadakat, opsiyonel/1.3 sonrası):**
 - Etiketli alan bloğu (TARİH ____ gibi hizalı alanlar), bölüm etiketi rengi
