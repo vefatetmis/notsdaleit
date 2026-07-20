@@ -15,6 +15,7 @@ import '../drawing/drawing_state.dart';
 import '../drawing/stroke_painter.dart';
 import '../editor/editor_state.dart';
 import '../editor/table_embed.dart';
+import '../forms/form_layout.dart';
 import '../forms/form_model.dart';
 
 String _safeName(String title) {
@@ -39,7 +40,7 @@ Future<void> exportDocumentAsPdf(WidgetRef ref, Document doc) async {
 
   final rows = await ref.read(drawingRepositoryProvider).getStrokes(doc.id);
   final aspect = aspectForPageSize(doc.pageSize);
-  final pageCount = doc.pageCount ?? 1;
+  var pageCount = doc.pageCount ?? 1;
   const w = 1240.0;
   final h = w * aspect;
   // Sayfa boyutuna uygun PDF formatı (yükseklik = genişlik × aspect).
@@ -51,19 +52,44 @@ Future<void> exportDocumentAsPdf(WidgetRef ref, Document doc) async {
     _ => PdfPageFormat.a4,
   };
 
+  // Form-not: ekranla aynı sanal metriklerle sayfalanır (bloklar aynı
+  // sayfalara düşer).
+  FormDoc? form;
+  FormLayoutResult? formLayout;
+  var formScale = 1.0;
+  if (isFormBody(doc.body)) {
+    form = FormDoc.tryParse(doc.body);
+    if (form != null) {
+      final virtualW = formVirtualWidth(doc.pageSize);
+      final virtualPageW = virtualW + 44;
+      formScale = w / virtualPageW;
+      final contentHv = virtualPageW * aspect - 44 - 6;
+      final skipHv = 44 + virtualPageW * kPageGapRatio;
+      formLayout = paginateForm(form, virtualW, contentHv, skipHv,
+          editable: false);
+      if (formLayout.pages > pageCount) pageCount = formLayout.pages;
+    }
+  }
+
+  // Çizimler ekranda sayfalar + aralıklardan oluşan sürekli bir düzlemde
+  // durur; PDF'te her sayfa kendi dilimini kaydırılmış çizimle alır.
+  final allStrokes = [for (final s in rows) PenStroke.fromRow(s)];
+
   final pdf = pw.Document();
   for (var i = 0; i < pageCount; i++) {
-    final pageStrokes = <PenStroke>[
-      for (final s in rows)
-        if (s.page == i) PenStroke.fromRow(s),
-    ];
     final imageBytes = await _renderPageImage(
       w,
       h,
-      pageStrokes,
-      // Metin (biçimli) yalnızca ilk sayfaya çizilir.
-      body: i == 0 ? doc.body : null,
+      allStrokes,
+      // Metin (biçimli) yalnızca ilk sayfaya çizilir; form her sayfada
+      // kendi bloklarını çizer.
+      body: form == null && i == 0 ? doc.body : null,
       background: doc.pageBackground,
+      form: form,
+      formLayout: formLayout,
+      formPage: i,
+      formScale: formScale,
+      strokeOffsetY: i * (aspect + kPageGapRatio) * w,
     );
     final memImage = pw.MemoryImage(imageBytes);
     pdf.addPage(
@@ -80,14 +106,20 @@ Future<void> exportDocumentAsPdf(WidgetRef ref, Document doc) async {
   await Printing.sharePdf(bytes: await pdf.save(), filename: filename);
 }
 
-/// Bir sayfayı (beyaz zemin + kâğıt deseni + varsa biçimli metin + çizimler)
-/// PNG'ye çizer.
+/// Bir sayfayı (beyaz zemin + kâğıt deseni + varsa biçimli metin / form
+/// blokları + çizimler) PNG'ye çizer. [strokeOffsetY] o sayfanın sürekli
+/// çizim düzlemindeki üst konumu (piksel).
 Future<Uint8List> _renderPageImage(
   double w,
   double h,
   List<PenStroke> strokes, {
   String? body,
   String background = 'duz',
+  FormDoc? form,
+  FormLayoutResult? formLayout,
+  int formPage = 0,
+  double formScale = 1,
+  double strokeOffsetY = 0,
 }) async {
   final recorder = ui.PictureRecorder();
   final canvas = Canvas(recorder);
@@ -103,25 +135,24 @@ Future<Uint8List> _renderPageImage(
   // Kâğıt deseni (çizgili/kareli/noktalı) — editörle aynı yardımcı.
   paintPageBackground(canvas, Size(w, h), background, const Color(0xFFE7E5DF));
 
-  if (body != null && body.trim().isNotEmpty) {
+  if (form != null && formLayout != null) {
+    final pad = 22.0 * formScale;
+    _paintForm(
+        canvas, form, formLayout, formPage, pad, pad, w - pad * 2, formScale);
+  } else if (body != null && body.trim().isNotEmpty) {
     final pad = 22.0 * scale;
-    if (isFormBody(body)) {
-      final form = FormDoc.tryParse(body);
-      if (form != null) {
-        _paintForm(canvas, form, pad, pad, w - pad * 2, scale);
-      }
-    } else {
-      _paintRichText(
-        canvas,
-        _parseDelta(body, scale),
-        pad,
-        pad,
-        w - pad * 2,
-        scale,
-      );
-    }
+    _paintRichText(
+      canvas,
+      _parseDelta(body, scale),
+      pad,
+      pad,
+      w - pad * 2,
+      scale,
+    );
   }
 
+  canvas.save();
+  canvas.translate(0, -strokeOffsetY);
   for (final s in strokes) {
     if (s.points.isEmpty) continue;
     final paint = Paint()
@@ -141,6 +172,7 @@ Future<Uint8List> _renderPageImage(
     }
     canvas.drawPath(s.buildScaledPath(Size(w, h)), paint);
   }
+  canvas.restore();
 
   final picture = recorder.endRecording();
   final image = await picture.toImage(w.round(), h.round());
@@ -513,11 +545,13 @@ TextStyle _fStyle(double size, double scale,
       height: 1.3,
     );
 
-/// Form-notu (şablon sayfası) canvas'a çizer — ekrandaki FormPage düzeninin
-/// PDF karşılığı.
+/// Form-notun [page] sayfasına düşen bloklarını canvas'a çizer — ekrandaki
+/// FormPage düzeninin (ve sayfalamasının) PDF karşılığı.
 void _paintForm(
   Canvas canvas,
   FormDoc form,
+  FormLayoutResult layout,
+  int page,
   double x,
   double y,
   double maxWidth,
@@ -571,13 +605,17 @@ void _paintForm(
     }
   }
 
-  void ruled(double lx, double w, double top, int lines, double lineH) {
-    for (var k = 1; k <= lines; k++) {
-      underline(lx, w, top + k * lineH - 1 * scale);
+  void ruled(
+      double lx, double w, double top, int lines, double lineH, double bl) {
+    for (var k = 0; k < lines; k++) {
+      underline(lx, w, top + bl + k * lineH);
     }
   }
 
-  for (final b in form.blocks) {
+  for (var bi = 0; bi < form.blocks.length; bi++) {
+    if (bi < layout.pageOf.length && layout.pageOf[bi] != page) continue;
+    final b = form.blocks[bi];
+    cy = y + (bi < layout.topInPage.length ? layout.topInPage[bi] : 0) * scale;
     switch (b) {
       case TitleBlock():
         final has = b.text.isNotEmpty;
@@ -701,7 +739,10 @@ void _paintForm(
             ),
             maxWidth);
         final lines = ((tp.height / lineH).ceil()).clamp(b.minLines, 200);
-        if (b.lined) ruled(x, maxWidth, cy, lines, lineH);
+        if (b.lined) {
+          ruled(x, maxWidth, cy, lines, lineH,
+              ruledBaseline(14, kFbAreaLineH) * scale);
+        }
         tp.paint(canvas, Offset(x, cy));
         cy += lines * lineH + 14 * scale;
       case MoodBlock():
@@ -809,7 +850,8 @@ void _paintForm(
                   color: _fMuted, weight: FontWeight.w700, letterSpacing: 0.8),
               aw - pad * 2);
           lt.paint(canvas, Offset(ax + pad, cy + pad));
-          ruled(ax + pad, aw - pad * 2, cy + pad + labelH, cueLines, lineH);
+          ruled(ax + pad, aw - pad * 2, cy + pad + labelH, cueLines, lineH,
+              ruledBaseline(13, kFbCornellLineH) * scale);
           if (val.isNotEmpty) {
             final vt = _formTp(
                 val,
@@ -845,7 +887,8 @@ void _paintForm(
                 color: _fMuted, weight: FontWeight.w700, letterSpacing: 0.8),
             maxWidth - pad * 2);
         st.paint(canvas, Offset(x + pad, cy + pad));
-        ruled(x + pad, maxWidth - pad * 2, cy + pad + labelH, sumLines, lineH);
+        ruled(x + pad, maxWidth - pad * 2, cy + pad + labelH, sumLines, lineH,
+            ruledBaseline(13, kFbCornellLineH) * scale);
         if (b.summary.isNotEmpty) {
           final vt = _formTp(
               b.summary,

@@ -524,10 +524,35 @@ olarak çizilir.**
   notları bozulmasın); yeni şablonlar onu KULLANMAZ. İleride tamamen
   kaldırılabilir.
 
+**Sayfa modeli + ölçek (saha geri bildirimi sonrası yeniden kuruldu):**
+- **Bağımsız sayfa kartları:** `_Sheet` artık her sayfayı ayrı kart çizer
+  (kendi zemin/kenarlık/gölge/desen), aralarda gerçek boşluk
+  (`kPageGapRatio = 0.05 × genişlik`). Eski sürekli-tabaka + bant ayracı
+  (`_PageLinesPainter`) KALDIRILDI.
+- **Otomatik sayfa büyümesi:** içerik taşınca sayfa sayısı tam sayfa olarak
+  artar (küsurat sayfa yok). Form: `paginateForm` deterministik ölçüm
+  (`form_layout.dart` — TextPainter ile blok yükseklikleri); Quill: post-frame
+  ölçüm (`_quillKey` → RenderBox) ile.
+- **Form sayfalama:** bloklar sayfa sınırını ORTALAMAZ — sığmayan blok
+  `spacerBefore` ile sonraki sayfanın başına atlar. Ekran ve PDF **aynı sanal
+  metriklerle** sayfalar (bloklar iki tarafta aynı sayfaya düşer).
+- **Sanal genişlik ölçeği:** formlar `formVirtualWidth` (a4/kare 520 ·
+  yatay 735 · telefon 390) genişliğinde dizilir, ekrana FittedBox'la
+  oranlanır → Haftalık plan ekrana sığar; A4 çıktıda ~16pt gövde yazısı
+  (gerçekçi yoğunluk). PDF export ölçeği aynı sanal genişlikten türetilir.
+- **Çizgi hizası:** çizgili alanlarda çizgiler yazının taban çizgisine
+  (`ruledBaseline`) oturur (ekran + PDF).
+- **PDF çizim dilimi:** çizimler sürekli düzlemde (sayfalar + aralıklar);
+  export her sayfada `strokeOffsetY = i × (aspect + kPageGapRatio) × w`
+  kaydırmasıyla doğru dilimi basar (eski `s.page==i` filtresi kaldırıldı —
+  çok sayfalı çizimler artık PDF'te kaybolmaz).
+
 **1.3 kalanlar (cila):**
 - Form notlarında Aa araç çubuğundaki biçim düğmeleri işlevsiz (gizlenebilir).
 - Checklist'te satır silme arayüzü yok (uzun bas → sil eklenebilir).
 - PDF export kâğıt rengi hâlâ beyaz (desen + form çiziliyor; renk ayrı iş).
+- Quill (serbest) notlarda metin sayfa sınırını hâlâ ortalayabilir (form
+  sayfalaması yalnız form bloklarında; Quill satır-bazlı sayfalama yapılmadı).
 
 **1.4 — Tasarım cilası (tam sadakat, opsiyonel/1.3 sonrası):**
 - Etiketli alan bloğu (TARİH ____ gibi hizalı alanlar), bölüm etiketi rengi

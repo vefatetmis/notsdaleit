@@ -12,6 +12,7 @@ import '../../data/data_providers.dart';
 import '../collab/collab_service.dart';
 import '../drawing/drawing_layer.dart';
 import '../drawing/drawing_state.dart';
+import '../forms/form_layout.dart';
 import '../forms/form_model.dart';
 import '../forms/form_page.dart';
 import '../shell/shell_state.dart';
@@ -297,6 +298,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                             pageCount: pageCount,
                             paper: paper,
                             background: pageBackground,
+                            pageSize: pageSize,
                             form: _form,
                             formEditable: textMode,
                             onFormChanged: _scheduleSave,
@@ -343,7 +345,11 @@ DefaultStyles _noteStyles(BuildContext ctx, Color textColor) {
   );
 }
 
-class _Sheet extends ConsumerWidget {
+/// Not sayfaları: her sayfa **bağımsız bir kart** (kendi zemini/kenarı/gölgesi/
+/// deseni), aralarında gerçek boşluk. İçerik taşarsa sayfa sayısı otomatik
+/// büyür (küsurat sayfa oluşmaz). Form notları sanal A4 genişliğinde dizilip
+/// FittedBox'la ölçeklenir → telefonda sığar, çıktıda gerçekçi yoğunluk.
+class _Sheet extends ConsumerStatefulWidget {
   const _Sheet({
     required this.docId,
     required this.controller,
@@ -354,6 +360,7 @@ class _Sheet extends ConsumerWidget {
     required this.pageCount,
     required this.paper,
     required this.background,
+    required this.pageSize,
     required this.form,
     required this.formEditable,
     required this.onFormChanged,
@@ -368,78 +375,149 @@ class _Sheet extends ConsumerWidget {
   final int pageCount;
   final PaperStyle paper;
   final String background;
+  final String pageSize;
   final FormDoc? form;
   final bool formEditable;
   final VoidCallback onFormChanged;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final nd = context.nd;
-    final minHeight = pageHeight * pageCount;
+  ConsumerState<_Sheet> createState() => _SheetState();
+}
 
-    return Container(
-      width: width,
-      decoration: BoxDecoration(
-        color: paper.background,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: nd.borderStrong),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.07),
-            blurRadius: 14,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(6),
-        child: Stack(
-          children: [
-            // Sayfa arka planı (kâğıt deseni: çizgili/kareli/noktalı) — en altta.
-            Positioned.fill(
-              child: CustomPaint(
-                painter: _PageBackgroundPainter(background, paper.line),
+class _SheetState extends ConsumerState<_Sheet> {
+  final GlobalKey _quillKey = GlobalKey();
+  double _quillH = 0;
+
+  /// Quill içeriğinin çizilen yüksekliğini kare sonrası ölçer (sayfa sayısı
+  /// içerikten otomatik büyüsün diye).
+  void _scheduleQuillMeasure() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final box =
+          _quillKey.currentContext?.findRenderObject() as RenderBox?;
+      if (box == null || !box.hasSize) return;
+      final h = box.size.height;
+      if ((h - _quillH).abs() > 0.5) setState(() => _quillH = h);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final nd = context.nd;
+    final w = widget.width;
+    final pageH = widget.pageHeight;
+    final gap = w * kPageGapRatio;
+    final aspect = pageH / w;
+    final paper = widget.paper;
+
+    var pages = widget.pageCount;
+    double contentPad = 22;
+    FormLayoutResult? layout;
+    double virtualW = 0;
+
+    if (widget.form != null) {
+      virtualW = formVirtualWidth(widget.pageSize);
+      final virtualPageW = virtualW + 44;
+      contentPad = 22 * (w / virtualPageW);
+      // Sanal birimlerde sayfa içerik yüksekliği ve sayfa atlama mesafesi —
+      // PDF export aynı formülü kullanır → sayfalama iki tarafta birebir.
+      final contentHv = virtualPageW * aspect - 44 - 6;
+      final skipHv = 44 + virtualPageW * kPageGapRatio;
+      layout = paginateForm(widget.form!, virtualW, contentHv, skipHv,
+          editable: widget.formEditable);
+      if (layout.pages > pages) pages = layout.pages;
+    } else {
+      _scheduleQuillMeasure();
+      if (_quillH > 0) {
+        final needed = ((_quillH + 44 + gap) / (pageH + gap)).ceil();
+        if (needed > pages) pages = needed;
+      }
+    }
+
+    final totalH = pages * pageH + (pages - 1) * gap;
+
+    return SizedBox(
+      width: w,
+      height: totalH,
+      child: Stack(
+        children: [
+          // Bağımsız sayfa kartları (zemin + kenarlık + gölge + desen).
+          for (var i = 0; i < pages; i++)
+            Positioned(
+              top: i * (pageH + gap),
+              left: 0,
+              right: 0,
+              height: pageH,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: paper.background,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: nd.borderStrong),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.07),
+                      blurRadius: 14,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: CustomPaint(
+                    painter:
+                        _PageBackgroundPainter(widget.background, paper.line),
+                    child: const SizedBox.expand(),
+                  ),
+                ),
               ),
             ),
-            // Sayfa ayırıcıları (metnin arkasında) — sayfalar arası boşluk hissi.
-            Positioned.fill(
-              child: CustomPaint(
-                painter: _PageLinesPainter(pageHeight, paper.isDark),
-              ),
-            ),
-            // Minimum yükseklik (sayfa sayısına göre).
-            SizedBox(width: width, height: minHeight),
-            // Zengin metin veya form sayfası — renkler kağıda göre zorlanır
-            // (temadan bağımsız).
-            Padding(
-              padding: const EdgeInsets.fromLTRB(22, 22, 22, 22),
+          // İçerik (sayfaların üstünden aşağı akar; form sayfalamayla sayfa
+          // sınırlarına saygı duyar).
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Padding(
+              padding:
+                  EdgeInsets.fromLTRB(contentPad, contentPad, contentPad, 0),
               child: Theme(
                 data: paper.isDark ? AppTheme.dark() : AppTheme.light(),
                 child: Builder(
                   builder: (ctx) {
-                    if (form != null) {
-                      return FormPage(
-                        form: form!,
-                        paper: paper,
-                        editable: formEditable,
-                        onChanged: onFormChanged,
+                    if (widget.form != null) {
+                      return FittedBox(
+                        fit: BoxFit.fitWidth,
+                        alignment: Alignment.topLeft,
+                        child: SizedBox(
+                          width: virtualW,
+                          child: FormPage(
+                            form: widget.form!,
+                            paper: paper,
+                            editable: widget.formEditable,
+                            onChanged: widget.onFormChanged,
+                            spacers: layout!.spacerBefore,
+                          ),
+                        ),
                       );
                     }
-                    return DefaultTextStyle(
-                      style: TextStyle(color: paper.text),
-                      child: QuillEditor(
-                        focusNode: focus,
-                        scrollController: editorScroll,
-                        controller: controller,
-                        config: QuillEditorConfig(
-                          scrollable: false,
-                          expands: false,
-                          autoFocus: false,
-                          padding: EdgeInsets.zero,
-                          placeholder:
-                              context.t('Yazmaya başlayın…', 'Start writing…'),
-                          customStyles: _noteStyles(ctx, paper.text),
-                          embedBuilders: const [TableEmbedBuilder()],
+                    return KeyedSubtree(
+                      key: _quillKey,
+                      child: DefaultTextStyle(
+                        style: TextStyle(color: paper.text),
+                        child: QuillEditor(
+                          focusNode: widget.focus,
+                          scrollController: widget.editorScroll,
+                          controller: widget.controller,
+                          config: QuillEditorConfig(
+                            scrollable: false,
+                            expands: false,
+                            autoFocus: false,
+                            padding: EdgeInsets.zero,
+                            placeholder: context.t(
+                                'Yazmaya başlayın…', 'Start writing…'),
+                            customStyles: _noteStyles(ctx, paper.text),
+                            embedBuilders: const [TableEmbedBuilder()],
+                          ),
                         ),
                       ),
                     );
@@ -447,13 +525,13 @@ class _Sheet extends ConsumerWidget {
                 ),
               ),
             ),
-            // Çizim katmanı (yazı modunda dokunuşu editöre bırakır).
-            if (docId != null)
-              Positioned.fill(
-                child: DrawingLayer(docId: docId!, page: 0),
-              ),
-          ],
-        ),
+          ),
+          // Çizim katmanı (yazı modunda dokunuşu editöre bırakır).
+          if (widget.docId != null)
+            Positioned.fill(
+              child: DrawingLayer(docId: widget.docId!, page: 0),
+            ),
+        ],
       ),
     );
   }
@@ -516,34 +594,3 @@ class _PageBackgroundPainter extends CustomPainter {
       old.type != type || old.lineColor != lineColor;
 }
 
-class _PageLinesPainter extends CustomPainter {
-  _PageLinesPainter(this.pageHeight, this.darkPaper);
-
-  final double pageHeight;
-  final bool darkPaper;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (pageHeight <= 0) return;
-    // Sayfa sınırında ince bir çizgi + hafif gölge bandı → sayfalar arası
-    // "boşluk" hissi (tek sürekli sayfada görsel ayrım).
-    final line = Paint()
-      ..color = darkPaper ? const Color(0x33FFFFFF) : const Color(0x1A000000)
-      ..strokeWidth = 1;
-    for (var y = pageHeight; y < size.height - 1; y += pageHeight) {
-      final band = Rect.fromLTWH(0, y - 7, size.width, 14);
-      canvas.drawRect(
-        band,
-        Paint()
-          ..color = darkPaper
-              ? const Color(0x22000000)
-              : const Color(0x0A000000),
-      );
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), line);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_PageLinesPainter old) =>
-      old.pageHeight != pageHeight || old.darkPaper != darkPaper;
-}

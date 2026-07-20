@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../editor/editor_state.dart';
+import 'form_layout.dart';
 import 'form_model.dart';
 
 /// Form-notu sayfada çizen ve düzenleten widget. Tasarımdaki ("Not Şablonları"
@@ -15,12 +16,17 @@ class FormPage extends StatefulWidget {
     required this.paper,
     required this.editable,
     required this.onChanged,
+    this.spacers = const [],
   });
 
   final FormDoc form;
   final PaperStyle paper;
   final bool editable;
   final VoidCallback onChanged;
+
+  /// Sayfalama: her blok öncesi eklenecek boşluk (`paginateForm` üretir) —
+  /// blok sayfa sınırını ortalamak yerine sonraki sayfanın başına düşer.
+  final List<double> spacers;
 
   @override
   State<FormPage> createState() => _FormPageState();
@@ -116,6 +122,7 @@ class _FormPageState extends State<FormPage> {
         s.toUpperCase(),
         style: TextStyle(
           fontSize: size,
+          height: 1.3,
           fontWeight: FontWeight.w700,
           letterSpacing: 1.1,
           color: paper.muted,
@@ -137,7 +144,7 @@ class _FormPageState extends State<FormPage> {
           _changed();
         },
         textCapitalization: TextCapitalization.sentences,
-        style: TextStyle(fontSize: fontSize, color: paper.text),
+        style: TextStyle(fontSize: fontSize, height: 1.3, color: paper.text),
         decoration: _bare(hint),
       ),
     );
@@ -165,14 +172,14 @@ class _FormPageState extends State<FormPage> {
     );
   }
 
-  /// Çizgili çok satırlı yazı alanı (satır aralığına oturan arka plan çizgileri).
+  /// Çizgili çok satırlı yazı alanı (çizgiler yazının taban çizgisine oturur).
   Widget _linedArea(String key, AreaBlock b) {
-    const lineH = 30.0;
+    const lineH = kFbAreaLineH;
     return Stack(
       children: [
         Positioned.fill(
           child: CustomPaint(
-            painter: b.lined ? _RuledPainter(paper.line, lineH) : null,
+            painter: b.lined ? _RuledPainter(paper.line, lineH, 14) : null,
           ),
         ),
         TextField(
@@ -219,6 +226,7 @@ class _FormPageState extends State<FormPage> {
             textCapitalization: TextCapitalization.sentences,
             style: TextStyle(
               fontSize: 22,
+              height: 1.3,
               fontWeight: FontWeight.w800,
               letterSpacing: -0.4,
               color: paper.text,
@@ -288,7 +296,8 @@ class _FormPageState extends State<FormPage> {
                       _changed();
                     },
                     textCapitalization: TextCapitalization.sentences,
-                    style: TextStyle(fontSize: 14.5, color: paper.text),
+                    style: TextStyle(
+                        fontSize: 14.5, height: 1.3, color: paper.text),
                     decoration: _bare(''),
                   ),
                 ),
@@ -370,7 +379,8 @@ class _FormPageState extends State<FormPage> {
                       _changed();
                     },
                     textCapitalization: TextCapitalization.sentences,
-                    style: TextStyle(fontSize: 14, color: paper.text),
+                    style: TextStyle(
+                        fontSize: 14, height: 1.3, color: paper.text),
                     decoration: _bare(''),
                   ),
                 ),
@@ -449,7 +459,8 @@ class _FormPageState extends State<FormPage> {
                       _changed();
                     },
                     textCapitalization: TextCapitalization.sentences,
-                    style: TextStyle(fontSize: 13.5, color: paper.text),
+                    style: TextStyle(
+                        fontSize: 13.5, height: 1.3, color: paper.text),
                     decoration: _bare(''),
                   ),
                 ),
@@ -480,6 +491,7 @@ class _FormPageState extends State<FormPage> {
                   Text(b.days[d].name,
                       style: TextStyle(
                           fontSize: 12,
+                          height: 1.3,
                           fontWeight: FontWeight.w700,
                           color: paper.text)),
                   const SizedBox(height: 6),
@@ -508,7 +520,9 @@ class _FormPageState extends State<FormPage> {
                                 _changed();
                               },
                               style: TextStyle(
-                                  fontSize: 11, color: paper.text),
+                                  fontSize: 11,
+                                  height: 1.3,
+                                  color: paper.text),
                               decoration: _bare(''),
                             ),
                           ),
@@ -538,8 +552,8 @@ class _FormPageState extends State<FormPage> {
             Stack(
               children: [
                 Positioned.fill(
-                  child:
-                      CustomPaint(painter: _RuledPainter(paper.line, 27)),
+                  child: CustomPaint(
+                      painter: _RuledPainter(paper.line, kFbCornellLineH, 13)),
                 ),
                 TextField(
                   controller: _ctrl(key, value),
@@ -640,8 +654,13 @@ class _FormPageState extends State<FormPage> {
         CornellBlock() => _cornell(i, b),
         SketchBlock() => _sketch(b),
       };
+      // Sayfalama: blok sayfa sınırına sığmıyorsa sonraki sayfaya atlar.
+      final spacer =
+          i < widget.spacers.length ? widget.spacers[i] : 0.0;
+      if (spacer > 0) children.add(SizedBox(height: spacer));
       children.add(Padding(
-        padding: EdgeInsets.only(bottom: b is LabelBlock ? 8 : 14),
+        padding: EdgeInsets.only(
+            bottom: b is LabelBlock ? kFbLabelGap : kFbBlockGap),
         child: w,
       ));
     }
@@ -654,25 +673,31 @@ class _FormPageState extends State<FormPage> {
 }
 
 /// Satır aralığına oturan yatay arka plan çizgileri (çizgili alanlar).
+/// Çizgiler yazının taban çizgisine (baseline) hizalanır.
 class _RuledPainter extends CustomPainter {
-  _RuledPainter(this.color, this.lineHeight);
+  _RuledPainter(this.color, this.lineHeight, this.fontSize)
+      : _baseline = ruledBaseline(fontSize, lineHeight);
 
   final Color color;
   final double lineHeight;
+  final double fontSize;
+  final double _baseline;
 
   @override
   void paint(Canvas canvas, Size size) {
     final p = Paint()
       ..color = color
       ..strokeWidth = 1;
-    for (var y = lineHeight - 1; y < size.height; y += lineHeight) {
+    for (var y = _baseline; y < size.height + 1; y += lineHeight) {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), p);
     }
   }
 
   @override
   bool shouldRepaint(_RuledPainter old) =>
-      old.color != color || old.lineHeight != lineHeight;
+      old.color != color ||
+      old.lineHeight != lineHeight ||
+      old.fontSize != fontSize;
 }
 
 /// Kesikli çerçeve + noktalı zemin (eskiz kutusu).
