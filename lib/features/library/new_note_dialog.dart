@@ -135,12 +135,16 @@ class _NewNoteDialogState extends ConsumerState<_NewNoteDialog> {
       shape:
           RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: 460, maxHeight: screenH * 0.86),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Başlık
+        constraints: const BoxConstraints(maxWidth: 460),
+        // Sabit yükseklik → sekme (kategori) değişince şablon sayısı farklı olsa
+        // bile pop-up boyutu oynamaz; içerik Flexible içindeki kaydırmayla akar.
+        child: SizedBox(
+          height: (screenH * 0.82).clamp(420.0, 640.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.max,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Başlık
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 18, 12, 6),
               child: Row(
@@ -258,6 +262,7 @@ class _NewNoteDialogState extends ConsumerState<_NewNoteDialog> {
               ),
             ),
           ],
+        ),
         ),
       ),
     );
