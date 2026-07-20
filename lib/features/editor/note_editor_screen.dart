@@ -14,6 +14,7 @@ import '../drawing/drawing_layer.dart';
 import '../drawing/drawing_state.dart';
 import '../shell/shell_state.dart';
 import 'editor_state.dart';
+import 'table_embed.dart';
 
 /// Birleşik not editörü: boyutlu sayfa üzerinde hem **biçimli yazı**
 /// (flutter_quill) hem **kalemle çizim**. Araç çubuğundaki **Aa** ile yazı
@@ -390,6 +391,7 @@ class _Sheet extends ConsumerWidget {
                           placeholder:
                               context.t('Yazmaya başlayın…', 'Start writing…'),
                           customStyles: _noteStyles(ctx, paper.text),
+                          embedBuilders: const [TableEmbedBuilder()],
                         ),
                       ),
                     );

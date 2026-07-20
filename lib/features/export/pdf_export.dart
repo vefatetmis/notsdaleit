@@ -14,6 +14,7 @@ import '../../data/database/database.dart';
 import '../drawing/drawing_state.dart';
 import '../drawing/stroke_painter.dart';
 import '../editor/editor_state.dart';
+import '../editor/table_embed.dart';
 
 String _safeName(String title) {
   final t = title.trim().isEmpty ? 'not' : title.trim();
@@ -155,6 +156,12 @@ class _Line {
   final String? list; // 'bullet' | 'checked' | 'unchecked' | null
 }
 
+/// Gövdeye gömülü ndtable bloğu (blok listesinde _Line'larla karışık durur).
+class _PdfTable {
+  _PdfTable(this.table);
+  final NdTable table;
+}
+
 TextStyle _baseStyle(double scale) => TextStyle(
       color: _ink,
       fontFamily: 'InstrumentSans',
@@ -184,10 +191,10 @@ TextStyle _styleFrom(Map attrs, double scale) {
   return style;
 }
 
-/// Quill Delta JSON'ı satırlara ayırır (satır içi + blok biçimleriyle). Geçersizse
-/// düz metin olarak işler.
-List<_Line> _parseDelta(String body, double scale) {
-  final lines = <_Line>[];
+/// Quill Delta JSON'ı bloklara ayırır: metin satırları (_Line) + tablolar
+/// (_PdfTable). Geçersizse düz metin olarak işler.
+List<Object> _parseDelta(String body, double scale) {
+  final blocks = <Object>[];
   var current = <_Seg>[];
 
   dynamic data;
@@ -199,15 +206,28 @@ List<_Line> _parseDelta(String body, double scale) {
 
   if (data is! List) {
     for (final ln in body.split('\n')) {
-      lines.add(_Line([_Seg(ln, _baseStyle(scale))], null));
+      blocks.add(_Line([_Seg(ln, _baseStyle(scale))], null));
     }
-    return lines;
+    return blocks;
   }
 
   for (final op in data) {
     if (op is! Map) continue;
     final insert = op['insert'];
-    if (insert is! String) continue; // gömülü (resim vs) atlanır
+    if (insert is Map) {
+      final nd = insert['ndtable'];
+      if (nd is String) {
+        if (current.isNotEmpty) {
+          blocks.add(_Line(current, null));
+          current = <_Seg>[];
+        }
+        try {
+          blocks.add(_PdfTable(NdTable.fromJson(nd)));
+        } catch (_) {}
+      }
+      continue; // diğer gömülüler atlanır
+    }
+    if (insert is! String) continue;
     final attrs = (op['attributes'] as Map?) ?? const {};
     final parts = insert.split('\n');
     for (var i = 0; i < parts.length; i++) {
@@ -215,18 +235,18 @@ List<_Line> _parseDelta(String body, double scale) {
       if (text.isNotEmpty) current.add(_Seg(text, _styleFrom(attrs, scale)));
       if (i < parts.length - 1) {
         // Satır sonu: blok biçimi (liste) bu op'un özniteliğindedir.
-        lines.add(_Line(current, attrs['list'] as String?));
+        blocks.add(_Line(current, attrs['list'] as String?));
         current = <_Seg>[];
       }
     }
   }
-  if (current.isNotEmpty) lines.add(_Line(current, null));
-  return lines;
+  if (current.isNotEmpty) blocks.add(_Line(current, null));
+  return blocks;
 }
 
 void _paintRichText(
   Canvas canvas,
-  List<_Line> lines,
+  List<Object> blocks,
   double x,
   double y,
   double maxWidth,
@@ -235,7 +255,12 @@ void _paintRichText(
   final markerW = 24.0 * scale;
   var cy = y;
 
-  for (final line in lines) {
+  for (final block in blocks) {
+    if (block is _PdfTable) {
+      cy = _paintTable(canvas, block.table, x, cy, maxWidth, scale);
+      continue;
+    }
+    final line = block as _Line;
     final hasMarker = line.list != null;
     final textX = x + (hasMarker ? markerW : 0);
     final textW = maxWidth - (hasMarker ? markerW : 0);
@@ -292,4 +317,164 @@ void _paintRichText(
     tp.paint(canvas, Offset(textX, cy));
     cy += tp.height + 2 * scale;
   }
+}
+
+/// ndtable bloğunu çizer (ekrandaki tablo görünümünün PDF karşılığı).
+/// Yeni dikey konumu (tablonun altı + boşluk) döndürür.
+double _paintTable(
+  Canvas canvas,
+  NdTable t,
+  double x,
+  double y,
+  double maxWidth,
+  double scale,
+) {
+  const line = Color(0xFFE7E5DF);
+  const muted = Color(0xFFA6A49D);
+  const faint = Color(0xFFF5F3EE);
+  final cellPadH = 8.0 * scale;
+  final cellPadV = 7.0 * scale;
+  final checkSide = 13.0 * scale;
+  final radius = 12.0 * scale;
+
+  final totalFlex = t.widths.fold<int>(0, (a, b) => a + b);
+  if (totalFlex <= 0 || t.rows.isEmpty) return y;
+  final colWs = [for (final w in t.widths) maxWidth * w / totalFlex];
+
+  TextStyle cellStyle(NdCell c, bool header) => TextStyle(
+        color: header || c.muted ? muted : _ink,
+        fontFamily: 'InstrumentSans',
+        fontSize: (header || c.muted ? 11.5 : 13.0) * scale,
+        fontWeight: header ? FontWeight.w700 : FontWeight.w400,
+        letterSpacing: header ? 0.6 * scale : 0,
+        height: 1.35,
+      );
+
+  // Satır yükseklikleri: hücre metin yüksekliği vs min satır sayısı.
+  final rowHs = <double>[];
+  final painters = <List<TextPainter>>[];
+  for (var r = 0; r < t.rows.length; r++) {
+    final header = t.headerRow && r == 0;
+    var rowH = 0.0;
+    final rowPainters = <TextPainter>[];
+    for (var c = 0; c < t.rows[r].length && c < colWs.length; c++) {
+      final cell = t.rows[r][c];
+      final checkW = cell.check != null ? checkSide + 7 * scale : 0.0;
+      final tp = TextPainter(
+        text: TextSpan(
+            text: cell.text.isEmpty ? ' ' : cell.text,
+            style: cellStyle(cell, header)),
+        textDirection: TextDirection.ltr,
+      )..layout(
+          maxWidth:
+              (colWs[c] - cellPadH * 2 - checkW).clamp(10.0, double.infinity));
+      rowPainters.add(tp);
+      final minH = (14.0 + cell.minLines * 19.0) * scale;
+      final h = (tp.height + cellPadV * 2)
+          .clamp(minH, double.infinity)
+          .toDouble();
+      if (h > rowH) rowH = h;
+    }
+    if (rowH <= 0) rowH = (14.0 + 19.0) * scale;
+    rowHs.add(rowH);
+    painters.add(rowPainters);
+  }
+  final tableH = rowHs.fold<double>(0, (a, b) => a + b);
+  final outer = RRect.fromRectAndRadius(
+      Rect.fromLTWH(x, y, maxWidth, tableH), Radius.circular(radius));
+
+  canvas.save();
+  canvas.clipRRect(outer);
+
+  // Zeminler (başlık satırı + faint hücreler).
+  var cy = y;
+  for (var r = 0; r < t.rows.length; r++) {
+    final header = t.headerRow && r == 0;
+    var cx = x;
+    for (var c = 0; c < t.rows[r].length && c < colWs.length; c++) {
+      final cell = t.rows[r][c];
+      if (header || cell.faint) {
+        canvas.drawRect(Rect.fromLTWH(cx, cy, colWs[c], rowHs[r]),
+            Paint()..color = faint);
+      }
+      cx += colWs[c];
+    }
+    cy += rowHs[r];
+  }
+
+  // Hücre içerikleri (kutucuk + metin).
+  cy = y;
+  for (var r = 0; r < t.rows.length; r++) {
+    var cx = x;
+    for (var c = 0; c < t.rows[r].length && c < colWs.length; c++) {
+      final cell = t.rows[r][c];
+      var textX = cx + cellPadH;
+      final tp = painters[r][c];
+      final singleLine = cell.minLines <= 1;
+      final textY =
+          singleLine ? cy + (rowHs[r] - tp.height) / 2 : cy + cellPadV;
+      if (cell.check != null) {
+        final boxY = singleLine
+            ? cy + (rowHs[r] - checkSide) / 2
+            : cy + cellPadV + 2 * scale;
+        final box = Rect.fromLTWH(textX, boxY, checkSide, checkSide);
+        final checked = cell.check == 1;
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(box, Radius.circular(4 * scale)),
+          checked
+              ? (Paint()..color = _ink)
+              : (Paint()
+                ..style = PaintingStyle.stroke
+                ..strokeWidth = 1.4 * scale
+                ..color = muted),
+        );
+        if (checked) {
+          final path = Path()
+            ..moveTo(box.left + 3 * scale, box.center.dy)
+            ..lineTo(box.center.dx - 1 * scale, box.bottom - 3.5 * scale)
+            ..lineTo(box.right - 2.5 * scale, box.top + 3.5 * scale);
+          canvas.drawPath(
+            path,
+            Paint()
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 1.8 * scale
+              ..strokeCap = StrokeCap.round
+              ..color = const Color(0xFFFFFFFF),
+          );
+        }
+        textX += checkSide + 7 * scale;
+      }
+      tp.paint(canvas, Offset(textX, textY));
+      cx += colWs[c];
+    }
+    cy += rowHs[r];
+  }
+
+  // Izgara çizgileri.
+  final gridPaint = Paint()
+    ..color = line
+    ..strokeWidth = 1.0 * scale;
+  cy = y;
+  for (var r = 0; r < t.rows.length - 1; r++) {
+    cy += rowHs[r];
+    canvas.drawLine(Offset(x, cy), Offset(x + maxWidth, cy), gridPaint);
+  }
+  var cx = x;
+  for (var c = 0; c < colWs.length - 1; c++) {
+    cx += colWs[c];
+    canvas.drawLine(Offset(cx, y), Offset(cx, y + tableH), gridPaint);
+  }
+
+  canvas.restore();
+
+  // Dış çerçeve.
+  canvas.drawRRect(
+    outer,
+    Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4 * scale
+      ..color = line,
+  );
+
+  return y + tableH + 8 * scale;
 }

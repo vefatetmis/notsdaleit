@@ -510,11 +510,12 @@ class _TemplateTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final nd = context.nd;
-    const tileW = 132.0;
+    // Küçük tutulur: dar telefonda bile satıra 3 kart sığar.
+    const tileW = 84.0;
     return InkWell(
       onTap: onTap,
       onLongPress: onLongPress,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(12),
       child: SizedBox(
         width: tileW,
         child: Column(
@@ -522,11 +523,11 @@ class _TemplateTile extends StatelessWidget {
           children: [
             Container(
               width: tileW,
-              height: 120,
+              height: 82,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: selected ? nd.accent.withValues(alpha: 0.10) : nd.bg,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: selected ? nd.accent : nd.border,
                   width: selected ? 1.6 : 1,
@@ -537,18 +538,18 @@ class _TemplateTile extends StatelessWidget {
                 pageSize: pageSize,
                 pageColor: pageColor,
                 pageBackground: pageBackground,
-                boxWidth: tileW - 24,
-                boxHeight: 100,
+                boxWidth: tileW - 18,
+                boxHeight: 66,
               ),
             ),
-            const SizedBox(height: 7),
+            const SizedBox(height: 5),
             Text(
               label,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 12.5,
-                height: 1.2,
+                fontSize: 11.5,
+                height: 1.15,
                 fontWeight: FontWeight.w600,
                 color: nd.text,
               ),
@@ -613,7 +614,7 @@ class _TemplatePreview extends StatelessWidget {
   }
 }
 
-enum _PL { title, heading, label, para, bullet, check }
+enum _PL { title, heading, label, para, bullet, check, table }
 
 /// Şablon gövdesini (Quill Delta) şematik satır tiplerine ayırır — önizleme için.
 List<_PL> _previewLines(String body) {
@@ -629,6 +630,10 @@ List<_PL> _previewLines(String body) {
   for (final op in data) {
     if (op is! Map) continue;
     final ins = op['insert'];
+    if (ins is Map) {
+      if (ins.containsKey('ndtable')) out.add(_PL.table);
+      continue;
+    }
     if (ins is! String) continue;
     final attrs = (op['attributes'] as Map?) ?? const {};
     final parts = ins.split('\n');
@@ -714,6 +719,25 @@ class _PreviewPainter extends CustomPainter {
               ..color = paper.muted,
           );
           bar(pad + 11, innerW * 0.72, 1.8, ink.withValues(alpha: 0.28));
+        case _PL.table:
+          // Tablo şematiği: 2 satırlık küçük ızgara.
+          final gh = rowH * 1.9;
+          final rect = Rect.fromLTWH(pad, y - rowH * 0.35, innerW, gh);
+          final gp = Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 0.8
+            ..color = paper.muted.withValues(alpha: 0.7);
+          canvas.drawRRect(
+            RRect.fromRectAndRadius(rect, const Radius.circular(1.5)),
+            gp,
+          );
+          canvas.drawLine(Offset(rect.left, rect.center.dy),
+              Offset(rect.right, rect.center.dy), gp);
+          canvas.drawLine(Offset(rect.left + innerW / 3, rect.top),
+              Offset(rect.left + innerW / 3, rect.bottom), gp);
+          canvas.drawLine(Offset(rect.left + innerW * 2 / 3, rect.top),
+              Offset(rect.left + innerW * 2 / 3, rect.bottom), gp);
+          y += gh - rowH * 0.65;
       }
       y += rowH;
     }

@@ -460,7 +460,7 @@ kalem olduğundan ızgara/2-kolon düzenler birebir çıkmaz. **Karar: pragmatik
 |-------|-------|-------|
 | Play üretim | 1.0 (mağazada) | Yayında |
 | Play kapalı test | 1.1 (pubspec 1.1.0+3) | Yayın bekliyor |
-| Dev / paralel APK | 1.2 + şablon yeniden tasarımı | **Aktif geliştirme burada** |
+| Dev / paralel APK | 1.2 + şablon tasarımı + 1.3 tablo v1 | **Aktif geliştirme burada** |
 
 **Strateji (kullanıcı kararı):** tüm geliştirme dev APK üzerinden; biriken her
 şey (1.1 + 1.2 + …) kapalı testten geçince **tek AAB** olarak yayınlanır.
@@ -468,8 +468,9 @@ Prod'a ara sürüm çıkılmaz.
 
 **Tamamlanan:** 1.1 (varsayılan yazı modu, paylaşımı durdur, klasöre taşı, rutin
 bildirimi, seri/rozet) · 1.2 (yeni not pop-up, şablon sistemi, sayfa yönleri) ·
-1.2 şablon yeniden tasarımı (kâğıt paleti, sayfa desenleri, gerçek önizleme
-kartları, pragmatik şablonlar — bkz. üstteki bölümler).
+1.2 şablon yeniden tasarımı (kâğıt paleti, sayfa desenleri, önizleme kartları) ·
+**1.3 tablo bloğu v1** (ndtable embed; Haftalık/Cornell/Günlük plan/Toplantı/
+Alışveriş gerçek form düzeninde — ayrıntı aşağıda).
 
 ## PLANLANAN — sonraki işler (sıralı)
 
@@ -481,16 +482,27 @@ bunlar birebir çıkmıyor. Tasarıma ulaşmanın **tek büyük kaldıracı = ta
 bloğu**. O gelince Haftalık (7-sütun), Cornell (2-kolon), Günlük plan (saat
 çizelgesi), Toplantı (alanlar) **gerçek** olur.
 
-**1.3 — Tablo/ızgara bloğu (büyük iş, tasarım sadakatinin anahtarı):**
-1. flutter_quill özel embed (`BlockEmbed`) → Delta'ya gömülü JSON tablo (satır/
-   sütun/hücre; hücre = metin + opsiyonel kutucuk). Delta'da durduğu için canlı
-   paylaşım gövde LWW ile **otomatik** taşır.
-2. Editörde tablo renderer + düzenleme arayüzü (satır/sütun ekle-sil, hücre
-   metni, hücre kutucuğu).
-3. PDF export'ta tablo çizimi (`_paintRichText`).
-4. Önizleme kartında tablo şematiği (`_previewLines`/`_PreviewPainter`).
-5. Şablonları gerçekle: **Haftalık plan · Cornell · Günlük plan (saat) ·
-   Toplantı (alan ızgarası)** yeniden kurulur.
+**1.3 — Tablo/ızgara bloğu — v1 UYGULANDI (dev APK'da test bekliyor):**
+`features/editor/table_embed.dart` — `'ndtable'` özel embed'i (flutter_quill
+`EmbedBuilder`, editörde `embedBuilders: [TableEmbedBuilder()]`). JSON modeli
+(Delta gövdesinde saklanır → kaydetme/canlı paylaşım LWW/.ntdl otomatik taşır):
+`{"w":[flex...], "h":1(başlık satırı), "r":[[hücre...]...]}`; hücre
+`{"t":metin, "k":0|1 kutucuk, "m":1 soluk, "f":1 hafif zemin, "n":min satır}`.
+- **Editör:** kâğıt rengine duyarlı çizim (paper.line/muted/faint); hücreye
+  dokun → metin düzenleme diyaloğu; kutucuğa dokun → işaretle; tabloya uzun
+  bas → satır ekle / son satırı sil. Yazı modu dışında (readOnly) etkileşim yok.
+- **PDF export:** `_parseDelta` artık `List<Object>` (satır + `_PdfTable`)
+  döner; `_paintTable` ızgara/zemin/kutucuk/metni çizer.
+- **Önizleme kartı:** `_PL.table` → küçük ızgara şematiği.
+- **Şablonlar gerçek düzende:** Haftalık plan (7 sütun, hafta sonu faint),
+  Cornell (2 kolon + ÖZET kutusu), Günlük plan (07-18 saat çizelgesi),
+  Toplantı (TARİH/SAAT + KATILIMCILAR/KONU alan ızgaraları + AKSİYON/KİM
+  tablosu), Alışveriş (kutucuk + adet sütunu).
+
+**1.3 kalanlar (v1 sonrası cila):**
+- Araç çubuğundan elle tablo ekleme (şu an tablolar yalnızca şablonlardan gelir).
+- Sütun ekleme/silme arayüzü; hücre içinde satır-içi (inline) yazma (şimdilik
+  diyalogla düzenleniyor — kalem/odak çakışmaları nedeniyle bilinçli v1 kararı).
 
 **1.4 — Tasarım cilası (tam sadakat, opsiyonel/1.3 sonrası):**
 - Etiketli alan bloğu (TARİH ____ gibi hizalı alanlar), bölüm etiketi rengi

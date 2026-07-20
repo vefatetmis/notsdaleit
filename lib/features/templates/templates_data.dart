@@ -108,6 +108,26 @@ class _Delta {
     _nl({'list': done ? 'checked' : 'unchecked'});
   }
 
+  /// Tablo/ızgara bloğu ('ndtable' embed — `table_embed.dart`).
+  /// [rows] kısa-anahtar hücre map'leri: t=metin, k=0 kutucuk, m=1 soluk
+  /// etiket, f=1 hafif zemin, n=min satır sayısı.
+  void table({
+    required List<int> widths,
+    bool header = false,
+    required List<List<Map<String, dynamic>>> rows,
+  }) {
+    _ops.add({
+      'insert': {
+        'ndtable': jsonEncode({
+          'w': widths,
+          if (header) 'h': 1,
+          'r': rows,
+        }),
+      },
+    });
+    _nl();
+  }
+
   void blank() => _nl();
 
   String encode() => jsonEncode(_ops);
@@ -280,22 +300,29 @@ String _dailyBody(bool en) => _delta((b) {
       b.check('');
       b.blank();
       b.label(en ? 'Schedule' : 'Program');
-      for (final h in [
-        '07:00',
-        '08:00',
-        '09:00',
-        '10:00',
-        '11:00',
-        '12:00',
-        '13:00',
-        '14:00',
-        '15:00',
-        '16:00',
-        '17:00',
-        '18:00'
-      ]) {
-        b.para('$h · ');
-      }
+      b.table(
+        widths: const [1, 4],
+        rows: [
+          for (final h in [
+            '07:00',
+            '08:00',
+            '09:00',
+            '10:00',
+            '11:00',
+            '12:00',
+            '13:00',
+            '14:00',
+            '15:00',
+            '16:00',
+            '17:00',
+            '18:00'
+          ])
+            [
+              {'t': h, 'm': 1},
+              <String, dynamic>{},
+            ],
+        ],
+      );
     });
 
 String _weeklyBody(bool en) => _delta((b) {
@@ -304,56 +331,69 @@ String _weeklyBody(bool en) => _delta((b) {
           : 'Hafta: ______   ·   Hedef: ______');
       b.blank();
       final days = en
-          ? [
-              'Monday',
-              'Tuesday',
-              'Wednesday',
-              'Thursday',
-              'Friday',
-              'Saturday',
-              'Sunday'
-            ]
-          : [
-              'Pazartesi',
-              'Salı',
-              'Çarşamba',
-              'Perşembe',
-              'Cuma',
-              'Cumartesi',
-              'Pazar'
-            ];
-      for (final d in days) {
-        b.heading(d);
-        b.check('');
-        b.check('');
-        b.blank();
-      }
+          ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+          : ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+      b.table(
+        widths: const [1, 1, 1, 1, 1, 1, 1],
+        header: true,
+        rows: [
+          [for (final d in days) {'t': d}],
+          for (var r = 0; r < 3; r++)
+            [
+              for (var c = 0; c < 7; c++)
+                {'k': 0, if (c >= 5) 'f': 1},
+            ],
+        ],
+      );
     });
 
 String _shoppingBody(bool en) => _delta((b) {
       b.title(en ? 'Shopping' : 'Alışveriş');
       b.blank();
-      b.label(en ? 'Fruit & veg' : 'Meyve & sebze');
-      b.check('');
-      b.check('');
-      b.check('');
-      b.blank();
-      b.label(en ? 'Dairy & breakfast' : 'Süt & kahvaltı');
-      b.check('');
-      b.check('');
-      b.check('');
-      b.blank();
-      b.label(en ? 'Other' : 'Diğer');
-      b.check('');
-      b.check('');
+      final sections = en
+          ? ['Fruit & veg', 'Dairy & breakfast', 'Other']
+          : ['Meyve & sebze', 'Süt & kahvaltı', 'Diğer'];
+      for (final s in sections) {
+        b.label(s);
+        b.table(
+          widths: const [5, 1],
+          rows: [
+            for (var r = 0; r < 3; r++)
+              [
+                {'k': 0},
+                {'m': 1},
+              ],
+          ],
+        );
+        b.blank();
+      }
     });
 
 String _meetingBody(bool en) => _delta((b) {
       b.title(en ? 'Meeting Notes' : 'Toplantı Notu');
-      b.para(en ? 'Date: ______   ·   Time: ______'
-          : 'Tarih: ______   ·   Saat: ______');
-      b.para(en ? 'Attendees: ______' : 'Katılımcılar: ______');
-      b.para(en ? 'Subject: ______' : 'Konu: ______');
+      b.blank();
+      b.table(
+        widths: const [1, 1],
+        header: true,
+        rows: [
+          [
+            {'t': en ? 'DATE' : 'TARİH'},
+            {'t': en ? 'TIME' : 'SAAT'},
+          ],
+          [<String, dynamic>{}, <String, dynamic>{}],
+        ],
+      );
+      b.table(
+        widths: const [1, 1],
+        header: true,
+        rows: [
+          [
+            {'t': en ? 'ATTENDEES' : 'KATILIMCILAR'},
+            {'t': en ? 'SUBJECT' : 'KONU'},
+          ],
+          [<String, dynamic>{}, <String, dynamic>{}],
+        ],
+      );
       b.blank();
       b.label(en ? 'Agenda' : 'Gündem');
       b.para('1. ');
@@ -365,8 +405,21 @@ String _meetingBody(bool en) => _delta((b) {
       b.para('');
       b.blank();
       b.label(en ? 'Action items' : 'Aksiyonlar');
-      b.check('');
-      b.check('');
+      b.table(
+        widths: const [4, 2],
+        header: true,
+        rows: [
+          [
+            {'t': en ? 'ACTION' : 'AKSİYON'},
+            {'t': en ? 'WHO' : 'KİM'},
+          ],
+          for (var r = 0; r < 3; r++)
+            [
+              {'k': 0},
+              <String, dynamic>{},
+            ],
+        ],
+      );
     });
 
 String _cornellBody(bool en) => _delta((b) {
@@ -374,17 +427,32 @@ String _cornellBody(bool en) => _delta((b) {
       b.para(en ? 'Topic: ______   ·   Date: ______'
           : 'Ders/Konu: ______   ·   Tarih: ______');
       b.blank();
-      b.label(en ? 'Cues / Questions' : 'Sorular / İpuçları');
-      b.bullet('');
-      b.bullet('');
-      b.blank();
-      b.label(en ? 'Notes' : 'Notlar');
-      b.para('');
-      b.para('');
-      b.para('');
-      b.blank();
-      b.label(en ? 'Summary' : 'Özet');
-      b.para('');
+      b.table(
+        widths: const [2, 3],
+        header: true,
+        rows: [
+          [
+            {'t': en ? 'CUES / QUESTIONS' : 'SORULAR / İPUÇLARI'},
+            {'t': en ? 'NOTES' : 'NOTLAR'},
+          ],
+          [
+            {'f': 1, 'n': 12},
+            {'n': 12},
+          ],
+        ],
+      );
+      b.table(
+        widths: const [1],
+        header: true,
+        rows: [
+          [
+            {'t': en ? 'SUMMARY' : 'ÖZET'},
+          ],
+          [
+            {'n': 3},
+          ],
+        ],
+      );
     });
 
 String _projectBody(bool en) => _delta((b) {
