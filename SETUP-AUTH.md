@@ -4,6 +4,34 @@ Uygulamaya **e-posta ile giriş** (parolasız, 6 haneli kod) eklendi. Kod tamame
 hazır; çalışması için Supabase panelinde **iki küçük ayar** yapman yeterli.
 (Aynı proje collab için de kullanılıyor — `SETUP-COLLAB.md`.)
 
+## 0) Custom SMTP kur (gerçek kullanım için ŞART)
+
+Supabase'in **dahili e-postası** yalnızca testlik: saatte ~2-4 mail limiti var
+ve bazen sadece proje sahibinin adresine gider. Gerçek kullanıcılara mail
+gitmesi (ve test ederken limite takılmaman) için **kendi SMTP sağlayıcını**
+bağlaman gerekir. Ücretsiz ve kolay seçenekler:
+
+- **Brevo** (eski Sendinblue) — günde 300 mail ücretsiz, alan adı (domain)
+  sahibi olmak şart değil (tek bir gönderen e-postayı doğrulaman yeter).
+- **Resend** — Supabase ile entegrasyonu temiz; kendi domain'in varsa ideal.
+
+**Brevo ile (domain gerektirmez):**
+1. brevo.com'da ücretsiz hesap aç. **Senders** bölümünde bir gönderen e-posta
+   ekle (ör. kendi Gmail'in) ve gelen doğrulama mailiyle onayla.
+2. Brevo → **SMTP & API → SMTP**: `Host`, `Port` (587), `Login` ve bir
+   **SMTP anahtarı (Master password / SMTP key)** üret.
+3. Supabase → **Authentication → Emails → SMTP Settings** → **Enable Custom
+   SMTP**:
+   - Host: `smtp-relay.brevo.com` · Port: `587`
+   - Username: Brevo SMTP login · Password: Brevo SMTP anahtarı
+   - **Sender email**: Brevo'da doğruladığın gönderen e-posta
+   - Sender name: `notsdaleit`
+4. Kaydet. Artık mailler Brevo üzerinden, limitsizce (300/gün) gider.
+
+> Not: SMTP'yi kurmadan da **kendi e-postanla** test edebilirsin (dahili
+> servis çalışıyor, sadece limitli). Ama aşağıdaki (2) numaralı **şablon**
+> adımını yine de yapman gerekir — kod meselesi SMTP'den bağımsız.
+
 ## 1) E-posta girişini aç (çoğunlukla zaten açık)
 
 Supabase Dashboard → **Authentication → Sign In / Providers → Email**:
