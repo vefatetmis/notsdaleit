@@ -271,20 +271,29 @@ class _NewNoteDialogState extends ConsumerState<_NewNoteDialog> {
   Widget _grid(BuildContext context, bool en) {
     final tiles = <Widget>[];
 
-    // 'Temel' sekmesinde ilk kutu = boş sayfa (o an seçili boyut/renkte).
+    // 'Temel' sekmesinde boş sayfa + kâğıt desenleri (düz/çizgili/kareli/noktalı)
+    // — hepsi o an seçili boyut/renkte boş bir not açar.
     if (_category == 'temel') {
-      tiles.add(_TemplateTile(
-        label: context.t('Boş sayfa', 'Blank page'),
-        body: '',
-        pageSize: _pageSize,
-        pageColor: _pageColor,
-        pageBackground: 'duz',
-        selected: _selectedKey == 'blank',
-        onTap: () => setState(() {
-          _selectedKey = 'blank';
-          _pageBackground = 'duz';
-        }),
-      ));
+      const blanks = [
+        ('duz', 'Boş sayfa', 'Blank page'),
+        ('cizgili', 'Çizgili', 'Lined'),
+        ('kareli', 'Kareli', 'Grid'),
+        ('noktali', 'Noktalı', 'Dotted'),
+      ];
+      for (final (bg, tr, en2) in blanks) {
+        tiles.add(_TemplateTile(
+          label: context.t(tr, en2),
+          body: '',
+          pageSize: _pageSize,
+          pageColor: _pageColor,
+          pageBackground: bg,
+          selected: _selectedKey == 'blank' && _pageBackground == bg,
+          onTap: () => setState(() {
+            _selectedKey = 'blank';
+            _pageBackground = bg;
+          }),
+        ));
+      }
     }
 
     if (_category == 'benim') {

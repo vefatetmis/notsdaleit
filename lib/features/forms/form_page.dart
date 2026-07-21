@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/i18n/i18n.dart';
 import '../editor/editor_state.dart';
 import 'form_layout.dart';
 import 'form_model.dart';
@@ -150,10 +151,12 @@ class _FormPageState extends State<FormPage> {
     );
   }
 
-  Widget _checkbox(bool done, VoidCallback onTap, {double side = 19}) {
+  Widget _checkbox(bool done, VoidCallback onTap,
+      {double side = 19, VoidCallback? onLongPress}) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: widget.editable ? onTap : null,
+      onLongPress: widget.editable ? onLongPress : null,
       child: Container(
         width: side,
         height: side,
@@ -273,6 +276,44 @@ class _FormPageState extends State<FormPage> {
   double _rowSpacer(int block, int row) =>
       widget.layout?.spacerFor(block, row) ?? 0;
 
+  /// Bir bloğun satır controller'larını temizler (silme/ekleme sonrası index
+  /// tabanlı controller'lar kaydığı için yeniden kurulmaları gerekir).
+  void _clearBlockCtrls(int block) {
+    _ctrls.removeWhere((k, c) {
+      if (k.startsWith('$block.i') || k.startsWith('$block.x')) {
+        c.dispose();
+        return true;
+      }
+      return false;
+    });
+  }
+
+  void _deleteChecklistItem(int block, int r, ChecklistBlock b) {
+    if (b.items.length <= 1) return;
+    final removed = b.items[r];
+    setState(() {
+      b.items.removeAt(r);
+      _clearBlockCtrls(block);
+    });
+    _changed();
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        behavior: SnackBarBehavior.floating,
+        content: Text(context.t('Satır silindi', 'Row deleted')),
+        action: SnackBarAction(
+          label: context.t('Geri al', 'Undo'),
+          onPressed: () {
+            setState(() {
+              b.items.insert(r.clamp(0, b.items.length), removed);
+              _clearBlockCtrls(block);
+            });
+            _changed();
+          },
+        ),
+      ));
+  }
+
   Widget _checklist(int i, ChecklistBlock b) {
     final trailingW = b.trailingWidth > 0 ? b.trailingWidth : 34.0;
     return Column(
@@ -286,10 +327,16 @@ class _FormPageState extends State<FormPage> {
             padding: const EdgeInsets.symmetric(vertical: 6),
             child: Row(
               children: [
-                _checkbox(b.items[r].done, () {
-                  setState(() => b.items[r].done = !b.items[r].done);
-                  _changed();
-                }),
+                _checkbox(
+                  b.items[r].done,
+                  () {
+                    setState(() => b.items[r].done = !b.items[r].done);
+                    _changed();
+                  },
+                  onLongPress: b.items.length > 1
+                      ? () => _deleteChecklistItem(i, r, b)
+                      : null,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: TextField(

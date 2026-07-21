@@ -222,13 +222,30 @@ FormLayoutResult paginateForm(
   var y = 0.0; // sayfa içi konum
   var lastGap = 0.0;
 
-  void place(int block, int row, double h, double gapAfter) {
+  // Bir bloğun ilk biriminin (satır/blok) yüksekliği — öksüz etiket önleme
+  // için "sonraki içeriğe de yer var mı" bakılırken kullanılır.
+  double firstUnitHeight(int bi) {
+    if (bi >= form.blocks.length) return 0;
+    return switch (form.blocks[bi]) {
+      ChecklistBlock() => kFbCheckRowH,
+      NumberedBlock() => kFbNumRowH,
+      HoursBlock() => kFbHourRowH,
+      final b =>
+        measureFormBlock(b, width, editable: editable).clamp(0.0, 40.0),
+    };
+  }
+
+  // [keepWith]: bu birimden hemen sonra gelecek içeriğin en az bu kadarına da
+  // yer olmalı (yoksa birim + sonraki birlikte sonraki sayfaya atlar). Bölüm
+  // etiketinin sayfa dibinde tek kalmasını önler.
+  void place(int block, int row, double h, double gapAfter,
+      {double keepWith = 0}) {
     var spacer = 0.0;
     // maxPages verilmişse son sayfaya ulaşınca artık atlama yapma: içerik
     // boşluk bırakmadan sayfa altından taşar (kullanıcı "Yeni sayfa" ile yer
     // açar). Böylece kendiliğinden yeni sayfaya "kaçmaz".
     final canBreak = maxPages == null || page < maxPages - 1;
-    if (y > 0 && y + h > contentH && canBreak) {
+    if (y > 0 && y + h + keepWith > contentH && canBreak) {
       spacer = (contentH - y) + pageSkip;
       page++;
       y = 0;
@@ -259,9 +276,14 @@ FormLayoutResult paginateForm(
           final last = r == b.rows.length - 1;
           place(bi, r, kFbHourRowH, last ? kFbBlockGap : 0);
         }
+      case LabelBlock():
+        // Etiket kendinden sonraki ilk içerikle birlikte kalsın (öksüz kalmasın).
+        place(bi, -1, measureFormBlock(b, width, editable: editable),
+            kFbLabelGap,
+            keepWith: firstUnitHeight(bi + 1));
       default:
         place(bi, -1, measureFormBlock(b, width, editable: editable),
-            b is LabelBlock ? kFbLabelGap : kFbBlockGap);
+            kFbBlockGap);
     }
   }
 

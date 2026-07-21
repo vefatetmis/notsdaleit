@@ -560,11 +560,24 @@ olarak çizilir.**
   çok sayfalı çizimler artık PDF'te kaybolmaz).
 
 **1.3 kalanlar (cila):**
-- Form notlarında Aa araç çubuğundaki biçim düğmeleri işlevsiz (gizlenebilir).
-- Checklist'te satır silme arayüzü yok (uzun bas → sil eklenebilir).
-- PDF export kâğıt rengi hâlâ beyaz (desen + form çiziliyor; renk ayrı iş).
+- Form notlarında Aa biçim düğmeleri fiilen işlemez (form alanları düz metin;
+  kullanıcı kararı: bar GİZLENMEDİ, çökme yok çünkü `activeQuillControllerProvider`
+  form notunda null → format barı zaten görünmez). Gerçek biçimlendirme =
+  form yazı alanlarını zengin-metin yapmak (ayrı büyük iş, sırada).
+- PDF export kâğıt rengi hâlâ beyaz (desen + form çiziliyor; renk ayrı iş —
+  kullanıcı kararı: "hafif ton" varsayılanı, sırası gelince).
 - Quill (serbest) notlarda metin sayfa sınırını hâlâ ortalayabilir (form
   sayfalaması yalnız form bloklarında; Quill satır-bazlı sayfalama yapılmadı).
+
+**Cila paketi — UYGULANDI (dev APK):**
+- **Yeni-not "Temel" sekmesi:** Boş sayfa + **Çizgili/Kareli/Noktalı** boş kâğıt
+  kutuları (`new_note_dialog`); seçilen desen `_pageBackground`'a yazılır, blank
+  Quill notu o desenle açılır. Önizleme deseni gösterir.
+- **Checklist satır silme:** kutucuğa **uzun bas → satırı sil** (`_checkbox`
+  onLongPress; tek satır kalınca kapalı). "Geri al" snackbar'ı. Index tabanlı
+  controller'lar silme/geri-al sonrası `_clearBlockCtrls` ile yeniden kurulur.
+- **Öksüz etiket:** `paginateForm`'da `LabelBlock` `keepWith: firstUnitHeight`
+  ile sonraki ilk içerikle birlikte kalır (etiket sayfa dibinde tek kalmaz).
 
 **1.4 — Tasarım cilası (tam sadakat, opsiyonel/1.3 sonrası):**
 - Etiketli alan bloğu (TARİH ____ gibi hizalı alanlar), bölüm etiketi rengi
