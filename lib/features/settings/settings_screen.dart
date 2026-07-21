@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/collab/collab_config.dart';
 import '../../core/i18n/i18n.dart';
 import '../../core/theme/nd_colors.dart';
+import '../auth/auth_service.dart';
+import '../auth/auth_ui.dart';
 import '../drawing/color_picker.dart';
 import '../drawing/drawing_state.dart';
 import '../routines/streaks.dart';
@@ -210,56 +213,7 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 12),
-            _Card(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                      context.t('Cihazlar arası senkronizasyon',
-                          'Cross-device sync'),
-                      style: const TextStyle(
-                          fontSize: 14.5, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 6),
-                  Text(
-                    context.t(
-                        'Notlarınız ve çizimleriniz tüm cihazlarınızda güncel kalsın. '
-                            'Hesap bağlayarak başlayın.',
-                        'Keep your notes and drawings in sync across all your devices. '
-                            'Start by connecting an account.'),
-                    style: TextStyle(
-                        fontSize: 13.5, height: 1.5, color: nd.text2),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Text(context.t('Kapalı', 'Off'),
-                          style: TextStyle(fontSize: 12.5, color: nd.text2)),
-                      const SizedBox(width: 12),
-                      FilledButton(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context)
-                            ..hideCurrentSnackBar()
-                            ..showSnackBar(SnackBar(
-                              content: Text(context.t(
-                                  'Senkronizasyon bu sürümde temsilî',
-                                  'Sync is representative in this version')),
-                            ));
-                        },
-                        style: FilledButton.styleFrom(
-                          backgroundColor: nd.accent,
-                          foregroundColor: nd.accentFg,
-                          shape: const StadiumBorder(),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 18, vertical: 12),
-                        ),
-                        child: Text(context.t('Bağlan', 'Connect')),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+            if (CollabConfig.enabled) _AccountCard(),
             const SizedBox(height: 12),
             _Card(
               child: Row(
@@ -294,6 +248,94 @@ class _Card extends StatelessWidget {
         border: Border.all(color: nd.border),
       ),
       child: child,
+    );
+  }
+}
+
+/// Hesap & senkron kartı: giriş yoksa "Giriş yap" (e-posta kodu); girişliyse
+/// e-posta + ad + "Çıkış". (Senkronun kendisi Faz 3'te; şimdilik hesap + profil.)
+class _AccountCard extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final nd = context.nd;
+    final account = ref.watch(accountProvider).valueOrNull;
+
+    return _Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+              context.t('Hesap & senkronizasyon', 'Account & sync'),
+              style: const TextStyle(
+                  fontSize: 14.5, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 6),
+          Text(
+            account == null
+                ? context.t(
+                    'E-posta ile giriş yap; notların tüm cihazlarında yanında olsun. '
+                        'Parola yok — sadece e-postana gelen kod.',
+                    'Sign in with email so your notes follow you across devices. '
+                        'No password — just a code sent to your email.')
+                : context.t(
+                    'Giriş yaptın. Cihazlar arası senkron yakında bu hesapla açılacak.',
+                    'You’re signed in. Cross-device sync will turn on with this account soon.'),
+            style: TextStyle(fontSize: 13.5, height: 1.5, color: nd.text2),
+          ),
+          const SizedBox(height: 14),
+          if (account == null)
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () => showSignInSheet(context, ref),
+                icon: const Icon(Icons.mail_outline_rounded, size: 18),
+                label: Text(context.t('Giriş yap / Kaydol', 'Sign in / Sign up')),
+                style: FilledButton.styleFrom(
+                  backgroundColor: nd.accent,
+                  foregroundColor: nd.accentFg,
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            )
+          else
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: nd.accent,
+                  child: Text(
+                    account.displayName.characters.first.toUpperCase(),
+                    style: TextStyle(
+                        color: nd.accentFg, fontWeight: FontWeight.w700),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(account.displayName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontSize: 14.5, fontWeight: FontWeight.w600)),
+                      Text(account.email,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style:
+                              TextStyle(fontSize: 12.5, color: nd.text2)),
+                    ],
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => ref.read(authServiceProvider).signOut(),
+                  child: Text(context.t('Çıkış', 'Sign out')),
+                ),
+              ],
+            ),
+        ],
+      ),
     );
   }
 }

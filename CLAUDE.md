@@ -584,15 +584,28 @@ tam çalışır, giriş yalnız senkron+collab için) · **e-posta kodu (parolas
 benzer. Temel zaten var: Supabase kurulu (şu an collab için **anonim** giriş),
 `shared_notes`/`note_members`/`shared_strokes` + RLS mevcut; drift yerel DB.
 
-**Faz 1 — E-posta girişi + profil:**
-- Supabase Auth `signInWithOtp` (e-posta) → 6 haneli kod doğrulama. Giriş
-  ekranı Ayarlar'dan açılır (kapıda tutmaz). `collab_config` zaten anahtar
-  taşıyor.
-- Mevcut **anonim oturumu e-posta hesabına yükselt** (identity linking) →
-  anon collab verisi kaybolmaz.
-- `profiles` tablosu (`id=auth.uid`, `display_name`, `avatar_url?`,
-  `created_at`) + RLS (herkes okur; sahibi düzenler). İlk girişte görünen ad
-  sorulur. `authProvider` (oturum durumu), Ayarlar'da "Hesabım / Çıkış".
+**Faz 1 — E-posta girişi + profil — UYGULANDI (dev APK'da test bekliyor):**
+- **`features/auth/auth_service.dart`:** `AuthService.sendCode/verifyCode/
+  setDisplayName/signOut`. `signInWithOtp` (yeni kullanıcı) veya anonim oturum
+  varsa `updateUser(email)` → `verifyOTP(type: emailChange)` ile **anonim
+  oturumu kalıcı hesaba yükseltir** (uid korunur → collab verisi kaybolmaz).
+  `accountProvider` (StreamProvider `onAuthStateChange` → `NdAccount?`; anon =
+  giriş yok sayılır), `needsDisplayNameProvider`, `authErrorText` tanılama.
+  **Görünen ad Supabase user metadata'sında** (`display_name`) — Faz 1'de ayrı
+  profiles tablosu YOK; başkalarının görmesi Faz 2.
+- **`features/auth/auth_ui.dart`:** `showSignInSheet` — adım adım e-posta →
+  6 haneli kod → görünen ad (alt sayfa). Onboarding + Ayarlar'dan çağrılır.
+- **Ayarlar:** temsilî "Bağlan" kartı KALDIRILDI → `_AccountCard` (girişsiz:
+  "Giriş yap / Kaydol"; girişli: avatar + ad + e-posta + "Çıkış").
+- **Onboarding yeniden:** `onboarding_screen` artık özellik turu (Hazır
+  şablonlar · Yaz&çiz · PDF · Rutinler&hatırlatıcılar · Senkron) küçük
+  illüstrasyon kartlarıyla; son slaytta "Giriş yap / Kaydol" (`showSignInSheet`)
+  + "Şimdilik geç". Giriş opsiyonel (kapıda tutmaz).
+- **Sunucu ayarı (kullanıcı yapar):** `SETUP-AUTH.md` — Supabase e-posta
+  sağlayıcısı açık + e-posta şablonlarına (`Magic Link` ve `Change Email`)
+  `{{ .Token }}` eklenmeli ki 6 haneli kod gelsin. Anonim giriş açık kalsın.
+- **Kalan (Faz 1 cila):** görünen ad Ayarlar'dan düzenleme yok (yeniden giriş
+  gerekiyor); e-posta değiştirme akışı yok.
 
 **Faz 2 — "Kim katıldı" (collab kimlikleri):**
 - Paylaşımlı notta üyelerin adı/avatarı: `note_members` ⨯ `profiles` join →
