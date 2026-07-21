@@ -612,10 +612,80 @@ void _paintForm(
     }
   }
 
-  for (var bi = 0; bi < form.blocks.length; bi++) {
-    if (bi < layout.pageOf.length && layout.pageOf[bi] != page) continue;
-    final b = form.blocks[bi];
-    cy = y + (bi < layout.topInPage.length ? layout.topInPage[bi] : 0) * scale;
+  // Satırlı blokların (checklist/numaralı/saat) tek satırını çizen yardımcılar
+  // — satır satır sayfalara bölünebildikleri için birim bazlı çizilir.
+  void checkRow(ChecklistBlock b, int r) {
+    if (r >= b.items.length) return; // "satır ekle" (PDF'te yok)
+    final side = 19.0 * scale;
+    final it = b.items[r];
+    final rowTop = cy;
+    final textX = x + side + 12 * scale;
+    final trailW =
+        b.trailingHint.isEmpty ? 0.0 : (b.trailingWidth + 6) * scale;
+    final tp = _formTp(it.text, _fStyle(14.5, scale),
+        maxWidth - side - 12 * scale - trailW);
+    final rowH = kFbCheckRowH * scale;
+    checkbox(x, rowTop + (rowH - side) / 2, side, it.done);
+    tp.paint(canvas, Offset(textX, rowTop + (rowH - tp.height) / 2));
+    if (b.trailingHint.isNotEmpty) {
+      final has = it.trailing.isNotEmpty;
+      final tt = _formTp(has ? it.trailing : b.trailingHint,
+          _fStyle(12.5, scale, color: _fMuted), trailW);
+      tt.paint(canvas,
+          Offset(x + maxWidth - tt.width, rowTop + (rowH - tt.height) / 2));
+    }
+    underline(x, maxWidth, rowTop + rowH);
+  }
+
+  void numRow(NumberedBlock b, int r) {
+    final chip = 22.0 * scale;
+    final rowTop = cy;
+    final rowH = kFbNumRowH * scale;
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(
+            Rect.fromLTWH(x, rowTop + (rowH - chip) / 2, chip, chip),
+            Radius.circular(7 * scale)),
+        Paint()..color = _fFaint);
+    final nt = _formTp(
+        '${r + 1}', _fStyle(12, scale, weight: FontWeight.w700), chip);
+    nt.paint(canvas,
+        Offset(x + (chip - nt.width) / 2, rowTop + (rowH - nt.height) / 2));
+    final tp = _formTp(
+        b.items[r], _fStyle(14, scale), maxWidth - chip - 11 * scale);
+    tp.paint(canvas,
+        Offset(x + chip + 11 * scale, rowTop + (rowH - tp.height) / 2));
+    underline(x, maxWidth, rowTop + rowH);
+  }
+
+  void hourRow(HoursBlock b, int r) {
+    final rowH = kFbHourRowH * scale;
+    final rowTop = cy;
+    final row = b.rows[r];
+    final lt = _formTp(row.label,
+        _fStyle(12, scale, color: _fMuted, weight: FontWeight.w600), 44 * scale);
+    lt.paint(canvas, Offset(x, rowTop + (rowH - lt.height) / 2));
+    final vt = _formTp(row.value, _fStyle(13.5, scale), maxWidth - 56 * scale);
+    vt.paint(canvas, Offset(x + 56 * scale, rowTop + (rowH - vt.height) / 2));
+    underline(x, maxWidth, rowTop + rowH);
+  }
+
+  for (final u in layout.units) {
+    if (u.page != page) continue;
+    final b = form.blocks[u.block];
+    cy = y + u.top * scale;
+    if (u.row >= 0) {
+      switch (b) {
+        case ChecklistBlock():
+          checkRow(b, u.row);
+        case NumberedBlock():
+          numRow(b, u.row);
+        case HoursBlock():
+          hourRow(b, u.row);
+        default:
+          break;
+      }
+      continue;
+    }
     switch (b) {
       case TitleBlock():
         final has = b.text.isNotEmpty;
@@ -677,55 +747,9 @@ void _paintForm(
         label(b.text);
         cy += 4 * scale;
       case ChecklistBlock():
-        final side = 19.0 * scale;
-        for (final it in b.items) {
-          final rowTop = cy;
-          final textX = x + side + 12 * scale;
-          final trailW =
-              b.trailingHint.isEmpty ? 0.0 : (b.trailingWidth + 6) * scale;
-          final tp = _formTp(it.text, _fStyle(14.5, scale),
-              maxWidth - side - 12 * scale - trailW);
-          final rowH = (tp.height + 12 * scale)
-              .clamp(side + 12 * scale, 999.0 * scale);
-          checkbox(x, rowTop + (rowH - side) / 2, side, it.done);
-          tp.paint(canvas, Offset(textX, rowTop + (rowH - tp.height) / 2));
-          if (b.trailingHint.isNotEmpty) {
-            final has = it.trailing.isNotEmpty;
-            final tt = _formTp(has ? it.trailing : b.trailingHint,
-                _fStyle(12.5, scale, color: _fMuted), trailW);
-            tt.paint(
-                canvas,
-                Offset(
-                    x + maxWidth - tt.width, rowTop + (rowH - tt.height) / 2));
-          }
-          cy += rowH;
-          underline(x, maxWidth, cy);
-        }
-        cy += 14 * scale;
+        break; // satır bazlı çizilir (checkRow)
       case NumberedBlock():
-        final chip = 22.0 * scale;
-        for (var r = 0; r < b.items.length; r++) {
-          final rowTop = cy;
-          final rowH = chip + 10 * scale;
-          canvas.drawRRect(
-              RRect.fromRectAndRadius(
-                  Rect.fromLTWH(x, rowTop + (rowH - chip) / 2, chip, chip),
-                  Radius.circular(7 * scale)),
-              Paint()..color = _fFaint);
-          final nt = _formTp(
-              '${r + 1}', _fStyle(12, scale, weight: FontWeight.w700), chip);
-          nt.paint(
-              canvas,
-              Offset(
-                  x + (chip - nt.width) / 2, rowTop + (rowH - nt.height) / 2));
-          final tp = _formTp(
-              b.items[r], _fStyle(14, scale), maxWidth - chip - 11 * scale);
-          tp.paint(canvas,
-              Offset(x + chip + 11 * scale, rowTop + (rowH - tp.height) / 2));
-          cy += rowH;
-          underline(x, maxWidth, cy);
-        }
-        cy += 14 * scale;
+        break; // satır bazlı çizilir (numRow)
       case AreaBlock():
         final lineH = 30.0 * scale;
         final has = b.value.isNotEmpty;
@@ -773,20 +797,7 @@ void _paintForm(
         }
         cy += d + 14 * scale;
       case HoursBlock():
-        final rowH = 35.0 * scale;
-        for (final r in b.rows) {
-          final lt = _formTp(
-              r.label,
-              _fStyle(12, scale, color: _fMuted, weight: FontWeight.w600),
-              44 * scale);
-          lt.paint(canvas, Offset(x, cy + (rowH - lt.height) / 2));
-          final vt =
-              _formTp(r.value, _fStyle(13.5, scale), maxWidth - 56 * scale);
-          vt.paint(canvas, Offset(x + 56 * scale, cy + (rowH - vt.height) / 2));
-          cy += rowH;
-          underline(x, maxWidth, cy);
-        }
-        cy += 14 * scale;
+        break; // satır bazlı çizilir (hourRow)
       case WeekBlock():
         final gap = 6.0 * scale;
         final colW = (maxWidth - gap * (b.days.length - 1)) / b.days.length;

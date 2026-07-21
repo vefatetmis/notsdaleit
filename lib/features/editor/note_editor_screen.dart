@@ -495,7 +495,7 @@ class _SheetState extends ConsumerState<_Sheet> {
                             paper: paper,
                             editable: widget.formEditable,
                             onChanged: widget.onFormChanged,
-                            spacers: layout!.spacerBefore,
+                            layout: layout,
                           ),
                         ),
                       );

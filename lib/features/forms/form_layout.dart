@@ -121,31 +121,56 @@ double measureFormBlock(FormBlock b, double w, {required bool editable}) {
   }
 }
 
-/// Sayfalama sonucu.
-class FormLayoutResult {
-  FormLayoutResult({
+// Satırlı blokların (checklist/numaralı/saat) satır yükseklikleri — ekran ve
+// PDF aynı değeri kullanır.
+double get kFbCheckRowH => 12.0 + (fbLine(14.5) > 19 ? fbLine(14.5) : 19.0);
+double get kFbCheckAddH => 24.0 + fbLine(13.5);
+double get kFbNumRowH => 10.0 + (fbLine(14) > 22 ? fbLine(14) : 22.0);
+const double kFbHourRowH = 35;
+
+/// Sayfalanabilir en küçük birim: bir bloğun tamamı ([row] == -1) ya da
+/// satırlı bloklarda tek bir satır ([row] ≥ 0; checklist'te
+/// `row == items.length` → "satır ekle" düğmesi).
+class FormUnit {
+  const FormUnit({
+    required this.block,
+    required this.row,
+    required this.page,
+    required this.top,
     required this.spacerBefore,
-    required this.pageOf,
-    required this.topInPage,
-    required this.pages,
   });
 
-  /// Her blok öncesi eklenecek dikey boşluk (sayfa atlaması; çoğunlukla 0).
-  final List<double> spacerBefore;
+  final int block;
+  final int row;
+  final int page;
+  final double top; // sayfanın içerik alanı içindeki üst konum
+  final double spacerBefore; // bu birimden önce eklenecek boşluk (akışta)
+}
 
-  /// Her bloğun düştüğü sayfa (0 tabanlı).
-  final List<int> pageOf;
+/// Sayfalama sonucu.
+class FormLayoutResult {
+  FormLayoutResult({required this.units, required this.pages}) {
+    for (final u in units) {
+      if (u.spacerBefore > 0) _spacers['${u.block}:${u.row}'] = u.spacerBefore;
+    }
+  }
 
-  /// Bloğun kendi sayfasının içerik alanı içindeki üst konumu.
-  final List<double> topInPage;
+  final List<FormUnit> units;
 
   /// Toplam sayfa sayısı (en az 1).
   final int pages;
+
+  final Map<String, double> _spacers = {};
+
+  /// Bu blok/satırdan önce eklenecek boşluk (FormPage akışı için).
+  double spacerFor(int block, int row) => _spacers['$block:$row'] ?? 0;
 }
 
-/// Blokları sayfalara yerleştirir. [contentH] bir sayfanın içerik yüksekliği,
-/// [pageSkip] iki sayfanın içerik alanları arasındaki boşluk (alt kenar +
-/// sayfa arası + üst kenar) — ikisi de sanal birimde.
+/// Blokları sayfalara yerleştirir. Satırlı bloklar (checklist, numaralı,
+/// saat çizelgesi) **satır satır bölünür** — sığan satırlar sayfada kalır,
+/// taşanlar sonraki sayfaya akar; diğer bloklar bütün olarak atlar.
+/// [contentH] bir sayfanın içerik yüksekliği, [pageSkip] iki sayfanın içerik
+/// alanları arasındaki boşluk — ikisi de sanal birimde.
 FormLayoutResult paginateForm(
   FormDoc form,
   double width,
@@ -153,28 +178,48 @@ FormLayoutResult paginateForm(
   double pageSkip, {
   required bool editable,
 }) {
-  final spacer = <double>[];
-  final pageOf = <int>[];
-  final topInPage = <double>[];
+  final units = <FormUnit>[];
   var page = 0;
   var y = 0.0; // sayfa içi konum
   var lastGap = 0.0;
 
-  for (final b in form.blocks) {
-    final h = measureFormBlock(b, width, editable: editable);
-    final gapAfter = b is LabelBlock ? kFbLabelGap : kFbBlockGap;
+  void place(int block, int row, double h, double gapAfter) {
+    var spacer = 0.0;
     if (y > 0 && y + h > contentH) {
-      // Blok bu sayfaya sığmıyor → sonraki sayfanın başına atla.
-      spacer.add((contentH - y) + pageSkip);
+      spacer = (contentH - y) + pageSkip;
       page++;
       y = 0;
-    } else {
-      spacer.add(0);
     }
-    pageOf.add(page);
-    topInPage.add(y);
+    units.add(FormUnit(
+        block: block, row: row, page: page, top: y, spacerBefore: spacer));
     y += h + gapAfter;
     lastGap = gapAfter;
+  }
+
+  for (var bi = 0; bi < form.blocks.length; bi++) {
+    final b = form.blocks[bi];
+    switch (b) {
+      case ChecklistBlock():
+        final hasAdd = editable && b.addLabel.isNotEmpty;
+        for (var r = 0; r < b.items.length; r++) {
+          final last = r == b.items.length - 1 && !hasAdd;
+          place(bi, r, kFbCheckRowH, last ? kFbBlockGap : 0);
+        }
+        if (hasAdd) place(bi, b.items.length, kFbCheckAddH, kFbBlockGap);
+      case NumberedBlock():
+        for (var r = 0; r < b.items.length; r++) {
+          final last = r == b.items.length - 1;
+          place(bi, r, kFbNumRowH, last ? kFbBlockGap : 0);
+        }
+      case HoursBlock():
+        for (var r = 0; r < b.rows.length; r++) {
+          final last = r == b.rows.length - 1;
+          place(bi, r, kFbHourRowH, last ? kFbBlockGap : 0);
+        }
+      default:
+        place(bi, -1, measureFormBlock(b, width, editable: editable),
+            b is LabelBlock ? kFbLabelGap : kFbBlockGap);
+    }
   }
 
   // Tek bloğun kendisi sayfadan büyükse (çok uzun area) içerik akmaya devam
@@ -182,13 +227,9 @@ FormLayoutResult paginateForm(
   var pages = page + 1;
   final lastOverflow = y - lastGap; // son sayfadaki içerik yüksekliği
   if (lastOverflow > contentH) {
-    pages = page + 1 + ((lastOverflow - contentH) / (contentH + pageSkip)).ceil();
+    pages =
+        page + 1 + ((lastOverflow - contentH) / (contentH + pageSkip)).ceil();
   }
 
-  return FormLayoutResult(
-    spacerBefore: spacer,
-    pageOf: pageOf,
-    topInPage: topInPage,
-    pages: pages,
-  );
+  return FormLayoutResult(units: units, pages: pages);
 }

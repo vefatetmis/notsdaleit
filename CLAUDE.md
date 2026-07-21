@@ -533,9 +533,15 @@ olarak çizilir.**
   artar (küsurat sayfa yok). Form: `paginateForm` deterministik ölçüm
   (`form_layout.dart` — TextPainter ile blok yükseklikleri); Quill: post-frame
   ölçüm (`_quillKey` → RenderBox) ile.
-- **Form sayfalama:** bloklar sayfa sınırını ORTALAMAZ — sığmayan blok
-  `spacerBefore` ile sonraki sayfanın başına atlar. Ekran ve PDF **aynı sanal
-  metriklerle** sayfalar (bloklar iki tarafta aynı sayfaya düşer).
+- **Form sayfalama (satır-birimli):** `paginateForm` en küçük birim olarak
+  blok VEYA satır kullanır (`FormUnit{block,row,page,top,spacerBefore}`).
+  Satırlı bloklar (checklist/numaralı/saat) **satır satır bölünür** — sığan
+  satırlar sayfada kalır, yalnız taşanlar sonraki sayfaya akar (eski hata:
+  tüm liste topluca atlayıp 1. sayfayı boş bırakıyordu). Diğer bloklar bütün
+  olarak atlar. `row == -1` = bütün blok. FormPage satır spacer'larını
+  `layout.spacerFor(block,row)` ile içeride ekler; PDF `_paintForm` birim
+  bazlı çizer (checkRow/numRow/hourRow). Ekran ve PDF **aynı sanal
+  metriklerle** sayfalar.
 - **Sanal genişlik ölçeği:** formlar `formVirtualWidth` (a4/kare 520 ·
   yatay 735 · telefon 390) genişliğinde dizilir, ekrana FittedBox'la
   oranlanır → Haftalık plan ekrana sığar; A4 çıktıda ~16pt gövde yazısı

@@ -16,7 +16,7 @@ class FormPage extends StatefulWidget {
     required this.paper,
     required this.editable,
     required this.onChanged,
-    this.spacers = const [],
+    this.layout,
   });
 
   final FormDoc form;
@@ -24,9 +24,9 @@ class FormPage extends StatefulWidget {
   final bool editable;
   final VoidCallback onChanged;
 
-  /// Sayfalama: her blok öncesi eklenecek boşluk (`paginateForm` üretir) —
-  /// blok sayfa sınırını ortalamak yerine sonraki sayfanın başına düşer.
-  final List<double> spacers;
+  /// Sayfalama (`paginateForm` üretir): bloklar/satırlar sayfa sınırını
+  /// ortalamak yerine spacer'la sonraki sayfanın başına düşer.
+  final FormLayoutResult? layout;
 
   @override
   State<FormPage> createState() => _FormPageState();
@@ -270,11 +270,15 @@ class _FormPageState extends State<FormPage> {
     );
   }
 
+  double _rowSpacer(int block, int row) =>
+      widget.layout?.spacerFor(block, row) ?? 0;
+
   Widget _checklist(int i, ChecklistBlock b) {
     final trailingW = b.trailingWidth > 0 ? b.trailingWidth : 34.0;
     return Column(
       children: [
-        for (var r = 0; r < b.items.length; r++)
+        for (var r = 0; r < b.items.length; r++) ...[
+          if (_rowSpacer(i, r) > 0) SizedBox(height: _rowSpacer(i, r)),
           Container(
             decoration: BoxDecoration(
               border: Border(bottom: BorderSide(color: paper.line)),
@@ -319,7 +323,10 @@ class _FormPageState extends State<FormPage> {
               ],
             ),
           ),
-        if (b.addLabel.isNotEmpty && widget.editable)
+        ],
+        if (b.addLabel.isNotEmpty && widget.editable) ...[
+          if (_rowSpacer(i, b.items.length) > 0)
+            SizedBox(height: _rowSpacer(i, b.items.length)),
           InkWell(
             onTap: () {
               setState(() => b.items.add(CheckItem()));
@@ -340,6 +347,7 @@ class _FormPageState extends State<FormPage> {
               ),
             ),
           ),
+        ],
       ],
     );
   }
@@ -347,7 +355,8 @@ class _FormPageState extends State<FormPage> {
   Widget _numbered(int i, NumberedBlock b) {
     return Column(
       children: [
-        for (var r = 0; r < b.items.length; r++)
+        for (var r = 0; r < b.items.length; r++) ...[
+          if (_rowSpacer(i, r) > 0) SizedBox(height: _rowSpacer(i, r)),
           Container(
             decoration: BoxDecoration(
               border: Border(bottom: BorderSide(color: paper.line)),
@@ -387,6 +396,7 @@ class _FormPageState extends State<FormPage> {
               ],
             ),
           ),
+        ],
       ],
     );
   }
@@ -433,7 +443,8 @@ class _FormPageState extends State<FormPage> {
   Widget _hours(int i, HoursBlock b) {
     return Column(
       children: [
-        for (var r = 0; r < b.rows.length; r++)
+        for (var r = 0; r < b.rows.length; r++) ...[
+          if (_rowSpacer(i, r) > 0) SizedBox(height: _rowSpacer(i, r)),
           Container(
             height: 35,
             decoration: BoxDecoration(
@@ -467,6 +478,7 @@ class _FormPageState extends State<FormPage> {
               ],
             ),
           ),
+        ],
       ],
     );
   }
@@ -654,9 +666,10 @@ class _FormPageState extends State<FormPage> {
         CornellBlock() => _cornell(i, b),
         SketchBlock() => _sketch(b),
       };
-      // Sayfalama: blok sayfa sınırına sığmıyorsa sonraki sayfaya atlar.
-      final spacer =
-          i < widget.spacers.length ? widget.spacers[i] : 0.0;
+      // Sayfalama: bütün-blok birimleri (row == -1) sığmazsa sonraki sayfaya
+      // atlar. Satırlı bloklar (checklist/numaralı/saat) kendi satır
+      // spacer'larını içeride ekler.
+      final spacer = widget.layout?.spacerFor(i, -1) ?? 0;
       if (spacer > 0) children.add(SizedBox(height: spacer));
       children.add(Padding(
         padding: EdgeInsets.only(
