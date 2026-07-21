@@ -564,8 +564,11 @@ olarak çizilir.**
   kullanıcı kararı: bar GİZLENMEDİ, çökme yok çünkü `activeQuillControllerProvider`
   form notunda null → format barı zaten görünmez). Gerçek biçimlendirme =
   form yazı alanlarını zengin-metin yapmak (ayrı büyük iş, sırada).
-- PDF export kâğıt rengi hâlâ beyaz (desen + form çiziliyor; renk ayrı iş —
-  kullanıcı kararı: "hafif ton" varsayılanı, sırası gelince).
+- ~~PDF export kâğıt rengi beyaz~~ → UYGULANDI: dışa aktarımda **kâğıt rengi
+  sorulur** (Beyaz / Hafif ton / Tam renk), not değişmeden seçime göre aktarılır
+  (`sharePdfWithPaperPrompt` + `_PdfPalette`/`PdfPaper`; tüm çizim fonksiyonları
+  paletten beslenir — mürekkep/çizgi/soluk/hafif/zemin). Beyaz kâğıt/PDF'te
+  sorulmaz.
 - Quill (serbest) notlarda metin sayfa sınırını hâlâ ortalayabilir (form
   sayfalaması yalnız form bloklarında; Quill satır-bazlı sayfalama yapılmadı).
 

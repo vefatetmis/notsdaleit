@@ -527,7 +527,7 @@ class _TopBar extends ConsumerWidget {
               color: nd.card,
               icon: Icon(Icons.ios_share, size: 18, color: nd.text2),
               onSelected: (v) {
-                if (v == 'pdf') exportDocumentAsPdf(ref, activeDoc);
+                if (v == 'pdf') sharePdfWithPaperPrompt(context, ref, activeDoc);
                 if (v == 'ntdl') exportNtdl(ref, activeDoc);
                 if (v == 'savetpl') saveNoteAsTemplate(context, ref, activeDoc);
                 if (v == 'live') shareLive(context, ref, activeDoc);

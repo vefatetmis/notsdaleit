@@ -9,6 +9,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
+import '../../core/i18n/i18n.dart';
 import '../../data/data_providers.dart';
 import '../../data/database/database.dart';
 import '../drawing/drawing_state.dart';
@@ -23,11 +24,168 @@ String _safeName(String title) {
   return t.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
 }
 
-/// Bir belgeyi PDF olarak dışa aktarır ve paylaşım sayfasını açar.
+/// PDF çıktısında kâğıdın nasıl görüneceği (dışa aktarırken sorulur; not
+/// değişmez). white = beyaz zemin/koyu mürekkep · tint = kâğıt renginin açık
+/// tonu · full = ekrandaki kâğıt rengi birebir.
+enum PdfPaper { white, tint, full }
+
+/// PDF çizim renkleri (mürekkep + çizgi + soluk + hafif + zemin). Seçilen
+/// [PdfPaper] moduna göre kurulur; tüm çizim fonksiyonları bunu kullanır.
+class _PdfPalette {
+  const _PdfPalette({
+    required this.background,
+    required this.ink,
+    required this.line,
+    required this.muted,
+    required this.faint,
+  });
+  final Color background;
+  final Color ink;
+  final Color line;
+  final Color muted;
+  final Color faint;
+}
+
+const _PdfPalette _whitePalette = _PdfPalette(
+  background: Color(0xFFFFFFFF),
+  ink: Color(0xFF262626),
+  line: Color(0xFFE7E5DF),
+  muted: Color(0xFFA6A49D),
+  faint: Color(0xFFF5F3EE),
+);
+
+_PdfPalette _pdfPalette(String pageColor, PdfPaper mode) {
+  final paper = paperStyleFor(pageColor);
+  switch (mode) {
+    case PdfPaper.white:
+      return _whitePalette;
+    case PdfPaper.full:
+      return _PdfPalette(
+        background: paper.background,
+        ink: paper.text,
+        line: paper.line,
+        muted: paper.muted,
+        faint: paper.faint,
+      );
+    case PdfPaper.tint:
+      // Koyu kâğıdın "hafif ton"u anlamsız → beyaza düş.
+      if (paper.isDark) return _whitePalette;
+      final bg = Color.lerp(
+          const Color(0xFFFFFFFF), paper.background, 0.55)!;
+      return _PdfPalette(
+        background: bg,
+        ink: const Color(0xFF262626),
+        line: paper.line,
+        muted: paper.muted,
+        faint: paper.faint,
+      );
+  }
+}
+
+/// "PDF olarak paylaş" akışı: renkli kâğıtlı notlarda önce kâğıt rengini sorar
+/// (not değişmez), sonra seçime göre dışa aktarır. Beyaz kâğıt / PDF belgesinde
+/// sormadan aktarır.
+Future<void> sharePdfWithPaperPrompt(
+  BuildContext context,
+  WidgetRef ref,
+  Document doc,
+) async {
+  if (doc.type == 'pdf' || doc.pageColor == 'beyaz') {
+    await exportDocumentAsPdf(ref, doc);
+    return;
+  }
+
+  final paper = paperStyleFor(doc.pageColor);
+  final tintBg = paper.isDark
+      ? const Color(0xFFFFFFFF)
+      : Color.lerp(const Color(0xFFFFFFFF), paper.background, 0.55)!;
+
+  final choice = await showDialog<PdfPaper>(
+    context: context,
+    builder: (context) {
+      Widget option(PdfPaper mode, Color swatch, String title, String sub) {
+        return InkWell(
+          onTap: () => Navigator.of(context).pop(mode),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: swatch,
+                    borderRadius: BorderRadius.circular(7),
+                    border: Border.all(color: const Color(0x33000000)),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title,
+                          style: const TextStyle(
+                              fontSize: 14.5, fontWeight: FontWeight.w600)),
+                      Text(sub,
+                          style: const TextStyle(fontSize: 12.5, height: 1.3)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+
+      return AlertDialog(
+        title: Text(context.t('PDF kâğıt rengi', 'PDF paper color')),
+        contentPadding: const EdgeInsets.symmetric(vertical: 10),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            option(
+                PdfPaper.white,
+                const Color(0xFFFFFFFF),
+                context.t('Beyaz', 'White'),
+                context.t('Beyaz zemin — baskı dostu', 'White page — print-friendly')),
+            option(
+                PdfPaper.tint,
+                tintBg,
+                context.t('Hafif ton', 'Light tint'),
+                context.t('Kâğıt renginin açık tonu', 'A soft tint of the paper color')),
+            option(
+                PdfPaper.full,
+                paper.background,
+                context.t('Tam renk', 'Full color'),
+                context.t('Ekrandaki kâğıt rengi birebir', 'Exactly as on screen')),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(context.t('Vazgeç', 'Cancel')),
+          ),
+        ],
+      );
+    },
+  );
+
+  if (choice == null) return;
+  await exportDocumentAsPdf(ref, doc, paper: choice);
+}
+
+/// Bir belgeyi PDF olarak dışa aktarır ve paylaşım sayfasını açar. [paper]
+/// kâğıdın çıktıdaki görünümünü belirler (not içeriği/kaydı değişmez).
 /// - PDF belgesi → özgün dosya paylaşılır.
-/// - Not → her sayfa beyaz zemin + (sayfa 0'da) **biçimli metin** + çizimler.
-Future<void> exportDocumentAsPdf(WidgetRef ref, Document doc) async {
+/// - Not → biçimli metin / form blokları + çizimler.
+Future<void> exportDocumentAsPdf(
+  WidgetRef ref,
+  Document doc, {
+  PdfPaper paper = PdfPaper.white,
+}) async {
   final filename = '${_safeName(doc.title)}.pdf';
+  final pal = _pdfPalette(doc.pageColor, paper);
 
   if (doc.type == 'pdf') {
     final path = doc.filePath;
@@ -84,6 +242,7 @@ Future<void> exportDocumentAsPdf(WidgetRef ref, Document doc) async {
       // kendi bloklarını çizer.
       body: form == null && i == 0 ? doc.body : null,
       background: doc.pageBackground,
+      pal: pal,
       form: form,
       formLayout: formLayout,
       formPage: i,
@@ -114,6 +273,7 @@ Future<Uint8List> _renderPageImage(
   List<PenStroke> strokes, {
   String? body,
   String background = 'duz',
+  _PdfPalette pal = _whitePalette,
   FormDoc? form,
   FormLayoutResult? formLayout,
   int formPage = 0,
@@ -128,25 +288,26 @@ Future<Uint8List> _renderPageImage(
 
   canvas.drawRect(
     Rect.fromLTWH(0, 0, w, h),
-    Paint()..color = const Color(0xFFFFFFFF),
+    Paint()..color = pal.background,
   );
 
   // Kâğıt deseni (çizgili/kareli/noktalı) — editörle aynı yardımcı.
-  paintPageBackground(canvas, Size(w, h), background, const Color(0xFFE7E5DF));
+  paintPageBackground(canvas, Size(w, h), background, pal.line);
 
   if (form != null && formLayout != null) {
     final pad = 22.0 * formScale;
-    _paintForm(
-        canvas, form, formLayout, formPage, pad, pad, w - pad * 2, formScale);
+    _paintForm(canvas, form, formLayout, formPage, pad, pad, w - pad * 2,
+        formScale, pal);
   } else if (body != null && body.trim().isNotEmpty) {
     final pad = 22.0 * scale;
     _paintRichText(
       canvas,
-      _parseDelta(body, scale),
+      _parseDelta(body, scale, pal.ink),
       pad,
       pad,
       w - pad * 2,
       scale,
+      pal,
     );
   }
 
@@ -161,7 +322,7 @@ Future<Uint8List> _renderPageImage(
       ..strokeWidth = s.effectiveWidth * scale;
     switch (s.tool) {
       case PenTool.silgi:
-        paint.color = const Color(0xFFFFFFFF);
+        paint.color = pal.background;
       case PenTool.fosfor:
         paint.color = s.color.withValues(alpha: 0.32);
       case PenTool.kalem:
@@ -201,15 +362,15 @@ class _PdfTable {
   final NdTable table;
 }
 
-TextStyle _baseStyle(double scale) => TextStyle(
-      color: _ink,
+TextStyle _baseStyle(double scale, Color ink) => TextStyle(
+      color: ink,
       fontFamily: 'InstrumentSans',
       fontSize: 16.0 * scale,
       height: 1.4,
     );
 
-TextStyle _styleFrom(Map attrs, double scale) {
-  var style = _baseStyle(scale);
+TextStyle _styleFrom(Map attrs, double scale, Color ink) {
+  var style = _baseStyle(scale, ink);
   if (attrs['bold'] == true) {
     style = style.copyWith(fontWeight: FontWeight.bold);
   }
@@ -232,7 +393,7 @@ TextStyle _styleFrom(Map attrs, double scale) {
 
 /// Quill Delta JSON'ı bloklara ayırır: metin satırları (_Line) + tablolar
 /// (_PdfTable). Geçersizse düz metin olarak işler.
-List<Object> _parseDelta(String body, double scale) {
+List<Object> _parseDelta(String body, double scale, Color ink) {
   final blocks = <Object>[];
   var current = <_Seg>[];
 
@@ -245,7 +406,7 @@ List<Object> _parseDelta(String body, double scale) {
 
   if (data is! List) {
     for (final ln in body.split('\n')) {
-      blocks.add(_Line([_Seg(ln, _baseStyle(scale))], null));
+      blocks.add(_Line([_Seg(ln, _baseStyle(scale, ink))], null));
     }
     return blocks;
   }
@@ -271,7 +432,9 @@ List<Object> _parseDelta(String body, double scale) {
     final parts = insert.split('\n');
     for (var i = 0; i < parts.length; i++) {
       final text = parts[i];
-      if (text.isNotEmpty) current.add(_Seg(text, _styleFrom(attrs, scale)));
+      if (text.isNotEmpty) {
+        current.add(_Seg(text, _styleFrom(attrs, scale, ink)));
+      }
       if (i < parts.length - 1) {
         // Satır sonu: blok biçimi (liste) bu op'un özniteliğindedir.
         blocks.add(_Line(current, attrs['list'] as String?));
@@ -290,13 +453,14 @@ void _paintRichText(
   double y,
   double maxWidth,
   double scale,
+  _PdfPalette pal,
 ) {
   final markerW = 24.0 * scale;
   var cy = y;
 
   for (final block in blocks) {
     if (block is _PdfTable) {
-      cy = _paintTable(canvas, block.table, x, cy, maxWidth, scale);
+      cy = _paintTable(canvas, block.table, x, cy, maxWidth, scale, pal);
       continue;
     }
     final line = block as _Line;
@@ -305,7 +469,7 @@ void _paintRichText(
     final textW = maxWidth - (hasMarker ? markerW : 0);
 
     final spans = line.segs.isEmpty
-        ? [TextSpan(text: ' ', style: _baseStyle(scale))]
+        ? [TextSpan(text: ' ', style: _baseStyle(scale, pal.ink))]
         : [for (final s in line.segs) TextSpan(text: s.text, style: s.style)];
 
     final tp = TextPainter(
@@ -319,7 +483,7 @@ void _paintRichText(
       canvas.drawCircle(
         Offset(x + markerW / 2, cy + firstLineH / 2),
         2.6 * scale,
-        Paint()..color = _ink,
+        Paint()..color = pal.ink,
       );
     } else if (line.list == 'checked' || line.list == 'unchecked') {
       final side = 13.0 * scale;
@@ -334,7 +498,7 @@ void _paintRichText(
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.4 * scale
-          ..color = _ink,
+          ..color = pal.ink,
       );
       if (line.list == 'checked') {
         final path = Path()
@@ -348,7 +512,7 @@ void _paintRichText(
             ..strokeWidth = 1.8 * scale
             ..strokeCap = StrokeCap.round
             ..strokeJoin = StrokeJoin.round
-            ..color = _ink,
+            ..color = pal.ink,
         );
       }
     }
@@ -367,10 +531,11 @@ double _paintTable(
   double y,
   double maxWidth,
   double scale,
+  _PdfPalette pal,
 ) {
-  const line = Color(0xFFE7E5DF);
-  const muted = Color(0xFFA6A49D);
-  const faint = Color(0xFFF5F3EE);
+  final line = pal.line;
+  final muted = pal.muted;
+  final faint = pal.faint;
   final cellPadH = 8.0 * scale;
   final cellPadV = 7.0 * scale;
   final checkSide = 13.0 * scale;
@@ -381,7 +546,7 @@ double _paintTable(
   final colWs = [for (final w in t.widths) maxWidth * w / totalFlex];
 
   TextStyle cellStyle(NdCell c, bool header) => TextStyle(
-        color: header || c.muted ? muted : _ink,
+        color: header || c.muted ? muted : pal.ink,
         fontFamily: 'InstrumentSans',
         fontSize: (header || c.muted ? 11.5 : 13.0) * scale,
         fontWeight: header ? FontWeight.w700 : FontWeight.w400,
@@ -461,7 +626,7 @@ double _paintTable(
         canvas.drawRRect(
           RRect.fromRectAndRadius(box, Radius.circular(4 * scale)),
           checked
-              ? (Paint()..color = _ink)
+              ? (Paint()..color = pal.ink)
               : (Paint()
                 ..style = PaintingStyle.stroke
                 ..strokeWidth = 1.4 * scale
@@ -478,7 +643,7 @@ double _paintTable(
               ..style = PaintingStyle.stroke
               ..strokeWidth = 1.8 * scale
               ..strokeCap = StrokeCap.round
-              ..color = const Color(0xFFFFFFFF),
+              ..color = pal.background,
           );
         }
         textX += checkSide + 7 * scale;
@@ -520,10 +685,6 @@ double _paintTable(
 
 // ─────────────────────── Form-not (ndform) çizimi ───────────────────────
 
-const _fLine = Color(0xFFE7E5DF);
-const _fMuted = Color(0xFFA6A49D);
-const _fFaint = Color(0xFFF5F3EE);
-
 TextPainter _formTp(String text, TextStyle style, double maxWidth) {
   return TextPainter(
     text: TextSpan(text: text, style: style),
@@ -555,14 +716,25 @@ void _paintForm(
   double y,
   double maxWidth,
   double scale,
+  _PdfPalette pal,
 ) {
   var cy = y;
+
+  // Form yazı stili — varsayılan renk paletin mürekkebi (kâğıt rengine uyar).
+  TextStyle ts(double size, double s,
+          {Color? color,
+          FontWeight weight = FontWeight.w400,
+          double letterSpacing = 0}) =>
+      _fStyle(size, s,
+          color: color ?? pal.ink,
+          weight: weight,
+          letterSpacing: letterSpacing);
 
   void label(String text, {double size = 11}) {
     final tp = _formTp(
         text.toUpperCase(),
-        _fStyle(size, scale,
-            color: _fMuted, weight: FontWeight.w700, letterSpacing: 1.1),
+        ts(size, scale,
+            color: pal.muted, weight: FontWeight.w700, letterSpacing: 1.1),
         maxWidth);
     tp.paint(canvas, Offset(x, cy));
     cy += tp.height + 6 * scale;
@@ -573,7 +745,7 @@ void _paintForm(
         Offset(lx, yy),
         Offset(lx + w, yy),
         Paint()
-          ..color = _fLine
+          ..color = pal.line
           ..strokeWidth = 1 * scale);
   }
 
@@ -582,7 +754,7 @@ void _paintForm(
     if (done) {
       canvas.drawRRect(
           RRect.fromRectAndRadius(box, Radius.circular(side * 0.32)),
-          Paint()..color = _ink);
+          Paint()..color = pal.ink);
       final p = Path()
         ..moveTo(box.left + side * 0.24, box.center.dy)
         ..lineTo(box.center.dx - side * 0.05, box.bottom - side * 0.26)
@@ -593,14 +765,14 @@ void _paintForm(
             ..style = PaintingStyle.stroke
             ..strokeWidth = 1.8 * scale
             ..strokeCap = StrokeCap.round
-            ..color = const Color(0xFFFFFFFF));
+            ..color = pal.background);
     } else {
       canvas.drawRRect(
           RRect.fromRectAndRadius(box, Radius.circular(side * 0.32)),
           Paint()
             ..style = PaintingStyle.stroke
             ..strokeWidth = 1.8 * scale
-            ..color = _fLine);
+            ..color = pal.line);
     }
   }
 
@@ -621,7 +793,7 @@ void _paintForm(
     final textX = x + side + 12 * scale;
     final trailW =
         b.trailingHint.isEmpty ? 0.0 : (b.trailingWidth + 6) * scale;
-    final tp = _formTp(it.text, _fStyle(14.5, scale),
+    final tp = _formTp(it.text, ts(14.5, scale),
         maxWidth - side - 12 * scale - trailW);
     final rowH = kFbCheckRowH * scale;
     checkbox(x, rowTop + (rowH - side) / 2, side, it.done);
@@ -629,7 +801,7 @@ void _paintForm(
     if (b.trailingHint.isNotEmpty) {
       final has = it.trailing.isNotEmpty;
       final tt = _formTp(has ? it.trailing : b.trailingHint,
-          _fStyle(12.5, scale, color: _fMuted), trailW);
+          ts(12.5, scale, color: pal.muted), trailW);
       tt.paint(canvas,
           Offset(x + maxWidth - tt.width, rowTop + (rowH - tt.height) / 2));
     }
@@ -644,13 +816,13 @@ void _paintForm(
         RRect.fromRectAndRadius(
             Rect.fromLTWH(x, rowTop + (rowH - chip) / 2, chip, chip),
             Radius.circular(7 * scale)),
-        Paint()..color = _fFaint);
+        Paint()..color = pal.faint);
     final nt = _formTp(
-        '${r + 1}', _fStyle(12, scale, weight: FontWeight.w700), chip);
+        '${r + 1}', ts(12, scale, weight: FontWeight.w700), chip);
     nt.paint(canvas,
         Offset(x + (chip - nt.width) / 2, rowTop + (rowH - nt.height) / 2));
     final tp = _formTp(
-        b.items[r], _fStyle(14, scale), maxWidth - chip - 11 * scale);
+        b.items[r], ts(14, scale), maxWidth - chip - 11 * scale);
     tp.paint(canvas,
         Offset(x + chip + 11 * scale, rowTop + (rowH - tp.height) / 2));
     underline(x, maxWidth, rowTop + rowH);
@@ -661,9 +833,9 @@ void _paintForm(
     final rowTop = cy;
     final row = b.rows[r];
     final lt = _formTp(row.label,
-        _fStyle(12, scale, color: _fMuted, weight: FontWeight.w600), 44 * scale);
+        ts(12, scale, color: pal.muted, weight: FontWeight.w600), 44 * scale);
     lt.paint(canvas, Offset(x, rowTop + (rowH - lt.height) / 2));
-    final vt = _formTp(row.value, _fStyle(13.5, scale), maxWidth - 56 * scale);
+    final vt = _formTp(row.value, ts(13.5, scale), maxWidth - 56 * scale);
     vt.paint(canvas, Offset(x + 56 * scale, rowTop + (rowH - vt.height) / 2));
     underline(x, maxWidth, rowTop + rowH);
   }
@@ -690,8 +862,8 @@ void _paintForm(
         final has = b.text.isNotEmpty;
         final tp = _formTp(
             has ? b.text : b.hint,
-            _fStyle(22, scale,
-                color: has ? _ink : _fMuted, weight: FontWeight.w800),
+            ts(22, scale,
+                color: has ? pal.ink : pal.muted, weight: FontWeight.w800),
             maxWidth - 60 * scale);
         tp.paint(canvas, Offset(x, cy));
         String? counter;
@@ -705,7 +877,7 @@ void _paintForm(
         if (counter != null) {
           final ct = _formTp(
               counter,
-              _fStyle(13, scale, color: _fMuted, weight: FontWeight.w600),
+              ts(13, scale, color: pal.muted, weight: FontWeight.w600),
               60 * scale);
           ct.paint(canvas,
               Offset(x + maxWidth - ct.width, cy + tp.height - ct.height - 2));
@@ -723,8 +895,8 @@ void _paintForm(
           if (f.label.isNotEmpty) {
             final lt = _formTp(
                 f.label.toUpperCase(),
-                _fStyle(10.5, scale,
-                    color: _fMuted,
+                ts(10.5, scale,
+                    color: pal.muted,
                     weight: FontWeight.w700,
                     letterSpacing: 1.0),
                 w);
@@ -733,7 +905,7 @@ void _paintForm(
           }
           final has = f.value.isNotEmpty;
           final vt = _formTp(has ? f.value : (f.hint.isEmpty ? '—' : f.hint),
-              _fStyle(14, scale, color: has ? _ink : _fMuted), w);
+              ts(14, scale, color: has ? pal.ink : pal.muted), w);
           vt.paint(canvas, Offset(fx, fy));
           fy += vt.height + 6 * scale;
           underline(fx, w, fy);
@@ -755,7 +927,7 @@ void _paintForm(
         final tp = _formTp(
             has ? b.value : b.hint,
             TextStyle(
-              color: has ? _ink : _fMuted,
+              color: has ? pal.ink : pal.muted,
               fontFamily: 'InstrumentSans',
               fontSize: 14 * scale,
               height: 30 / 14,
@@ -774,7 +946,7 @@ void _paintForm(
         if (b.label.isNotEmpty) {
           final lt = _formTp(
               b.label,
-              _fStyle(12, scale, color: _fMuted, weight: FontWeight.w600),
+              ts(12, scale, color: pal.muted, weight: FontWeight.w600),
               maxWidth / 2);
           lt.paint(canvas, Offset(x, cy + (d - lt.height) / 2));
           mx += lt.width + 12 * scale;
@@ -782,7 +954,7 @@ void _paintForm(
         for (var k = 0; k < b.count; k++) {
           final c = Offset(mx + d / 2, cy + d / 2);
           if (b.selected == k) {
-            canvas.drawCircle(c, d / 2, Paint()..color = _ink);
+            canvas.drawCircle(c, d / 2, Paint()..color = pal.ink);
           } else {
             canvas.drawCircle(
                 c,
@@ -790,7 +962,7 @@ void _paintForm(
                 Paint()
                   ..style = PaintingStyle.stroke
                   ..strokeWidth = 1.8 * scale
-                  ..color = _fLine);
+                  ..color = pal.line);
           }
           mx += d + 10 * scale;
         }
@@ -812,21 +984,21 @@ void _paintForm(
           final rect = Rect.fromLTWH(dx, cy, colW, colH);
           final rr =
               RRect.fromRectAndRadius(rect, Radius.circular(11 * scale));
-          if (d.faint) canvas.drawRRect(rr, Paint()..color = _fFaint);
+          if (d.faint) canvas.drawRRect(rr, Paint()..color = pal.faint);
           canvas.drawRRect(
               rr,
               Paint()
                 ..style = PaintingStyle.stroke
                 ..strokeWidth = 1 * scale
-                ..color = _fLine);
-          final nt = _formTp(d.name, _fStyle(12, scale, weight: FontWeight.w700),
+                ..color = pal.line);
+          final nt = _formTp(d.name, ts(12, scale, weight: FontWeight.w700),
               colW - pad * 2);
           nt.paint(canvas, Offset(dx + pad, cy + pad));
           var iy = cy + pad + headH;
           for (final it in d.items) {
             checkbox(dx + pad, iy, side, it.done);
             final tt = _formTp(
-                it.text, _fStyle(11, scale), colW - pad * 2 - side - 5 * scale);
+                it.text, ts(11, scale), colW - pad * 2 - side - 5 * scale);
             tt.paint(canvas,
                 Offset(dx + pad + side + 5 * scale, iy + (side - tt.height) / 2));
             iy += itemH;
@@ -846,18 +1018,18 @@ void _paintForm(
         canvas.save();
         canvas.clipRRect(rr);
         canvas.drawRect(
-            Rect.fromLTWH(x, cy, cueW, boxH), Paint()..color = _fFaint);
+            Rect.fromLTWH(x, cy, cueW, boxH), Paint()..color = pal.faint);
         canvas.drawLine(
             Offset(x + cueW, cy),
             Offset(x + cueW, cy + boxH),
             Paint()
-              ..color = _fLine
+              ..color = pal.line
               ..strokeWidth = 1.5 * scale);
         void cornellArea(double ax, double aw, String lbl, String val) {
           final lt = _formTp(
               lbl.toUpperCase(),
-              _fStyle(10, scale,
-                  color: _fMuted, weight: FontWeight.w700, letterSpacing: 0.8),
+              ts(10, scale,
+                  color: pal.muted, weight: FontWeight.w700, letterSpacing: 0.8),
               aw - pad * 2);
           lt.paint(canvas, Offset(ax + pad, cy + pad));
           ruled(ax + pad, aw - pad * 2, cy + pad + labelH, cueLines, lineH,
@@ -866,7 +1038,7 @@ void _paintForm(
             final vt = _formTp(
                 val,
                 TextStyle(
-                  color: _ink,
+                  color: pal.ink,
                   fontFamily: 'InstrumentSans',
                   fontSize: 13 * scale,
                   height: 27 / 13,
@@ -884,7 +1056,7 @@ void _paintForm(
             Paint()
               ..style = PaintingStyle.stroke
               ..strokeWidth = 1.5 * scale
-              ..color = _fLine);
+              ..color = pal.line);
         cy += boxH + 12 * scale;
         // Özet kutusu.
         const sumLines = 3;
@@ -893,8 +1065,8 @@ void _paintForm(
             Rect.fromLTWH(x, cy, maxWidth, sumH), Radius.circular(14 * scale));
         final st = _formTp(
             b.summaryLabel.toUpperCase(),
-            _fStyle(10, scale,
-                color: _fMuted, weight: FontWeight.w700, letterSpacing: 0.8),
+            ts(10, scale,
+                color: pal.muted, weight: FontWeight.w700, letterSpacing: 0.8),
             maxWidth - pad * 2);
         st.paint(canvas, Offset(x + pad, cy + pad));
         ruled(x + pad, maxWidth - pad * 2, cy + pad + labelH, sumLines, lineH,
@@ -903,7 +1075,7 @@ void _paintForm(
           final vt = _formTp(
               b.summary,
               TextStyle(
-                color: _ink,
+                color: pal.ink,
                 fontFamily: 'InstrumentSans',
                 fontSize: 13 * scale,
                 height: 27 / 13,
@@ -916,13 +1088,13 @@ void _paintForm(
             Paint()
               ..style = PaintingStyle.stroke
               ..strokeWidth = 1.5 * scale
-              ..color = _fLine);
+              ..color = pal.line);
         cy += sumH + 14 * scale;
       case SketchBlock():
         final h = b.height * scale;
         final rr = RRect.fromRectAndRadius(
             Rect.fromLTWH(x, cy, maxWidth, h), Radius.circular(14 * scale));
-        final dot = Paint()..color = _fLine;
+        final dot = Paint()..color = pal.line;
         for (var yy = cy + 12 * scale;
             yy < cy + h - 4 * scale;
             yy += 15 * scale) {
@@ -935,7 +1107,7 @@ void _paintForm(
         final border = Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.6 * scale
-          ..color = _fLine;
+          ..color = pal.line;
         final path = Path()..addRRect(rr);
         final dash = 7.0 * scale, gapLen = 5.0 * scale;
         for (final metric in path.computeMetrics()) {
