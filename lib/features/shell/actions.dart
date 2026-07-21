@@ -11,6 +11,8 @@ import '../../core/i18n/i18n.dart';
 import '../../data/data_providers.dart';
 import '../../data/database/database.dart';
 import '../drawing/drawing_state.dart';
+import '../forms/form_layout.dart';
+import '../forms/form_model.dart';
 import '../library/new_note_dialog.dart';
 import 'shell_state.dart';
 
@@ -45,6 +47,14 @@ Future<void> createConfiguredNote(
   String pageBackground = 'duz',
   String strokesJson = '[]',
 }) async {
+  // Form notu ise içeriğine yetecek doğal sayfa sayısını hesapla (manuel sayfa
+  // modeli — editörde otomatik büyümez).
+  var pageCount = 1;
+  if (isFormBody(body)) {
+    final form = FormDoc.tryParse(body);
+    if (form != null) pageCount = formNaturalPageCount(form, pageSize);
+  }
+
   final id = await ref.read(documentRepositoryProvider).insertNote(
         title: title,
         body: body,
@@ -52,7 +62,7 @@ Future<void> createConfiguredNote(
         pageSize: pageSize,
         pageColor: pageColor,
         pageBackground: pageBackground,
-        pageCount: 1,
+        pageCount: pageCount,
       );
 
   // Şablon çizimleri (kullanıcı şablonlarında olabilir; gömülülerde yok).

@@ -60,12 +60,11 @@ Future<void> exportDocumentAsPdf(WidgetRef ref, Document doc) async {
   if (isFormBody(doc.body)) {
     form = FormDoc.tryParse(doc.body);
     if (form != null) {
-      final virtualW = formVirtualWidth(doc.pageSize);
-      final virtualPageW = virtualW + 44;
-      formScale = w / virtualPageW;
-      final contentHv = virtualPageW * aspect - 44 - 6;
-      final skipHv = 44 + virtualPageW * kPageGapRatio;
-      formLayout = paginateForm(form, virtualW, contentHv, skipHv,
+      final m = formMetrics(doc.pageSize);
+      formScale = w / m.virtualPageW;
+      // Export tüm içeriği tam sayfalar (ekrandaki manuel sayfa sınırından
+      // bağımsız) → çıktıda hiçbir şey kırpılmaz.
+      formLayout = paginateForm(form, m.virtualW, m.contentH, m.pageSkip,
           editable: false);
       if (formLayout.pages > pageCount) pageCount = formLayout.pages;
     }

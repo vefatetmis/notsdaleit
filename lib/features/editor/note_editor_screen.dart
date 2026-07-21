@@ -407,25 +407,23 @@ class _SheetState extends ConsumerState<_Sheet> {
     final w = widget.width;
     final pageH = widget.pageHeight;
     final gap = w * kPageGapRatio;
-    final aspect = pageH / w;
     final paper = widget.paper;
 
+    // Sayfa sayısı MANUEL: form notlarında otomatik büyümez; içerik son
+    // sayfayı aşarsa boşluk bırakmadan kartın altından taşar ve kullanıcı
+    // "Yeni sayfa" ile yer açar. (Serbest/Quill notlarda içerik ölçülüp
+    // gerekiyorsa büyür — akışkan metin için manuel sayfa mantıksız olurdu.)
     var pages = widget.pageCount;
     double contentPad = 22;
     FormLayoutResult? layout;
     double virtualW = 0;
 
     if (widget.form != null) {
-      virtualW = formVirtualWidth(widget.pageSize);
-      final virtualPageW = virtualW + 44;
-      contentPad = 22 * (w / virtualPageW);
-      // Sanal birimlerde sayfa içerik yüksekliği ve sayfa atlama mesafesi —
-      // PDF export aynı formülü kullanır → sayfalama iki tarafta birebir.
-      final contentHv = virtualPageW * aspect - 44 - 6;
-      final skipHv = 44 + virtualPageW * kPageGapRatio;
-      layout = paginateForm(widget.form!, virtualW, contentHv, skipHv,
-          editable: widget.formEditable);
-      if (layout.pages > pages) pages = layout.pages;
+      final m = formMetrics(widget.pageSize);
+      virtualW = m.virtualW;
+      contentPad = 22 * (w / m.virtualPageW);
+      layout = paginateForm(widget.form!, m.virtualW, m.contentH, m.pageSkip,
+          editable: widget.formEditable, maxPages: pages);
     } else {
       _scheduleQuillMeasure();
       if (_quillH > 0) {

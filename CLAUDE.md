@@ -529,10 +529,16 @@ olarak çizilir.**
   (kendi zemin/kenarlık/gölge/desen), aralarda gerçek boşluk
   (`kPageGapRatio = 0.05 × genişlik`). Eski sürekli-tabaka + bant ayracı
   (`_PageLinesPainter`) KALDIRILDI.
-- **Otomatik sayfa büyümesi:** içerik taşınca sayfa sayısı tam sayfa olarak
-  artar (küsurat sayfa yok). Form: `paginateForm` deterministik ölçüm
-  (`form_layout.dart` — TextPainter ile blok yükseklikleri); Quill: post-frame
-  ölçüm (`_quillKey` → RenderBox) ile.
+- **Sayfa sayısı MANUEL (form notları; kullanıcı kararı):** form açılınca
+  otomatik büyümez. `createConfiguredNote` oluştururken `formNaturalPageCount`
+  ile içeriğe yetecek sayfa sayısını hesaplayıp `pageCount`'a yazar. İçerik
+  (satır ekleyince) son sayfayı aşarsa `paginateForm(maxPages: pageCount)`
+  boşluk atlamadan bırakır → içerik son kartın altından taşar; kullanıcı
+  **"Yeni sayfa"** düğmesiyle yer açar (pageCount++). Metrikler `formMetrics()`
+  (ekran + doğal sayı + PDF export ortak). **Quill (serbest) notlar** hâlâ
+  post-frame ölçümle (`_quillKey` → RenderBox) otomatik büyür — akışkan metin
+  için manuel sayfa mantıksız. **PDF export** form içeriğini tam sayfalar
+  (maxPages YOK) → çıktıda kırpma olmaz.
 - **Form sayfalama (satır-birimli):** `paginateForm` en küçük birim olarak
   blok VEYA satır kullanır (`FormUnit{block,row,page,top,spacerBefore}`).
   Satırlı bloklar (checklist/numaralı/saat) **satır satır bölünür** — sığan

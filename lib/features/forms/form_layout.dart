@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../editor/editor_state.dart';
 import 'form_model.dart';
 
 /// Form-not düzen/ölçüm motoru — ekran (FormPage) ve PDF export ortak kullanır.
@@ -17,6 +18,43 @@ double formVirtualWidth(String? pageSize) => switch (pageSize) {
       'telefon' => 390,
       _ => 520, // a4 / kare / bilinmeyen
     };
+
+/// Bir form sayfasının sanal metrikleri — ekran (_Sheet), doğal sayfa sayısı
+/// ve PDF export ortak kullanır (böylece üçü de aynı yerde sayfalar).
+class FormMetrics {
+  const FormMetrics({
+    required this.virtualW,
+    required this.virtualPageW,
+    required this.contentH,
+    required this.pageSkip,
+  });
+
+  final double virtualW; // içerik genişliği (padding hariç)
+  final double virtualPageW; // sayfa genişliği (padding dâhil)
+  final double contentH; // bir sayfanın içerik yüksekliği
+  final double pageSkip; // iki sayfanın içerik alanları arası boşluk
+}
+
+FormMetrics formMetrics(String? pageSize) {
+  final virtualW = formVirtualWidth(pageSize);
+  final virtualPageW = virtualW + 44;
+  final aspect = aspectForPageSize(pageSize);
+  return FormMetrics(
+    virtualW: virtualW,
+    virtualPageW: virtualPageW,
+    contentH: virtualPageW * aspect - 44 - 6,
+    pageSkip: 44 + virtualPageW * kPageGapRatio,
+  );
+}
+
+/// Bir formun içeriğini sığdırmak için gereken doğal sayfa sayısı (not
+/// oluşturulurken saklanır → editörde sabit sayfa, otomatik büyüme yok).
+int formNaturalPageCount(FormDoc form, String? pageSize) {
+  final m = formMetrics(pageSize);
+  return paginateForm(form, m.virtualW, m.contentH, m.pageSkip,
+          editable: true)
+      .pages;
+}
 
 /// Sayfalar arası boşluğun sayfa genişliğine oranı (ekran + PDF aynı değeri
 /// kullanır → çizim koordinatları iki tarafta da hizalı kalır).
@@ -177,6 +215,7 @@ FormLayoutResult paginateForm(
   double contentH,
   double pageSkip, {
   required bool editable,
+  int? maxPages,
 }) {
   final units = <FormUnit>[];
   var page = 0;
@@ -185,7 +224,11 @@ FormLayoutResult paginateForm(
 
   void place(int block, int row, double h, double gapAfter) {
     var spacer = 0.0;
-    if (y > 0 && y + h > contentH) {
+    // maxPages verilmişse son sayfaya ulaşınca artık atlama yapma: içerik
+    // boşluk bırakmadan sayfa altından taşar (kullanıcı "Yeni sayfa" ile yer
+    // açar). Böylece kendiliğinden yeni sayfaya "kaçmaz".
+    final canBreak = maxPages == null || page < maxPages - 1;
+    if (y > 0 && y + h > contentH && canBreak) {
       spacer = (contentH - y) + pageSkip;
       page++;
       y = 0;
