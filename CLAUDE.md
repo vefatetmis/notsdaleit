@@ -576,6 +576,43 @@ olarak çizilir.**
 - Yeni-not diyaloğu stilini design'a tam getirme (kâğıt noktaları büyük halka,
   kategori sekmesi koyu-pill vurgusu).
 
+### HESAPLAR & SENKRON (kullanıcı onayladı — planlandı, sıraya alındı)
+
+**Kararlar (kullanıcı):** giriş **OPSİYONEL** (offline-first korunur; hesapsız
+tam çalışır, giriş yalnız senkron+collab için) · **e-posta kodu (parolasız,
+6 haneli OTP)** — parola yönetimi yok, uygulamadaki "kodla nota katıl" desenine
+benzer. Temel zaten var: Supabase kurulu (şu an collab için **anonim** giriş),
+`shared_notes`/`note_members`/`shared_strokes` + RLS mevcut; drift yerel DB.
+
+**Faz 1 — E-posta girişi + profil:**
+- Supabase Auth `signInWithOtp` (e-posta) → 6 haneli kod doğrulama. Giriş
+  ekranı Ayarlar'dan açılır (kapıda tutmaz). `collab_config` zaten anahtar
+  taşıyor.
+- Mevcut **anonim oturumu e-posta hesabına yükselt** (identity linking) →
+  anon collab verisi kaybolmaz.
+- `profiles` tablosu (`id=auth.uid`, `display_name`, `avatar_url?`,
+  `created_at`) + RLS (herkes okur; sahibi düzenler). İlk girişte görünen ad
+  sorulur. `authProvider` (oturum durumu), Ayarlar'da "Hesabım / Çıkış".
+
+**Faz 2 — "Kim katıldı" (collab kimlikleri):**
+- Paylaşımlı notta üyelerin adı/avatarı: `note_members` ⨯ `profiles` join →
+  üst barda katılımcı avatarları. Supabase Realtime **Presence** ile o an
+  notu açık olanlar canlı (yeşil nokta).
+- `shared_strokes`/notes olaylarına yazar uid → "kim yazdı" (opsiyonel renk).
+
+**Faz 3 — Cihazlar arası senkron (asıl büyük iş):**
+- Supabase'de kullanıcıya ait `sync_documents` + `sync_strokes` (user_id, RLS:
+  yalnız sahibi). Drift şeması mirror; silme için **soft-delete** (deletedAt).
+- `data/sync/` katmanı: push (yerel updatedAt > lastSync → buluta), pull (uzak
+  → yerele, **LWW updatedAt** — collab gövde deseniyle tutarlı). İlk girişte
+  yerel notlar buluta yüklenir; başka cihazda giriş → buluttan çekilir.
+- Arka planda otomatik + Ayarlar'da "şimdi senkronla" + senkron durum
+  göstergesi. Temsilî "Bağlan" gerçeğe döner (backlog'daki "gerçek bulut
+  senkron" bu fazla kapanır).
+
+**Faz 4 — Cila:** çıkış, hesap silme (GDPR/Play), çoklu cihaz yönetimi,
+çakışma bildirimi.
+
 **2.0 — Şablon mağazası:**
 - Aşama 1 (önce bu): KÜRATÖRLÜ katalog — Supabase `store_templates` tablosu
   (public read; yalnızca bizim yüklediklerimiz), uygulamada mağaza sayfası +
@@ -585,8 +622,8 @@ olarak çizilir.**
 
 ### Backlog (sürüme bağlı değil, sıra bekleyen)
 
-- **Gerçek bulut senkron** — Ayarlar'daki "Bağlan" hâlâ temsilî; `data/`
-  katmanına gerçek senkron eklenmeli (canlı ortak not altyapısı temel veriyor).
+- **Gerçek bulut senkron** — artık "HESAPLAR & SENKRON Faz 3" olarak planlandı
+  (yukarı bkz.); Ayarlar'daki "Bağlan" o fazda gerçeğe döner.
 - **Kalan Türkçe metinlerin çevirisi** — klasörler/arama ekranları, bazı araç
   çubuğu tooltip'leri, `date_format` göreli tarihler henüz TR.
 - **Kalıcı etiketler** — şu an statik; ayrı tablo gerekir (klasör tablosu deseni).
