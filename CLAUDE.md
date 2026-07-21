@@ -584,7 +584,15 @@ tam çalışır, giriş yalnız senkron+collab için) · **e-posta kodu (parolas
 benzer. Temel zaten var: Supabase kurulu (şu an collab için **anonim** giriş),
 `shared_notes`/`note_members`/`shared_strokes` + RLS mevcut; drift yerel DB.
 
-**Faz 1 — E-posta girişi + profil — UYGULANDI (dev APK'da test bekliyor):**
+**⏸️ ASKIYA ALINDI (kullanıcı kararı):** Faz 1 KODU tamam ve pushlı; ancak
+**e-posta gönderimi (SMTP) kurulumu** kullanıcının Supabase panelinde yapması
+gereken bir adım olduğu ve şablon/kod ayarında takıldığı için **mail
+entegrasyonu şimdilik ertelendi**. Devam etmek için: kullanıcı custom SMTP
+(Brevo domainsiz / Resend + domain) kurar → e-posta şablonlarına `{{ .Token }}`
+ekler (bkz. `SETUP-AUTH.md`). O gün gelince kod hazır, test edilip Faz 2'ye
+geçilebilir. Şu an odak: **uygulama içi pürüzler + yeni özellikler.**
+
+**Faz 1 — E-posta girişi + profil — UYGULANDI (mail SMTP kurulumu bekliyor):**
 - **`features/auth/auth_service.dart`:** `AuthService.sendCode/verifyCode/
   setDisplayName/signOut`. `signInWithOtp` (yeni kullanıcı) veya anonim oturum
   varsa `updateUser(email)` → `verifyOTP(type: emailChange)` ile **anonim
