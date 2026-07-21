@@ -63,13 +63,31 @@ class AuthService {
   }
 
   /// Kodu doğrular; başarılıysa oturum kalıcı e-posta hesabına geçer.
+  /// Anonim yükseltme → emailChange. Yeni/mevcut kullanıcıda kod hangi
+  /// şablondan geldiyse tipi değişebildiği için (email OTP vs "Confirm signup")
+  /// email → başarısızsa signup tipiyle tekrar denenir.
   Future<void> verifyCode(String email, String code) async {
-    final anon = _isAnon;
-    await _c.auth.verifyOTP(
-      email: email.trim(),
-      token: code.trim(),
-      type: anon ? OtpType.emailChange : OtpType.email,
-    );
+    final e = email.trim();
+    final t = code.trim();
+    if (_isAnon) {
+      await _c.auth
+          .verifyOTP(email: e, token: t, type: OtpType.emailChange);
+      return;
+    }
+    try {
+      await _c.auth.verifyOTP(email: e, token: t, type: OtpType.email);
+    } on AuthException catch (err) {
+      final low = err.message.toLowerCase();
+      final tokenIssue = low.contains('token') ||
+          low.contains('otp') ||
+          low.contains('invalid') ||
+          low.contains('expired');
+      if (tokenIssue) {
+        await _c.auth.verifyOTP(email: e, token: t, type: OtpType.signup);
+      } else {
+        rethrow;
+      }
+    }
   }
 
   Future<void> setDisplayName(String name) async {

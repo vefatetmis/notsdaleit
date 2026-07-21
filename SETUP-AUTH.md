@@ -13,31 +13,45 @@ Supabase Dashboard → **Authentication → Sign In / Providers → Email**:
 - **Anonymous sign-ins** açık kalsın (collab için gerekiyordu; giriş bunu
   kalıcı hesaba yükseltir).
 
-## 2) E-posta ŞABLONUNA 6 haneli kodu ekle (ÖNEMLİ)
+## 2) E-posta ŞABLONUNA 6 haneli kodu ekle (BURASI ŞART)
 
-Varsayılan Supabase e-postaları **link** gönderir; biz **6 haneli kod**
-istiyoruz. Dashboard → **Authentication → Emails → Templates**:
+**Sorun:** Supabase'in varsayılan e-postası **link** gönderir (tıklayınca
+localhost:3000 açılır). Biz **6 haneli kod** istiyoruz. Çözüm: şablonların
+gövdesine kodu basan `{{ .Token }}` değişkenini koymak.
 
-- **"Magic Link"** ve **"Change Email Address"** şablonlarını aç.
-- İçine kodu basan `{{ .Token }}` değişkenini ekle. Örn. gövdeye şu satırı
-  koy:
+Dashboard → **Authentication → Emails → Templates**. Şu **ÜÇ** şablonu düzenle
+(hangisinin geleceği duruma göre değişir, üçünü de yapmak en garantisi):
 
-  ```html
-  <p>Giriş kodun: <strong>{{ .Token }}</strong></p>
-  <p>Bu kod 1 saat geçerlidir.</p>
-  ```
+| Şablon | Ne zaman gelir |
+|--------|----------------|
+| **Confirm signup** | İlk kez giriş yapan **yeni** e-posta |
+| **Magic Link** | Daha önce giriş yapmış e-posta |
+| **Change Email Address** | Collab için anonim oturumu olan kullanıcı hesaba yükseltilirken |
 
-  (İstersen linki de bırakabilirsin; uygulama kodu kullanıyor.)
+Her birinin gövdesini (HTML) şununla değiştir — **link YOK, sadece kod**:
 
-Neden iki şablon? Yeni kullanıcı **Magic Link** şablonuyla, daha önce collab
-için anonim oturum açmış kullanıcı ise hesabını yükseltirken **Change Email
-Address** şablonuyla kod alır.
+```html
+<h2>Giriş kodun</h2>
+<p style="font-size:28px;font-weight:bold;letter-spacing:4px">{{ .Token }}</p>
+<p>Bu kodu uygulamaya gir. Kod 1 saat geçerlidir. Sen istemediysen bu
+e-postayı yok say.</p>
+```
 
-## 3) (Öneri) Kod ayarları
+Kaydet. Artık e-postada tıklanacak link değil, **6 haneli kod** gelir.
 
-Authentication → **Emails → Settings** (veya Providers → Email):
-- **OTP expiry**: 3600 sn (1 saat) yeter.
-- **OTP length**: 6.
+## 3) localhost:3000 sorunu (Site URL)
+
+Link'e basınca localhost:3000 açılmasının sebebi: **Authentication → URL
+Configuration → Site URL** varsayılan `http://localhost:3000`. Yukarıdaki adımı
+yapınca artık **link göndermeyeceğiz** (sadece kod), dolayısıyla bu sorun
+kendiliğinden biter. İstersen Site URL'i boş bırakmak yerine geçici bir değere
+(örn. `https://notsdaleit.app`) çekebilirsin — kod akışı için şart değil.
+
+## 4) (Öneri) Kod ayarları
+
+Authentication → **Providers → Email** (veya Emails → Settings):
+- **Email OTP Expiration**: 3600 sn (1 saat) yeter.
+- **Email OTP Length**: 6.
 
 ## Bu kadar
 
