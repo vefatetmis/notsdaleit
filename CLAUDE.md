@@ -460,21 +460,58 @@ kalem olduğundan ızgara/2-kolon düzenler birebir çıkmaz. **Karar: pragmatik
 |-------|-------|-------|
 | Play üretim | 1.0 (mağazada) | Yayında |
 | Play kapalı test | 1.1 (pubspec 1.1.0+3) | Yayın bekliyor |
-| Dev / paralel APK | 1.2 + şablon tasarımı + 1.3 tablo v1 | **Aktif geliştirme burada** |
+| Dev / paralel APK | 1.2 + form şablonları + Faz 1 auth + cila | **Aktif geliştirme burada** |
 
 **Strateji (kullanıcı kararı):** tüm geliştirme dev APK üzerinden; biriken her
 şey (1.1 + 1.2 + …) kapalı testten geçince **tek AAB** olarak yayınlanır.
-Prod'a ara sürüm çıkılmaz.
+Prod'a ara sürüm çıkılmaz. pubspec sürümü bilinçli olarak `1.1.0+3`'te bekliyor
+(yayın anında güncellenecek).
 
-**Tamamlanan:** 1.1 (varsayılan yazı modu, paylaşımı durdur, klasöre taşı, rutin
-bildirimi, seri/rozet) · 1.2 (yeni not pop-up, şablon sistemi, sayfa yönleri) ·
-1.2 şablon yeniden tasarımı (kâğıt paleti, sayfa desenleri, önizleme kartları) ·
-**1.3 tablo bloğu v1** (ndtable embed; Haftalık/Cornell/Günlük plan/Toplantı/
-Alışveriş gerçek form düzeninde — ayrıntı aşağıda).
+**Tamamlanan (dev'de, test bekliyor):**
+- 1.1 (varsayılan yazı modu, paylaşımı durdur, klasöre taşı, rutin bildirimi,
+  seri/rozet).
+- 1.2 (yeni not pop-up, şablon sistemi, sayfa yönleri) + şablon yeniden tasarımı
+  (kâğıt paleti, sayfa desenleri, önizleme kartları).
+- **1.3 form-not sayfaları** (native FormPage; Haftalık/Cornell/Günlük plan/
+  Toplantı/Alışveriş vb. gerçek form düzeninde). ndtable embed başarısız oldu,
+  yerine native form geldi. Bağımsız sayfa kartları + manuel sayfa + satır-bazlı
+  sayfalama + sanal-A4 ölçek + çizgi baseline hizası (ayrıntı aşağıda).
+- **Cila paketi:** Temel sekmesinde çizgili/kareli/noktalı boş kâğıt · checklist
+  satır silme (uzun bas) · öksüz etiket düzeltmesi.
+- **PDF kâğıt rengi:** dışa aktarırken sorulur (Beyaz/Hafif ton/Tam renk), not
+  değişmez.
+- **Faz 1 auth KODU** (e-posta OTP + profil + onboarding turu) — **mail SMTP
+  kurulumu ASKIDA** (kullanıcı Supabase panelinde yapacak; bkz. aşağı + SETUP-AUTH.md).
+
+**⭐ SONRAKİ ADIM (yeni session buradan devam):** aşağıdaki "Uygulama içi cila +
+özellikler" listesi. Kullanıcı: "hepsini yap, kolaydan zora, sıra sende." İlk
+sıradaki blok **Kütüphane iyileştirme** (sabitleme/favori + sıralama → kalıcı
+etiketler). Mail/auth ASKIDA (dokunma). Her adım: kullanıcıya ne yapacağını
+söyle → onay → yap → dev APK.
 
 ## PLANLANAN — sonraki işler (sıralı)
 
-### Tasarımdaki "form/yapısal sayfa" hedefine giden yol
+### Uygulama içi cila + özellikler (AKTİF — kolaydan zora, hepsi onaylı)
+
+1. **Kütüphane iyileştirme (SONRAKİ):** notu **sabitleme (pin)/favori** +
+   **sıralama** (tarih/ad) → **kalıcı etiketler** (şu an statik; Folders tablosu
+   desenine benzer ayrı tablo).
+2. **Güvenlik ağı:** **çöp kutusu / silmeyi geri al** (soft-delete `deletedAt`
+   + "son silinenler" ekranı) → **yerel yedekleme/geri yükleme** (tüm veriyi
+   tek dosyaya dışa/içe aktar; gerçek senkron gelene dek yedek + cihaz taşıma).
+3. **Dışa aktarım:** notu **görüntü (PNG) olarak paylaş**.
+4. **Büyükler:** **tabloyu elle ekleme** (şu an tablo/ızgara yalnız şablonlardan;
+   araç çubuğuna ekleme + satır/sütun düzenleme) · **kalem araçları** (düz
+   çizgi/şekil, cetvel, lasso seçim) · **form yazı alanlarını zengin-metin**
+   yapmak (Aa'nın formda gerçekten çalışması — kullanıcı istedi).
+
+**Bilinen küçük pürüzler (sıraya alındı):**
+- Quill (serbest) notlarda uzun metin sayfa sınırından taşabilir (satır-bazlı
+  Quill sayfalama yapılmadı).
+- Kalan Türkçe metinler (klasörler/arama ekranları, bazı tooltip'ler,
+  `date_format` göreli tarihler) İngilizce'ye çevrilmedi.
+
+### Tasarım sadakati — form-not sayfaları (UYGULANDI, referans)
 
 Claude Design'daki şablonlar **etkileşimli form** (ızgara, 2-kolon, etiketli
 alan, saat çizelgesi). Mevcut editör flutter_quill + serbest kalem olduğundan
@@ -582,15 +619,11 @@ olarak çizilir.**
 - **Öksüz etiket:** `paginateForm`'da `LabelBlock` `keepWith: firstUnitHeight`
   ile sonraki ilk içerikle birlikte kalır (etiket sayfa dibinde tek kalmaz).
 
-**1.4 — Tasarım cilası (tam sadakat, opsiyonel/1.3 sonrası):**
-- Etiketli alan bloğu (TARİH ____ gibi hizalı alanlar), bölüm etiketi rengi
-  (kâğıda uyan muted — kalıcı çözüm için renk özniteliği yerine "label" blok
-  stili), ruh hâli satırı, eskiz kutusu, alışverişte adet sütunu.
-- **PDF export kâğıt rengi + arka plan sadakati** (şu an beyaz zemin + koyu
-  mürekkep; kâğıt rengi/deseni PDF'e yansıtılacak — `_renderPageImage`'e ink +
-  paper.background threading).
-- Yeni-not diyaloğu stilini design'a tam getirme (kâğıt noktaları büyük halka,
-  kategori sekmesi koyu-pill vurgusu).
+**1.4 — Tasarım cilası (opsiyonel, düşük öncelik):**
+- ~~PDF export kâğıt rengi~~ → UYGULANDI (dışa aktarımda sorulur; yukarı bkz.).
+- Yeni-not diyaloğu stili → **kullanıcı kararı: dokunma, mevcut hâli iyi.**
+- Kalan (yapılırsa): form yazı alanlarını **zengin-metin** yapmak (Aa'nın formda
+  gerçekten çalışması — kullanıcı istedi, ayrı büyük iş olarak sırada).
 
 ### HESAPLAR & SENKRON (kullanıcı onayladı — planlandı, sıraya alındı)
 
@@ -657,16 +690,13 @@ geçilebilir. Şu an odak: **uygulama içi pürüzler + yeni özellikler.**
 - Aşama 2 (uygulama büyüyünce): kullanıcı yüklemesi — Play UGC politikası
   gereği raporla/engelle mekanizması ZORUNLU; moderasyon planı gerektirir.
 
-### Backlog (sürüme bağlı değil, sıra bekleyen)
+### Backlog (uzak, sürüme bağlı değil)
 
-- **Gerçek bulut senkron** — artık "HESAPLAR & SENKRON Faz 3" olarak planlandı
-  (yukarı bkz.); Ayarlar'daki "Bağlan" o fazda gerçeğe döner.
-- **Kalan Türkçe metinlerin çevirisi** — klasörler/arama ekranları, bazı araç
-  çubuğu tooltip'leri, `date_format` göreli tarihler henüz TR.
-- **Kalıcı etiketler** — şu an statik; ayrı tablo gerekir (klasör tablosu deseni).
+- **Gerçek bulut senkron** — "HESAPLAR & SENKRON Faz 3" (yukarı); mail askıdan
+  çıkınca sırası gelir. (Aktif cila/özellik listesi için yukarıdaki "Uygulama
+  içi cila + özellikler" bölümüne bak — sonraki işler orada.)
 - **Yeni platformlar** — iOS/Windows/macOS/Linux/Web (`flutter create
   --platforms=…`; web'de drift WASM + pdfx pdf.js).
-- **Küçük düzeltmeler** — dev APK test geri bildirimlerinden çıkacak liste.
 
 ## Önemli notlar / gelecek oturumlar için
 
