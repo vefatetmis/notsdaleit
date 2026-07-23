@@ -17,7 +17,11 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.bronzecloud.notsdaleit"
-    compileSdk = flutter.compileSdkVersion
+    // Google Play (31 Ağu 2026): yeni uygulama + güncellemeler API 36 (Android 16)
+    // hedeflemek ZORUNLU. Flutter 3.29.3 varsayılanı 35 olduğundan (ve Flutter'ı
+    // yükseltmek Dart 3.7.2'ye sabit drift/riverpod/flutter_quill'i kırardı)
+    // derleme + hedef API elle 36'ya sabitlendi. android-36 SDK platformu kurulu.
+    compileSdk = 36
     // Eklentilerin (path_provider, sqlite3_flutter_libs) istediği NDK sürümü.
     ndkVersion = "27.0.12077973"
 
@@ -38,7 +42,7 @@ android {
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
