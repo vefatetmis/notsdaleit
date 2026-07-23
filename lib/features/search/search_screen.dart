@@ -146,7 +146,7 @@ class _ResultRow extends ConsumerWidget {
       ),
       child: InkWell(
         onTap: () => openDocument(ref, doc),
-        onLongPress: () => confirmDeleteDocument(context, ref, doc),
+        onLongPress: () => trashDocument(context, ref, doc),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
           child: Row(

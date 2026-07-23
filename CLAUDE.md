@@ -180,8 +180,22 @@ lib/
   'telefon', not defteri — aspect `aspectForPageSize`), `pageColor`
   ('beyaz'|'sari'|'yesil'|'siyah' — kağıt rengi; schemaVersion 5),
   `pageBackground` ('duz'|'cizgili'|'kareli'|'noktali' — sayfa deseni;
-  schemaVersion 10), `createdAt`, `updatedAt`. (schemaVersion 2 — pageSize;
-  5 — pageColor; 10 — pageBackground.)
+  schemaVersion 10), `pinned` (kütüphanede sabit/pin — bool, yerel tercih,
+  collab'a gönderilmez; schemaVersion 11), `deletedAt` (yumuşak silme/çöp
+  kutusu — nullable; dolu ise kütüphane/arama/klasörlerde görünmez; schemaVersion
+  13), `createdAt`, `updatedAt`. (schemaVersion 2 — pageSize; 5 — pageColor;
+  10 — pageBackground; 11 — pinned; 13 — deletedAt.)
+- **Tags + DocumentTags** (schemaVersion 12): kalıcı etiketler (#önemli…) +
+  belge-etiket **çoklu-çoğa** ara tablo (cascade). `TagRepository`
+  (ensureTag/deleteTag/rename/addLink/removeLink/setLinkForDocs). Sağlayıcılar
+  (`data_providers`): `tagsProvider`, `documentTagLinksProvider`,
+  `tagCountsProvider` (tagId→sayı), `docTagIdsProvider` (docId→etiket id kümesi).
+  UI: kütüphane seçim çubuğunda **"Etiketle"** (`features/tags/tag_dialog.dart` —
+  kutucuklu ekle/çıkar + yeni etiket), kartta `#ad` satırı (accent), klasörler
+  ekranında gerçek etiket çipleri (`_TagsSection`; dokun → `libraryTagFilterProvider`
+  set + kütüphaneye git, uzun bas → yeniden adlandır/sil). Kütüphanede aktif
+  etiket filtresi `_TagFilterChip` (#ad ✕); tür çipine (Tümü/Notlar/PDF)
+  basınca etiket filtresi temizlenir (`_setType`).
 - **Templates** (schemaVersion 9; `pageBackground` schemaVersion 10): `title`,
   `pageSize`, `pageColor`, `pageBackground`, `body` (Delta JSON), `strokes`
   (JSON dizisi), `createdAt` — kullanıcının kaydettiği not şablonları
@@ -480,25 +494,74 @@ Prod'a ara sürüm çıkılmaz. pubspec sürümü bilinçli olarak `1.1.0+3`'te 
   satır silme (uzun bas) · öksüz etiket düzeltmesi.
 - **PDF kâğıt rengi:** dışa aktarırken sorulur (Beyaz/Hafif ton/Tam renk), not
   değişmez.
+- **Kütüphane iyileştirme** (schemaVersion 11 pin, 12 etiketler): notu sabitleme/
+  favori + tarih/ad sıralaması (kalıcı) + **kalıcı etiketler** (etiketle/filtrele/
+  yeniden adlandır/sil). Ayrıntı: "Uygulama içi cila" madde 1 + "Veri modeli" Tags.
+- **Çöp kutusu / silmeyi geri al** (schemaVersion 13, `deletedAt`): silinen not
+  kalıcı gitmez → "Son silinenler"; anında "Geri al" + sonradan kurtar/kalıcı sil/
+  boşalt. Ayrıntı: "Uygulama içi cila" madde 2.
+- **Yerel yedekleme/geri yükleme** (`.ntdlbak`): tüm veriyi (PDF dosyaları hariç)
+  tek dosyaya dışa aktar + birleştirerek geri yükle. Ayarlar → "Yedekleme".
+  Ayrıntı: "Uygulama içi cila" madde 2.
+- **Google Play API 36 hedefi** (31 Ağu 2026 şartı) — compileSdk/targetSdk elle 36.
 - **Faz 1 auth KODU** (e-posta OTP + profil + onboarding turu) — **mail SMTP
   kurulumu ASKIDA** (kullanıcı Supabase panelinde yapacak; bkz. aşağı + SETUP-AUTH.md).
 
-**⭐ SONRAKİ ADIM (yeni session buradan devam):** aşağıdaki "Uygulama içi cila +
-özellikler" listesi. Kullanıcı: "hepsini yap, kolaydan zora, sıra sende." İlk
-sıradaki blok **Kütüphane iyileştirme** (sabitleme/favori + sıralama → kalıcı
-etiketler). Mail/auth ASKIDA (dokunma). Her adım: kullanıcıya ne yapacağını
-söyle → onay → yap → dev APK.
+**⭐ SONRAKİ ADIM (yeni session buradan devam):** "Uygulama içi cila + özellikler"
+listesinin **3. maddesi = notu PNG (görüntü) olarak paylaş**. Madde 1 (kütüphane:
+pin+sıralama+etiketler) ve madde 2 (güvenlik ağı: çöp kutusu + yerel yedekleme)
+TAMAMEN BİTTİ (aşağı bkz.). Sonra madde 4 (büyükler: tablo ekleme / kalem araçları
+/ form alanlarını zengin-metin). Kullanıcı: "hepsini yap, kolaydan zora, sıra
+sende." Mail/auth ASKIDA (dokunma). Her adım: kullanıcıya ne yapacağını söyle →
+onay → yap → dev APK.
+
+**Google Play API 36 (31 Ağu 2026 şartı) — ÇÖZÜLDÜ:** `compileSdk`+`targetSdk`
+elle 36'ya sabitlendi (Flutter yükseltilmedi); ayrıntı "Önemli notlar"da.
 
 ## PLANLANAN — sonraki işler (sıralı)
 
 ### Uygulama içi cila + özellikler (AKTİF — kolaydan zora, hepsi onaylı)
 
-1. **Kütüphane iyileştirme (SONRAKİ):** notu **sabitleme (pin)/favori** +
-   **sıralama** (tarih/ad) → **kalıcı etiketler** (şu an statik; Folders tablosu
-   desenine benzer ayrı tablo).
-2. **Güvenlik ağı:** **çöp kutusu / silmeyi geri al** (soft-delete `deletedAt`
-   + "son silinenler" ekranı) → **yerel yedekleme/geri yükleme** (tüm veriyi
-   tek dosyaya dışa/içe aktar; gerçek senkron gelene dek yedek + cihaz taşıma).
+1. **Kütüphane iyileştirme — TAMAMEN UYGULANDI (dev APK):** sabitleme (pin)/favori
+   + sıralama + kalıcı etiketler. (Detaylar aşağıda; şema v11 pin, v12 etiketler.)
+   - **Pin + sıralama (UYGULANDI):** `Documents.pinned` (bool, schemaVersion 11);
+     repo `setPinned` (updatedAt'ı değiştirmez → tarih sırasını bozmaz);
+     `actions.togglePinDocuments` (seçili hepsi pinliyse kaldırır). UI: seçim
+     çubuğunda sabitle/kaldır düğmesi (`_SelectionBar`), kartta iğne ikonu
+     (`Icons.push_pin`, sadece pinliyken + seçim modu dışında). Sıralama:
+     kalıcı `librarySortProvider` (`LibrarySort` enum: dateDesc/dateAsc/nameAsc/
+     nameDesc, SharedPreferences 'librarySort'); üst satırda `_SortButton`
+     (açılır menü). `_sortDocs` pinli-önce + ölçüt; boş başlık ada göre en sonda.
+   - **Kalıcı etiketler (UYGULANDI):** `Tags` + `DocumentTags` (schemaVersion 12,
+     çoklu-çoğa). Ayrıntı için "Veri modeli"ndeki Tags/DocumentTags maddesine bak.
+     Bilinen sınır: etiketleme yalnız kütüphane seçim çubuğundan (editör içinden
+     etiketleme yok — ileride cila). Etiket rengi yok (düz `#ad`).
+2. **Güvenlik ağı — TAMAMEN UYGULANDI (dev APK):** çöp kutusu / silmeyi geri al
+   + yerel yedekleme/geri yükleme.
+   - **Yerel yedekleme (UYGULANDI):** `features/backup/backup_service.dart` —
+     `exportBackup`/`importBackup`. Biçim `.ntdlbak` (JSON, format marker
+     'ntdlbak' v1). İçerik: notlar (yazı+çizim+etiket+klasör+pin+sayfa ayarı,
+     çöp/PDF hariç), etiket kataloğu, klasörler, görevler, gün notları,
+     rutinler+checkDays, şablonlar. **PDF dosyaları HARİÇ** (kullanıcı kararı).
+     Dışa = `FilePicker.saveFile`; içe = pick + **birleştirme** (mevcut veriye
+     ekler, üzerine yazmaz; onaylı). db'ye doğrudan companion insert (tarih/pin
+     korunur; tag `ensureTag`+`addLink`, routineId/docId yeniden eşlenir). UI:
+     Ayarlar → "Yedekleme" kartı (Dışa aktar / Geri yükle). **Bilinen sınır:**
+     geri yüklenen görev/rutin hatırlatıcıları için bildirim yeniden
+     PLANLANMAZ (veri gelir, kullanıcı tekrar saat seçmeli).
+   - **Çöp kutusu (UYGULANDI):** `Documents.deletedAt` (nullable, schemaVersion
+     13). Repo: `watchAll` artık `deletedAt IS NULL` filtreli; `watchTrash`
+     (deletedAt dolu, silme zamanına göre); `softDelete`/`restore` (hard `delete`
+     kalıcıya kaldı). `data_providers.trashedDocumentsProvider`. `actions`:
+     `trashDocument`/`trashDocuments` (çöpe taşı + "Geri al" SnackBar, ONAY
+     DİYALOĞU YOK — geri alınabilir), `restoreDocuments`,
+     `permanentlyDeleteDocuments` (onaylı, PDF dosyası+çizim siler),
+     `emptyTrash`. Ekran `features/trash/trash_screen.dart`
+     (`RecentlyDeletedScreen`, `AppScreen.copKutusu`) yan panelde "Son
+     silinenler"; satır başına geri al / kalıcı sil + "Çöp kutusunu boşalt".
+     Çağrı yerleri: kütüphane seçim çubuğu, klasör dosya satırı, arama satırı
+     hepsi `trashDocument(s)`'e geçti. **Otomatik temizleme (30 gün) YOK** —
+     kullanıcı elle boşaltır (veri güvenliği için bilinçli).
 3. **Dışa aktarım:** notu **görüntü (PNG) olarak paylaş**.
 4. **Büyükler:** **tabloyu elle ekleme** (şu an tablo/ızgara yalnız şablonlardan;
    araç çubuğuna ekleme + satır/sütun düzenleme) · **kalem araçları** (düz
@@ -703,6 +766,15 @@ geçilebilir. Şu an odak: **uygulama içi pürüzler + yeni özellikler.**
 - **Sürüm sabitleri:** Dart SDK 3.7.2 kullanıldığı için `flutter_riverpod` 2.6.x,
   `drift`/`drift_dev` 2.30.x'e sabitlendi (yeni sürümler Dart 3.10 istiyor).
   Android `ndkVersion` = 27.0.12077973 (eklentiler istiyor).
+- **Hedef/derleme API 36 (Google Play 31 Ağu 2026 şartı):** Play, o tarihten
+  itibaren güncellemelerin **API 36 (Android 16)** hedeflemesini zorunlu kıldı.
+  Flutter 3.29.3 varsayılanı 35; Flutter'ı yükseltmek Dart 3.7.2'ye sabit
+  paketleri (drift/riverpod/flutter_quill) kırardı. Bu yüzden
+  `app/build.gradle.kts`'te `compileSdk = 36` + `targetSdk = 36` **elle**
+  sabitlendi (artık `flutter.compileSdkVersion` kullanılmıyor). `android-36` SDK
+  platformu kurulu; `gradle.properties`'e `android.suppressUnsupportedCompileSdk=36`
+  eklendi (AGP 8.7 tavanı 35, uyarıyı susturur). Doğrulandı: dev APK badging
+  `targetSdkVersion:'36'`. minSdk 21'de kaldı.
 - **Senkronizasyon:** Ayarlar'daki "Bağlan" şu an sadece mesaj gösterir. Gerçek
   senkron `data/` katmanına (repository arkasına) eklenmelidir.
 - **Klasör/etiket:** klasörler belgelerin `folder` alanından türetilir; "Yeni

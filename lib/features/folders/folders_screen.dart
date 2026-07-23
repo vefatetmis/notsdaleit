@@ -11,13 +11,6 @@ import '../shell/shell_state.dart';
 class FoldersScreen extends ConsumerWidget {
   const FoldersScreen({super.key});
 
-  static const _tags = [
-    ('önemli', 4),
-    ('sınav', 2),
-    ('fikir', 3),
-    ('taslak', 1),
-  ];
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final nd = context.nd;
@@ -54,57 +47,192 @@ class FoldersScreen extends ConsumerWidget {
             const SizedBox(height: 12),
             _NewFolderButton(),
             const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: nd.card,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: nd.border),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Etiketler',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final t in _tags)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: nd.bg,
-                            borderRadius: BorderRadius.circular(999),
-                            border: Border.all(color: nd.border),
-                          ),
-                          child: Text.rich(
-                            TextSpan(
-                              text: '#${t.$1} ',
-                              style: const TextStyle(fontSize: 13),
-                              children: [
-                                TextSpan(
-                                  text: '${t.$2}',
-                                  style: TextStyle(
-                                      fontSize: 12, color: nd.text2),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+            const _TagsSection(),
           ],
         ),
       ),
     );
+  }
+}
+
+/// Klasörler ekranının altındaki gerçek etiketler bölümü. Etikete dokununca
+/// kütüphane o etikete göre filtrelenir; uzun basınca yeniden adlandır / sil.
+class _TagsSection extends ConsumerWidget {
+  const _TagsSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final nd = context.nd;
+    final tags = ref.watch(tagsProvider).valueOrNull ?? const [];
+    final counts = ref.watch(tagCountsProvider);
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: nd.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: nd.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Etiketler',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 12),
+          if (tags.isEmpty)
+            Text(
+              'Henüz etiket yok. Kütüphanede bir notu seçip "Etiketle" ile '
+              'etiket ekleyin.',
+              style: TextStyle(fontSize: 13, color: nd.text2, height: 1.4),
+            )
+          else
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final t in tags)
+                  _TagChip(tag: t, count: counts[t.id] ?? 0),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TagChip extends ConsumerWidget {
+  const _TagChip({required this.tag, required this.count});
+
+  final Tag tag;
+  final int count;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final nd = context.nd;
+    return Material(
+      color: nd.bg,
+      shape: StadiumBorder(side: BorderSide(color: nd.border)),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () {
+          // Etikete göre filtrele ve kütüphaneye git ("tümü" tür + bu etiket).
+          ref.read(libraryFilterProvider.notifier).state = 'tumu';
+          ref.read(libraryTagFilterProvider.notifier).state = tag.id;
+          ref.read(navProvider.notifier).go(AppScreen.kutuphane);
+        },
+        onLongPress: () => _showTagMenu(context, ref, tag),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          child: Text.rich(
+            TextSpan(
+              text: '#${tag.name} ',
+              style: TextStyle(fontSize: 13, color: nd.text),
+              children: [
+                TextSpan(
+                  text: '$count',
+                  style: TextStyle(fontSize: 12, color: nd.text2),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Etikete uzun basınca: yeniden adlandır / sil menüsü.
+Future<void> _showTagMenu(BuildContext context, WidgetRef ref, Tag tag) async {
+  final action = await showModalBottomSheet<String>(
+    context: context,
+    builder: (context) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.edit_outlined),
+            title: const Text('Yeniden adlandır'),
+            onTap: () => Navigator.of(context).pop('rename'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.delete_outline),
+            title: const Text('Etiketi sil'),
+            onTap: () => Navigator.of(context).pop('delete'),
+          ),
+        ],
+      ),
+    ),
+  );
+  if (action == 'rename') {
+    if (context.mounted) await _renameTag(context, ref, tag);
+  } else if (action == 'delete') {
+    if (context.mounted) await _deleteTag(context, ref, tag);
+  }
+}
+
+Future<void> _renameTag(BuildContext context, WidgetRef ref, Tag tag) async {
+  final controller = TextEditingController(text: tag.name);
+  final name = await showDialog<String>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Etiketi yeniden adlandır'),
+      content: TextField(
+        controller: controller,
+        autofocus: true,
+        decoration: const InputDecoration(prefixText: '#', hintText: 'Etiket adı'),
+        onSubmitted: (v) => Navigator.of(context).pop(v),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Vazgeç'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(controller.text),
+          child: const Text('Kaydet'),
+        ),
+      ],
+    ),
+  );
+  final n = name?.trim() ?? '';
+  if (n.isEmpty || n == tag.name) return;
+  try {
+    await ref.read(tagRepositoryProvider).rename(tag.id, n);
+  } catch (_) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('"#$n" adında bir etiket zaten var.')),
+      );
+    }
+  }
+}
+
+Future<void> _deleteTag(BuildContext context, WidgetRef ref, Tag tag) async {
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text('"#${tag.name}" silinsin mi?'),
+      content: const Text(
+          'Etiket kaldırılacak; notlar silinmez, yalnızca bu etiketi kaybeder.'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('Vazgeç'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          child: const Text('Sil'),
+        ),
+      ],
+    ),
+  );
+  if (ok != true) return;
+  await ref.read(tagRepositoryProvider).deleteTag(tag.id);
+  // Silinen etiket kütüphanede aktif filtreyse temizle.
+  if (ref.read(libraryTagFilterProvider) == tag.id) {
+    ref.read(libraryTagFilterProvider.notifier).state = null;
   }
 }
 
@@ -234,7 +362,7 @@ class _FileRow extends ConsumerWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () => openDocument(ref, doc),
-        onLongPress: () => confirmDeleteDocument(context, ref, doc),
+        onLongPress: () => trashDocument(context, ref, doc),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(36, 9, 10, 9),
           child: Row(

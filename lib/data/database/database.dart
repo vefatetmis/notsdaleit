@@ -27,6 +27,12 @@ class Documents extends Table {
   // Paylaşım katılım kodu (örn. 'K7M2PX') — sahibi başkalarını davet ederken
   // gösterir.
   TextColumn get shareCode => text().nullable()();
+  // Kütüphanede sabitlenmiş (pin) mi? Sabit belgeler listenin en üstünde durur.
+  // Yerel bir tercihtir; canlı paylaşımda sunucuya gönderilmez.
+  BoolColumn get pinned => boolean().withDefault(const Constant(false))();
+  // Yumuşak silme: dolu ise belge çöp kutusunda (kütüphanede/aramada görünmez).
+  // null = normal. "Son silinenler"den geri alınır ya da kalıcı silinir.
+  DateTimeColumn get deletedAt => dateTime().nullable()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 }
@@ -106,6 +112,26 @@ class Templates extends Table {
   DateTimeColumn get createdAt => dateTime()();
 }
 
+/// Kullanıcının oluşturduğu kalıcı etiketler (#önemli, #sınav…). Belgelerle
+/// ilişki [DocumentTags] üzerinden (çoklu-çoğa) kurulur.
+class Tags extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text().unique()();
+  DateTimeColumn get createdAt => dateTime()();
+}
+
+/// Bir belge ↔ etiket bağı (çoklu-çoğa ara tablo). Belge ya da etiket silinince
+/// bu bağ da otomatik kalkar (cascade).
+class DocumentTags extends Table {
+  IntColumn get docId =>
+      integer().references(Documents, #id, onDelete: KeyAction.cascade)();
+  IntColumn get tagId =>
+      integer().references(Tags, #id, onDelete: KeyAction.cascade)();
+
+  @override
+  Set<Column> get primaryKey => {docId, tagId};
+}
+
 /// Bir rutinin belirli bir günde tamamlandığının kaydı. Satır varsa o gün
 /// yapılmış demektir; işaret kaldırılınca satır silinir.
 class RoutineChecks extends Table {
@@ -125,6 +151,8 @@ class RoutineChecks extends Table {
   RoutineChecks,
   Folders,
   Templates,
+  Tags,
+  DocumentTags,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
@@ -132,7 +160,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -169,6 +197,16 @@ class AppDatabase extends _$AppDatabase {
           if (from < 10) {
             await m.addColumn(documents, documents.pageBackground);
             await m.addColumn(templates, templates.pageBackground);
+          }
+          if (from < 11) {
+            await m.addColumn(documents, documents.pinned);
+          }
+          if (from < 12) {
+            await m.createTable(tags);
+            await m.createTable(documentTags);
+          }
+          if (from < 13) {
+            await m.addColumn(documents, documents.deletedAt);
           }
         },
         beforeOpen: (details) async {

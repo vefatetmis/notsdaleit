@@ -6,6 +6,7 @@ import '../../core/i18n/i18n.dart';
 import '../../core/theme/nd_colors.dart';
 import '../auth/auth_service.dart';
 import '../auth/auth_ui.dart';
+import '../backup/backup_service.dart';
 import '../drawing/color_picker.dart';
 import '../drawing/drawing_state.dart';
 import '../routines/streaks.dart';
@@ -214,6 +215,49 @@ class SettingsScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             if (CollabConfig.enabled) _AccountCard(),
+            const SizedBox(height: 12),
+            _Card(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _CardTitle(context.t('Yedekleme', 'Backup')),
+                  const SizedBox(height: 6),
+                  Text(
+                    context.t(
+                        'Tüm notlarını (yazı + çizim), etiket, klasör, görev, '
+                            'rutin ve şablonları tek dosyaya kaydet. PDF '
+                            'dosyaları dâhil değildir. Geri yükleme mevcut '
+                            'verilere ekler (üzerine yazmaz).',
+                        'Save all your notes (text + drawing), tags, folders, '
+                            'tasks, routines and templates to one file. PDF '
+                            'files are not included. Restoring adds to your '
+                            'existing data (nothing is overwritten).'),
+                    style: TextStyle(fontSize: 13, height: 1.5, color: nd.text2),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => exportBackup(context, ref),
+                          icon:
+                              const Icon(Icons.upload_file_outlined, size: 18),
+                          label: Text(context.t('Dışa aktar', 'Export')),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => importBackup(context, ref),
+                          icon: const Icon(Icons.download_outlined, size: 18),
+                          label: Text(context.t('Geri yükle', 'Restore')),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 12),
             _Card(
               child: Row(

@@ -142,47 +142,94 @@ Future<void> openPdfFromPath(WidgetRef ref, String srcPath, {String? name}) asyn
   ref.read(navProvider.notifier).openDoc(id, isPdf: true);
 }
 
-/// Onay isteyip belgeyi (ve varsa PDF dosyasını + çizimlerini) siler.
-Future<void> confirmDeleteDocument(
+/// Belgeyi **çöp kutusuna** taşır (yumuşak silme) ve "Geri al" bildirimi
+/// gösterir. Kalıcı silme değildir — "Son silinenler"den kurtarılabilir.
+Future<void> trashDocument(
   BuildContext context,
   WidgetRef ref,
   Document d,
 ) async {
-  final ok = await showDialog<bool>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: Text(context.t('Silinsin mi?', 'Delete?')),
-      content: Text(context.t(
-          '"${d.title.isEmpty ? 'Adsız' : d.title}" kalıcı olarak silinecek.',
-          '“${d.title.isEmpty ? 'Untitled' : d.title}” will be permanently deleted.')),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(false),
-          child: Text(context.t('Vazgeç', 'Cancel')),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(true),
-          child: Text(context.t('Sil', 'Delete')),
-        ),
-      ],
-    ),
-  );
-  if (ok != true) return;
-
-  if (d.type == 'pdf' && d.filePath != null) {
-    try {
-      final f = File(d.filePath!);
-      if (f.existsSync()) f.deleteSync();
-    } catch (_) {}
-  }
-  await ref.read(documentRepositoryProvider).delete(d.id);
+  final messenger = ScaffoldMessenger.of(context);
+  final movedMsg = context.t('Not çöp kutusuna taşındı', 'Moved to trash');
+  final undoLabel = context.t('Geri al', 'Undo');
+  final repo = ref.read(documentRepositoryProvider);
+  await repo.softDelete(d.id);
   if (ref.read(navProvider).activeDocId == d.id) {
     ref.read(navProvider.notifier).back();
   }
+  messenger
+    ..clearSnackBars()
+    ..showSnackBar(SnackBar(
+      content: Text(movedMsg),
+      action: SnackBarAction(
+        label: undoLabel,
+        onPressed: () => repo.restore(d.id),
+      ),
+    ));
 }
 
-/// Onay isteyip seçili birden çok belgeyi (ve PDF dosyalarını) siler.
-Future<void> confirmDeleteDocuments(
+/// Seçili belgeleri sabitler; hepsi zaten sabitse sabitlemeyi kaldırır.
+/// İşlem sonrası seçim modundan çıkar.
+Future<void> togglePinDocuments(WidgetRef ref, Set<int> ids) async {
+  if (ids.isEmpty) return;
+  final repo = ref.read(documentRepositoryProvider);
+  final docs = ref.read(documentsProvider).valueOrNull ?? const <Document>[];
+  final selected = docs.where((d) => ids.contains(d.id)).toList();
+  if (selected.isEmpty) return;
+  final allPinned = selected.every((d) => d.pinned);
+  for (final d in selected) {
+    await repo.setPinned(id: d.id, pinned: !allPinned);
+  }
+  ref.read(librarySelectionProvider.notifier).state = <int>{};
+}
+
+/// Seçili birden çok belgeyi çöp kutusuna taşır + "Geri al" bildirimi.
+Future<void> trashDocuments(
+  BuildContext context,
+  WidgetRef ref,
+  Set<int> ids,
+) async {
+  if (ids.isEmpty) return;
+  final removed = {...ids};
+  final messenger = ScaffoldMessenger.of(context);
+  final movedMsg = context.t('${removed.length} öğe çöp kutusuna taşındı',
+      '${removed.length} items moved to trash');
+  final undoLabel = context.t('Geri al', 'Undo');
+  final repo = ref.read(documentRepositoryProvider);
+  final activeId = ref.read(navProvider).activeDocId;
+  for (final id in removed) {
+    await repo.softDelete(id);
+  }
+  ref.read(librarySelectionProvider.notifier).state = <int>{};
+  if (activeId != null && removed.contains(activeId)) {
+    ref.read(navProvider.notifier).back();
+  }
+  messenger
+    ..clearSnackBars()
+    ..showSnackBar(SnackBar(
+      content: Text(movedMsg),
+      action: SnackBarAction(
+        label: undoLabel,
+        onPressed: () async {
+          for (final id in removed) {
+            await repo.restore(id);
+          }
+        },
+      ),
+    ));
+}
+
+/// Çöp kutusundaki belgeleri geri alır (kütüphaneye döner).
+Future<void> restoreDocuments(WidgetRef ref, Set<int> ids) async {
+  final repo = ref.read(documentRepositoryProvider);
+  for (final id in ids) {
+    await repo.restore(id);
+  }
+}
+
+/// Belgeleri **kalıcı** siler (PDF dosyası + çizimler dâhil). Geri alınamaz;
+/// bu yüzden onay ister. "Son silinenler" ekranından kullanılır.
+Future<void> permanentlyDeleteDocuments(
   BuildContext context,
   WidgetRef ref,
   Set<int> ids,
@@ -191,10 +238,10 @@ Future<void> confirmDeleteDocuments(
   final ok = await showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(
-      title: Text(context.t('Silinsin mi?', 'Delete?')),
+      title: Text(context.t('Kalıcı silinsin mi?', 'Delete permanently?')),
       content: Text(context.t(
-          '${ids.length} öğe kalıcı olarak silinecek.',
-          '${ids.length} items will be permanently deleted.')),
+          '${ids.length} öğe kalıcı olarak silinecek. Bu işlem geri alınamaz.',
+          '${ids.length} items will be permanently deleted. This cannot be undone.')),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(false),
@@ -202,7 +249,7 @@ Future<void> confirmDeleteDocuments(
         ),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(true),
-          child: Text(context.t('Sil', 'Delete')),
+          child: Text(context.t('Kalıcı sil', 'Delete')),
         ),
       ],
     ),
@@ -210,7 +257,6 @@ Future<void> confirmDeleteDocuments(
   if (ok != true) return;
 
   final repo = ref.read(documentRepositoryProvider);
-  final activeId = ref.read(navProvider).activeDocId;
   for (final id in ids) {
     final d = await repo.getById(id);
     if (d != null && d.type == 'pdf' && d.filePath != null) {
@@ -221,8 +267,12 @@ Future<void> confirmDeleteDocuments(
     }
     await repo.delete(id);
   }
-  ref.read(librarySelectionProvider.notifier).state = <int>{};
-  if (activeId != null && ids.contains(activeId)) {
-    ref.read(navProvider.notifier).back();
-  }
+}
+
+/// Çöp kutusundaki tüm belgeleri kalıcı siler (onaylı).
+Future<void> emptyTrash(BuildContext context, WidgetRef ref) async {
+  final trashed = ref.read(trashedDocumentsProvider).valueOrNull ?? const [];
+  if (trashed.isEmpty) return;
+  await permanentlyDeleteDocuments(
+      context, ref, trashed.map((d) => d.id).toSet());
 }

@@ -9,12 +9,37 @@ class DocumentRepository {
 
   final AppDatabase _db;
 
+  /// Çöp kutusunda OLMAYAN belgeler (kütüphane, arama, klasörler bunu kullanır).
   Stream<List<Document>> watchAll() {
     final q = _db.select(_db.documents)
+      ..where((t) => t.deletedAt.isNull())
       ..orderBy([
         (t) => OrderingTerm(expression: t.updatedAt, mode: OrderingMode.desc),
       ]);
     return q.watch();
+  }
+
+  /// Çöp kutusundaki (yumuşak silinmiş) belgeler — en son silinen en üstte.
+  Stream<List<Document>> watchTrash() {
+    final q = _db.select(_db.documents)
+      ..where((t) => t.deletedAt.isNotNull())
+      ..orderBy([
+        (t) => OrderingTerm(expression: t.deletedAt, mode: OrderingMode.desc),
+      ]);
+    return q.watch();
+  }
+
+  /// Belgeyi çöp kutusuna taşır (yumuşak silme). Veri diskte kalır; "Son
+  /// silinenler"den geri alınabilir ya da kalıcı silinebilir.
+  Future<void> softDelete(int id) {
+    return (_db.update(_db.documents)..where((t) => t.id.equals(id)))
+        .write(DocumentsCompanion(deletedAt: Value(DateTime.now())));
+  }
+
+  /// Belgeyi çöp kutusundan geri alır (kütüphaneye döner).
+  Future<void> restore(int id) {
+    return (_db.update(_db.documents)..where((t) => t.id.equals(id)))
+        .write(const DocumentsCompanion(deletedAt: Value(null)));
   }
 
   Future<Document?> getById(int id) {
@@ -176,6 +201,13 @@ class DocumentRepository {
         updatedAt: Value(DateTime.now()),
       ),
     );
+  }
+
+  /// Belgeyi kütüphanede sabitler / sabitlemeyi kaldırır. Sabitleme "son
+  /// düzenleme" zamanını DEĞİŞTİRMEZ (tarih sıralaması bozulmasın diye).
+  Future<void> setPinned({required int id, required bool pinned}) {
+    return (_db.update(_db.documents)..where((t) => t.id.equals(id)))
+        .write(DocumentsCompanion(pinned: Value(pinned)));
   }
 
   /// Bir belgeyi son düzenleme zamanına taşır (açıldığında/çizildiğinde).

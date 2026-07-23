@@ -11,6 +11,7 @@ import '../folders/move_to_folder.dart';
 import '../shell/actions.dart';
 import '../shell/shell_state.dart';
 import '../shared/empty_state.dart';
+import '../tags/tag_dialog.dart';
 
 /// Kütüphane: not + PDF kartları ızgarası, filtre çipleri.
 class LibraryScreen extends ConsumerWidget {
@@ -20,8 +21,25 @@ class LibraryScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final nd = context.nd;
     final filter = ref.watch(libraryFilterProvider);
+    final sort = ref.watch(librarySortProvider);
+    final tagFilter = ref.watch(libraryTagFilterProvider);
+    final tags = ref.watch(tagsProvider).valueOrNull ?? const <Tag>[];
+    final docTagIds = ref.watch(docTagIdsProvider);
     final docsAsync = ref.watch(documentsProvider);
     final selection = ref.watch(librarySelectionProvider);
+
+    // Etiket filtresi aktifse etiketi çöz (silinmişse filtre yok sayılır).
+    Tag? activeTag;
+    if (tagFilter != null) {
+      for (final t in tags) {
+        if (t.id == tagFilter) {
+          activeTag = t;
+          break;
+        }
+      }
+    }
+    final activeTagId = activeTag?.id;
+    final activeTagName = activeTag?.name;
 
     return docsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -29,8 +47,13 @@ class LibraryScreen extends ConsumerWidget {
           child: Text(context.t('Bir hata oluştu:\n$e', 'Something went wrong:\n$e'))),
       data: (allDocs) {
         final docs = filter == 'tumu'
-            ? allDocs
+            ? [...allDocs]
             : allDocs.where((d) => d.type == filter).toList();
+        if (activeTagId != null) {
+          docs.retainWhere(
+              (d) => docTagIds[d.id]?.contains(activeTagId) ?? false);
+        }
+        _sortDocs(docs, sort);
 
         return LayoutBuilder(
           builder: (context, c) {
@@ -44,38 +67,43 @@ class LibraryScreen extends ConsumerWidget {
                   padding: EdgeInsets.fromLTRB(hpad, 20, hpad, 8),
                   sliver: SliverToBoxAdapter(
                     child: selection.isEmpty
-                        ? Row(
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _Chip(
-                                label: context.t('Tümü', 'All'),
-                                active: filter == 'tumu',
-                                onTap: () => ref
-                                    .read(libraryFilterProvider.notifier)
-                                    .state = 'tumu',
+                              Row(
+                                children: [
+                                  _Chip(
+                                    label: context.t('Tümü', 'All'),
+                                    active: filter == 'tumu',
+                                    onTap: () => _setType(ref, 'tumu'),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  _Chip(
+                                    label: context.t('Notlar', 'Notes'),
+                                    active: filter == 'not',
+                                    onTap: () => _setType(ref, 'not'),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  _Chip(
+                                    label: context.t("PDF'ler", 'PDFs'),
+                                    active: filter == 'pdf',
+                                    onTap: () => _setType(ref, 'pdf'),
+                                  ),
+                                  const Spacer(),
+                                  Text(
+                                    context.t('${docs.length} öğe',
+                                        '${docs.length} items'),
+                                    style: TextStyle(
+                                        fontSize: 12.5, color: nd.text2),
+                                  ),
+                                  const SizedBox(width: 2),
+                                  _SortButton(sort: sort),
+                                ],
                               ),
-                              const SizedBox(width: 8),
-                              _Chip(
-                                label: context.t('Notlar', 'Notes'),
-                                active: filter == 'not',
-                                onTap: () => ref
-                                    .read(libraryFilterProvider.notifier)
-                                    .state = 'not',
-                              ),
-                              const SizedBox(width: 8),
-                              _Chip(
-                                label: context.t("PDF'ler", 'PDFs'),
-                                active: filter == 'pdf',
-                                onTap: () => ref
-                                    .read(libraryFilterProvider.notifier)
-                                    .state = 'pdf',
-                              ),
-                              const Spacer(),
-                              Text(
-                                context.t('${docs.length} öğe',
-                                    '${docs.length} items'),
-                                style:
-                                    TextStyle(fontSize: 12.5, color: nd.text2),
-                              ),
+                              if (activeTagName != null) ...[
+                                const SizedBox(height: 10),
+                                _TagFilterChip(name: activeTagName),
+                              ],
                             ],
                           )
                         : _SelectionBar(selection: selection),
@@ -158,6 +186,127 @@ class _Chip extends StatelessWidget {
   }
 }
 
+/// Belgeleri yerinde sıralar: sabit (pin) olanlar her zaman üstte, ardından
+/// seçilen ölçüt. Başlıksız notlar ada göre sıralamada en sona düşer.
+void _sortDocs(List<Document> docs, LibrarySort sort) {
+  docs.sort((a, b) {
+    if (a.pinned != b.pinned) return a.pinned ? -1 : 1;
+    switch (sort) {
+      case LibrarySort.dateDesc:
+        return b.updatedAt.compareTo(a.updatedAt);
+      case LibrarySort.dateAsc:
+        return a.updatedAt.compareTo(b.updatedAt);
+      case LibrarySort.nameAsc:
+      case LibrarySort.nameDesc:
+        final at = a.title.trim().toLowerCase();
+        final bt = b.title.trim().toLowerCase();
+        if (at.isEmpty || bt.isEmpty) {
+          if (at.isEmpty && bt.isEmpty) return 0;
+          return at.isEmpty ? 1 : -1; // boş başlık her zaman sonda
+        }
+        final c = at.compareTo(bt);
+        return sort == LibrarySort.nameAsc ? c : -c;
+    }
+  });
+}
+
+/// Tür çipine (Tümü/Notlar/PDF) basınca türü ayarlar ve etiket filtresini
+/// temizler (etiket ve tür ayrı gezinme kipleri).
+void _setType(WidgetRef ref, String type) {
+  ref.read(libraryFilterProvider.notifier).state = type;
+  ref.read(libraryTagFilterProvider.notifier).state = null;
+}
+
+/// Aktif etiket filtresini gösteren, dokununca temizleyen çip (#ad ✕).
+class _TagFilterChip extends ConsumerWidget {
+  const _TagFilterChip({required this.name});
+
+  final String name;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final nd = context.nd;
+    return Material(
+      color: nd.accent.withValues(alpha: 0.12),
+      shape: StadiumBorder(side: BorderSide(color: nd.accent)),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => ref.read(libraryTagFilterProvider.notifier).state = null,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(13, 7, 10, 7),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '#$name',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: nd.accent,
+                ),
+              ),
+              const SizedBox(width: 5),
+              Icon(Icons.close, size: 15, color: nd.accent),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Üst satırdaki sıralama düğmesi (açılır menü: tarih/ad, artan/azalan).
+class _SortButton extends ConsumerWidget {
+  const _SortButton({required this.sort});
+
+  final LibrarySort sort;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final nd = context.nd;
+    return PopupMenuButton<LibrarySort>(
+      tooltip: context.t('Sırala', 'Sort'),
+      position: PopupMenuPosition.under,
+      icon: Icon(Icons.swap_vert, size: 20, color: nd.text2),
+      onSelected: (s) => ref.read(librarySortProvider.notifier).set(s),
+      itemBuilder: (context) => [
+        _item(context, LibrarySort.dateDesc,
+            context.t('Tarih (yeni → eski)', 'Date (newest first)')),
+        _item(context, LibrarySort.dateAsc,
+            context.t('Tarih (eski → yeni)', 'Date (oldest first)')),
+        _item(context, LibrarySort.nameAsc,
+            context.t('Ad (A → Z)', 'Name (A → Z)')),
+        _item(context, LibrarySort.nameDesc,
+            context.t('Ad (Z → A)', 'Name (Z → A)')),
+      ],
+    );
+  }
+
+  PopupMenuItem<LibrarySort> _item(
+      BuildContext context, LibrarySort value, String label) {
+    final nd = context.nd;
+    final active = value == sort;
+    return PopupMenuItem<LibrarySort>(
+      value: value,
+      child: Row(
+        children: [
+          Icon(Icons.check,
+              size: 17, color: active ? nd.accent : Colors.transparent),
+          const SizedBox(width: 10),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13.5,
+              fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+              color: active ? nd.text : nd.text2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _DocCard extends ConsumerWidget {
   const _DocCard({required this.doc});
 
@@ -170,6 +319,14 @@ class _DocCard extends ConsumerWidget {
     final selection = ref.watch(librarySelectionProvider);
     final selecting = selection.isNotEmpty;
     final selected = selection.contains(doc.id);
+    final tagIds = ref.watch(docTagIdsProvider)[doc.id] ?? const <int>{};
+    final allTags = ref.watch(tagsProvider).valueOrNull ?? const <Tag>[];
+    final tagLabel = tagIds.isEmpty
+        ? ''
+        : allTags
+            .where((t) => tagIds.contains(t.id))
+            .map((t) => '#${t.name}')
+            .join('  ');
     final title = doc.title.trim().isEmpty
         ? context.t('Adsız not', 'Untitled note')
         : doc.title.trim();
@@ -241,6 +398,10 @@ class _DocCard extends ConsumerWidget {
                       ),
                     ),
                   ),
+                  if (doc.pinned && !selecting) ...[
+                    const SizedBox(width: 6),
+                    Icon(Icons.push_pin, size: 14, color: nd.accent),
+                  ],
                   if (doc.sharedId != null) ...[
                     const SizedBox(width: 8),
                     Icon(Icons.people_alt_outlined,
@@ -269,6 +430,19 @@ class _DocCard extends ConsumerWidget {
               ),
               const SizedBox(height: 10),
               Text(meta, style: TextStyle(fontSize: 12, color: nd.text2)),
+              if (tagLabel.isNotEmpty) ...[
+                const SizedBox(height: 5),
+                Text(
+                  tagLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    color: nd.accent,
+                  ),
+                ),
+              ],
             ],
             ),
           ),
@@ -294,6 +468,9 @@ class _SelectionBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final nd = context.nd;
+    final docs = ref.watch(documentsProvider).valueOrNull ?? const <Document>[];
+    final selected = docs.where((d) => selection.contains(d.id));
+    final allPinned = selected.isNotEmpty && selected.every((d) => d.pinned);
     return Row(
       children: [
         IconButton(
@@ -308,14 +485,31 @@ class _SelectionBar extends ConsumerWidget {
         ),
         const Spacer(),
         IconButton(
+          visualDensity: VisualDensity.compact,
+          icon: Icon(allPinned ? Icons.push_pin : Icons.push_pin_outlined,
+              size: 20, color: nd.text),
+          tooltip: allPinned
+              ? context.t('Sabitlemeyi kaldır', 'Unpin')
+              : context.t('Sabitle', 'Pin'),
+          onPressed: () => togglePinDocuments(ref, selection),
+        ),
+        IconButton(
+          visualDensity: VisualDensity.compact,
+          icon: Icon(Icons.label_outline, size: 20, color: nd.text),
+          tooltip: context.t('Etiketle', 'Tag'),
+          onPressed: () => showTagDialog(context, ref, selection),
+        ),
+        IconButton(
+          visualDensity: VisualDensity.compact,
           icon: Icon(Icons.drive_file_move_outlined, size: 20, color: nd.text),
           tooltip: context.t('Klasöre taşı', 'Move to folder'),
           onPressed: () => showMoveToFolderDialog(context, ref, selection),
         ),
         IconButton(
+          visualDensity: VisualDensity.compact,
           icon: Icon(Icons.delete_outline, size: 20, color: nd.text),
           tooltip: context.t('Sil', 'Delete'),
-          onPressed: () => confirmDeleteDocuments(context, ref, selection),
+          onPressed: () => trashDocuments(context, ref, selection),
         ),
       ],
     );

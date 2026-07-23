@@ -7,6 +7,7 @@ import 'repositories/document_repository.dart';
 import 'repositories/drawing_repository.dart';
 import 'repositories/folder_repository.dart';
 import 'repositories/routine_repository.dart';
+import 'repositories/tag_repository.dart';
 import 'repositories/task_repository.dart';
 import 'repositories/template_repository.dart';
 
@@ -75,9 +76,49 @@ final dayNotesProvider = StreamProvider<List<DayNote>>((ref) {
   return ref.watch(dayNoteRepositoryProvider).watchAll();
 });
 
-/// Tüm belgeler (not + PDF), en son güncellenen en üstte. Canlı akış.
+/// Tüm belgeler (not + PDF), en son güncellenen en üstte. Çöp kutusundakiler
+/// hariç. Canlı akış.
 final documentsProvider = StreamProvider<List<Document>>((ref) {
   return ref.watch(documentRepositoryProvider).watchAll();
+});
+
+/// Çöp kutusundaki (yumuşak silinmiş) belgeler — canlı akış.
+final trashedDocumentsProvider = StreamProvider<List<Document>>((ref) {
+  return ref.watch(documentRepositoryProvider).watchTrash();
+});
+
+final tagRepositoryProvider = Provider<TagRepository>((ref) {
+  return TagRepository(ref.watch(databaseProvider));
+});
+
+/// Tüm etiketler (ada göre sıralı) — canlı akış.
+final tagsProvider = StreamProvider<List<Tag>>((ref) {
+  return ref.watch(tagRepositoryProvider).watchAll();
+});
+
+/// Tüm belge-etiket bağları — canlı akış.
+final documentTagLinksProvider = StreamProvider<List<DocumentTag>>((ref) {
+  return ref.watch(tagRepositoryProvider).watchLinks();
+});
+
+/// tagId → o etiketi taşıyan belge sayısı (etiket çipindeki sayı).
+final tagCountsProvider = Provider<Map<int, int>>((ref) {
+  final links = ref.watch(documentTagLinksProvider).valueOrNull ?? const [];
+  final map = <int, int>{};
+  for (final l in links) {
+    map[l.tagId] = (map[l.tagId] ?? 0) + 1;
+  }
+  return map;
+});
+
+/// docId → o belgenin etiket id'leri (kart üstünde + etiket diyaloğunda).
+final docTagIdsProvider = Provider<Map<int, Set<int>>>((ref) {
+  final links = ref.watch(documentTagLinksProvider).valueOrNull ?? const [];
+  final map = <int, Set<int>>{};
+  for (final l in links) {
+    (map[l.docId] ??= <int>{}).add(l.tagId);
+  }
+  return map;
 });
 
 /// Şu an açık olan belge (editör/PDF ekranı için).

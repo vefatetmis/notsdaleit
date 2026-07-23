@@ -17,6 +17,7 @@ import '../pdf/pdf_viewer_screen.dart';
 import '../routines/routines_screen.dart';
 import '../search/search_screen.dart';
 import '../settings/settings_screen.dart';
+import '../trash/trash_screen.dart';
 import '../templates/save_template.dart';
 import 'actions.dart';
 import 'shell_state.dart';
@@ -182,6 +183,14 @@ class _Sidebar extends ConsumerWidget {
             showLabel: showLabels,
             onTap: () =>
                 ref.read(navProvider.notifier).go(AppScreen.klasorler),
+          ),
+          _NavButton(
+            icon: Icons.delete_outline,
+            label: context.t('Son silinenler', 'Recently deleted'),
+            active: nav.screen == AppScreen.copKutusu,
+            showLabel: showLabels,
+            onTap: () =>
+                ref.read(navProvider.notifier).go(AppScreen.copKutusu),
           ),
           _NavButton(
             icon: Icons.tune,
@@ -455,6 +464,8 @@ class _MainArea extends ConsumerWidget {
         return const SearchScreen();
       case AppScreen.klasorler:
         return const FoldersScreen();
+      case AppScreen.copKutusu:
+        return const RecentlyDeletedScreen();
       case AppScreen.ayarlar:
         return const SettingsScreen();
       case AppScreen.editor:
@@ -485,6 +496,8 @@ class _TopBar extends ConsumerWidget {
             AppScreen.rutinler => context.t('Rutinler', 'Routines'),
             AppScreen.arama => context.t('Arama', 'Search'),
             AppScreen.klasorler => context.t('Klasörler', 'Folders'),
+            AppScreen.copKutusu =>
+              context.t('Son silinenler', 'Recently deleted'),
             AppScreen.ayarlar => context.t('Ayarlar', 'Settings'),
             _ => '',
           };

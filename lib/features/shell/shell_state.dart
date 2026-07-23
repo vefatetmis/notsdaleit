@@ -15,6 +15,7 @@ enum AppScreen {
   rutinler,
   arama,
   klasorler,
+  copKutusu,
   ayarlar,
   editor,
   pdf,
@@ -122,6 +123,38 @@ final libraryFilterProvider = StateProvider<String>((ref) => 'tumu');
 
 /// Kütüphanede toplu seçim (uzun bas → seçim modu). Boş küme = normal mod.
 final librarySelectionProvider = StateProvider<Set<int>>((ref) => <int>{});
+
+/// Kütüphanede etikete göre filtre (tagId). null = etiket filtresi yok.
+/// Klasörler ekranındaki etikete dokununca set edilir; kütüphanede "#ad ✕"
+/// çipiyle ya da bir tür çipine (Tümü/Notlar/PDF) basınca temizlenir.
+final libraryTagFilterProvider = StateProvider<int?>((ref) => null);
+
+/// Kütüphane sıralama ölçütü. Sabit (pin) belgeler her zaman en üstte kalır;
+/// bu sıra pinli/pinsiz grupların KENDİ içinde uygulanır.
+enum LibrarySort { dateDesc, dateAsc, nameAsc, nameDesc }
+
+/// Kütüphane sıralaması — kalıcıdır (SharedPreferences). Varsayılan: en son
+/// güncellenen en üstte (tarih, yeni → eski).
+class LibrarySortNotifier extends Notifier<LibrarySort> {
+  static const _key = 'librarySort';
+
+  @override
+  LibrarySort build() {
+    final saved = ref.read(sharedPrefsProvider).getString(_key);
+    return LibrarySort.values.firstWhere(
+      (e) => e.name == saved,
+      orElse: () => LibrarySort.dateDesc,
+    );
+  }
+
+  void set(LibrarySort sort) {
+    state = sort;
+    ref.read(sharedPrefsProvider).setString(_key, sort.name);
+  }
+}
+
+final librarySortProvider =
+    NotifierProvider<LibrarySortNotifier, LibrarySort>(LibrarySortNotifier.new);
 
 /// Arama metni.
 final searchQueryProvider = StateProvider<String>((ref) => '');
