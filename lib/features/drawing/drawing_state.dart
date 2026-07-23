@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -7,6 +9,46 @@ import '../shell/shell_state.dart';
 
 /// Araçlar. `yazi` = metin yazma/biçimlendirme modu; diğerleri çizim.
 enum PenTool { el, yazi, kalem, fosfor, silgi }
+
+/// Çizim şekli. `serbest` = normal elle çizim; diğerleri kalem/fosfor ile
+/// başlangıç→bitiş sürükleyerek düzgün şekil çizer. Silgi her zaman serbesttir.
+/// Şekiller aynı nokta dizisi olarak saklanır → şema/çizici/dışa aktarma değişmez.
+enum ShapeMode { serbest, cizgi, dikdortgen, elips }
+
+/// Seçili çizim şekli (kalem barındaki şekil düğmesinden).
+final shapeModeProvider = StateProvider<ShapeMode>((ref) => ShapeMode.serbest);
+
+/// Şekil modunda başlangıç [a] ve güncel [b] noktasından (normalize) çizilecek
+/// nokta dizisini üretir. Çizgi = iki nokta; dikdörtgen = 4 köşe (kapalı);
+/// elips = örneklenmiş nokta halkası.
+List<Offset> buildShapePoints(ShapeMode mode, Offset a, Offset b) {
+  switch (mode) {
+    case ShapeMode.serbest:
+    case ShapeMode.cizgi:
+      return [a, b];
+    case ShapeMode.dikdortgen:
+      return [
+        Offset(a.dx, a.dy),
+        Offset(b.dx, a.dy),
+        Offset(b.dx, b.dy),
+        Offset(a.dx, b.dy),
+        Offset(a.dx, a.dy),
+      ];
+    case ShapeMode.elips:
+      final cx = (a.dx + b.dx) / 2;
+      final cy = (a.dy + b.dy) / 2;
+      final rx = (b.dx - a.dx).abs() / 2;
+      final ry = (b.dy - a.dy).abs() / 2;
+      const n = 48;
+      return [
+        for (var i = 0; i <= n; i++)
+          Offset(
+            cx + rx * math.cos(2 * math.pi * i / n),
+            cy + ry * math.sin(2 * math.pi * i / n),
+          ),
+      ];
+  }
+}
 
 extension PenToolId on PenTool {
   String get id => switch (this) {

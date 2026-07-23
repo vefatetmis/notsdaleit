@@ -519,13 +519,13 @@ yüklemesinde versionCode artmalı** (+5, +6…). Ayarlar ekranındaki sürüm y
 - **Faz 1 auth KODU** (e-posta OTP + profil + onboarding turu) — **mail SMTP
   kurulumu ASKIDA** (kullanıcı Supabase panelinde yapacak; bkz. aşağı + SETUP-AUTH.md).
 
-**⭐ SONRAKİ ADIM (yeni session buradan devam):** "Büyükler" bloğunda kalan iki iş:
-**(b) kalem araçları** (düz çizgi/şekil, cetvel, lasso seçim) ve **(a) tabloyu
-elle ekleme** (araç çubuğundan tablo + satır/sütun düzenleme). (c) form alanlarını
-zengin-metin ALAN BAZINDA bitti (kelime bazlı + boyut "form biçim v2" olarak
-sıraya alındı, aşağı bkz.). Madde 1/2/3 tamamen bitti. Kullanıcı: "hepsini yap,
-kolaydan zora, sıra sende." Mail/auth ASKIDA (dokunma). Her adım: kullanıcıya ne
-yapacağını söyle → onay → yap → dev APK.
+**⭐ SONRAKİ ADIM (yeni session buradan devam):** "Büyükler" bloğunda kalan:
+**(b2) cetvel** + **(b3) lasso seçim** (kalem araçlarının kalanı), sonra
+**(a) tabloyu elle ekleme**. (b1) şekiller (düz çizgi/dikdörtgen/elips) bitti;
+(c) form alan biçimi ALAN BAZINDA bitti (kelime bazlı+boyut v2'ye ertelendi).
+Madde 1/2/3 tamamen bitti. Kullanıcı: "hepsini yap, kolaydan zora, sıra sende."
+Mail/auth ASKIDA (dokunma). Her adım: kullanıcıya ne yapacağını söyle → onay →
+yap → dev APK.
 
 **Google Play API 36 (31 Ağu 2026 şartı) — ÇÖZÜLDÜ:** `compileSdk`+`targetSdk`
 elle 36'ya sabitlendi (Flutter yükseltilmedi); ayrıntı "Önemli notlar"da.
@@ -588,7 +588,18 @@ elle 36'ya sabitlendi (Flutter yükseltilmedi); ayrıntı "Önemli notlar"da.
    Üst bar paylaş menüsünde, yalnız notlarda.
 4. **Büyükler:** **tabloyu elle ekleme** (şu an tablo/ızgara yalnız şablonlardan;
    araç çubuğuna ekleme + satır/sütun düzenleme) · **kalem araçları** (düz
-   çizgi/şekil, cetvel, lasso seçim).
+   çizgi/şekil ✓ · cetvel · lasso seçim).
+   - **(b1) Şekiller — UYGULANDI (dev APK):** kalem/fosfor ile **düz çizgi,
+     dikdörtgen, elips**. `ShapeMode` enum + `shapeModeProvider` (oturumluk,
+     `drawing_state`). `buildShapePoints(mode,a,b)` başlangıç→güncelden nokta
+     dizisi üretir (çizgi=2 nokta, dikdörtgen=4 köşe kapalı, elips=48 nokta
+     halkası). `DrawingLayer._onDown` şekil türünü dondurur + `_shapeStart`
+     saklar; `_onMove` her karede `points..clear()..addAll(buildShapePoints)`.
+     **Silgi her zaman serbest.** Aynı nokta dizisi olarak saklanır → şema/
+     çizici/PDF/PNG değişmeden çalışır. Kalem barında `_ShapeButton` (menü:
+     serbest/çizgi/dikdörtgen/elips; seçiliyse vurgulu). İki parmak pan/zoom
+     bozulmaz (şekil yalnız tek parmak). Dikdörtgen köşeleri bézier yumuşatma
+     yüzünden hafif yuvarlak (kabul edilebilir).
    - **(c) Form alanlarını zengin-metin — ALAN BAZINDA UYGULANDI (dev APK):**
      Form alanlarına **kalın/italik/altı çizili** (alanın tamamına; kelime bazlı
      DEĞİL). Model: `FormDoc.styles` (anahtar→bayrak 'biu'; anahtarlar FormPage

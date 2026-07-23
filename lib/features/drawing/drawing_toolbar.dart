@@ -143,6 +143,7 @@ class _PenBar extends ConsumerWidget {
           tooltip: 'Silgi',
           onTap: () => setTool(PenTool.silgi),
         ),
+        const _ShapeButton(),
         _divider(nd.border),
         // 3 sabit renk (ayarlardan seçilir); son yuva "rengarenk" → paletten.
         for (var i = 0; i < palette.length; i++)
@@ -455,6 +456,69 @@ Widget _divider(Color color) => Container(
       margin: const EdgeInsets.symmetric(horizontal: 5),
       color: color,
     );
+
+/// Kalem/fosfor ile düz çizgi, dikdörtgen veya elips çizme modu seçici. Düğme
+/// mevcut şekli gösterir (bir şekil seçiliyse vurgulu); dokununca menü açılır.
+class _ShapeButton extends ConsumerWidget {
+  const _ShapeButton();
+
+  IconData _icon(ShapeMode m) => switch (m) {
+        ShapeMode.serbest => Icons.gesture,
+        ShapeMode.cizgi => Icons.horizontal_rule,
+        ShapeMode.dikdortgen => Icons.crop_square,
+        ShapeMode.elips => Icons.circle_outlined,
+      };
+
+  String _label(ShapeMode m) => switch (m) {
+        ShapeMode.serbest => 'Serbest çizim',
+        ShapeMode.cizgi => 'Düz çizgi',
+        ShapeMode.dikdortgen => 'Dikdörtgen',
+        ShapeMode.elips => 'Elips',
+      };
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final nd = context.nd;
+    final mode = ref.watch(shapeModeProvider);
+    final active = mode != ShapeMode.serbest;
+    return PopupMenuButton<ShapeMode>(
+      tooltip: 'Şekil',
+      color: nd.card,
+      position: PopupMenuPosition.under,
+      onSelected: (m) => ref.read(shapeModeProvider.notifier).state = m,
+      itemBuilder: (context) => [
+        for (final m in ShapeMode.values)
+          PopupMenuItem(
+            value: m,
+            child: Row(
+              children: [
+                Icon(_icon(m),
+                    size: 18, color: m == mode ? nd.accent : nd.text2),
+                const SizedBox(width: 12),
+                Text(_label(m),
+                    style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight:
+                            m == mode ? FontWeight.w600 : FontWeight.w400,
+                        color: m == mode ? nd.text : nd.text2)),
+              ],
+            ),
+          ),
+      ],
+      child: Material(
+        color: active ? nd.accent : Colors.transparent,
+        shape: const CircleBorder(),
+        clipBehavior: Clip.antiAlias,
+        child: SizedBox(
+          width: 36,
+          height: 36,
+          child: Icon(active ? _icon(mode) : Icons.category_outlined,
+              size: 18, color: active ? nd.accentFg : nd.text2),
+        ),
+      ),
+    );
+  }
+}
 
 class _ToolButton extends StatelessWidget {
   const _ToolButton({

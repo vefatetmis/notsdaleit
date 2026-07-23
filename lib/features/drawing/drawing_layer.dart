@@ -44,6 +44,10 @@ class _DrawingLayerState extends ConsumerState<DrawingLayer> {
 
   PenStroke? _live;
   int? _drawPointer;
+  // Şekil modu çizerken sabit başlangıç noktası (normalize) ve o çizim için
+  // dondurulmuş şekil türü.
+  Offset? _shapeStart;
+  ShapeMode _shapeMode = ShapeMode.serbest;
 
   bool _twoFinger = false;
   double? _lastDist;
@@ -77,11 +81,18 @@ class _DrawingLayerState extends ConsumerState<DrawingLayer> {
       );
       final width =
           kStrokeSizes[ref.read(sizeIndexProvider) % kStrokeSizes.length];
+      final tool = ref.read(toolProvider);
+      // Şekil modu yalnızca kalem/fosfor için; silgi her zaman serbest.
+      _shapeMode = tool == PenTool.silgi
+          ? ShapeMode.serbest
+          : ref.read(shapeModeProvider);
+      final start = _norm(e.localPosition, size);
+      _shapeStart = _shapeMode == ShapeMode.serbest ? null : start;
       _live = PenStroke(
-        tool: ref.read(toolProvider),
+        tool: tool,
         color: color,
         width: width,
-        points: [_norm(e.localPosition, size)],
+        points: [start],
       );
       _repaint();
     } else if (_pos.length == 2) {
@@ -127,7 +138,15 @@ class _DrawingLayerState extends ConsumerState<DrawingLayer> {
     }
 
     if (_live != null && e.pointer == _drawPointer) {
-      _live!.points.add(_norm(e.localPosition, size));
+      final cur = _norm(e.localPosition, size);
+      if (_shapeMode != ShapeMode.serbest && _shapeStart != null) {
+        // Şekil: her harekette başlangıç→güncel arasını yeniden hesapla.
+        _live!.points
+          ..clear()
+          ..addAll(buildShapePoints(_shapeMode, _shapeStart!, cur));
+      } else {
+        _live!.points.add(cur);
+      }
       _repaint();
     }
   }
