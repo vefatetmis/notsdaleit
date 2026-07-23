@@ -84,9 +84,15 @@ android {
             } else {
                 signingConfigs.getByName("debug")
             }
-            // Yerel (native) kod çökme raporlarının Play Console'da okunur
-            // olması için sembol tablosunu AAB'ye göm (Play'deki "hata
-            // ayıklama sembolleri" uyarısını giderir).
+            // Yerel (native) kütüphanelerin sembol tablosunu AAB'ye gömmeyi
+            // dener. DİKKAT: bu ayar Play Console'daki "hata ayıklama
+            // sembolleri yüklemediniz" uyarısını GİDERMİYOR — AAB'deki dört .so
+            // (libflutter/libapp/libsqlite3/libdatastore_shared_counter) Flutter
+            // ve eklentilerden zaten stripped geliyor, çıkarılacak sembol yok
+            // (AAB'de BUNDLE-METADATA/.../debugsymbols oluşmadığı doğrulandı).
+            // Uyarı zararsız: yalnızca öneri, yayını engellemez ve Dart
+            // tarafındaki hatalar zaten okunur. Ayar, ileride sembollü bir
+            // yerel kütüphane eklenirse işe yarasın diye bırakıldı.
             ndk {
                 debugSymbolLevel = "SYMBOL_TABLE"
             }

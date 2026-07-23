@@ -777,6 +777,15 @@ geçilebilir. Şu an odak: **uygulama içi pürüzler + yeni özellikler.**
   platformu kurulu; `gradle.properties`'e `android.suppressUnsupportedCompileSdk=36`
   eklendi (AGP 8.7 tavanı 35, uyarıyı susturur). Doğrulandı: dev APK badging
   `targetSdkVersion:'36'`. minSdk 21'de kaldı.
+- **Play "hata ayıklama sembolleri" uyarısı — ÇÖZÜLEMEZ, ZARARSIZ (peşine düşme):**
+  AAB yüklerken Play "yerel kod içeriyor, sembol yüklemediniz" uyarısı verir.
+  `app/build.gradle.kts`'te `ndk { debugSymbolLevel = "SYMBOL_TABLE" }` VAR ama
+  işe yaramıyor: AAB'deki dört .so (libflutter, libapp, libsqlite3,
+  libdatastore_shared_counter) Flutter/eklentilerden **stripped** geliyor,
+  çıkarılacak sembol yok. Doğrulandı: AAB'de `BUNDLE-METADATA/.../debugsymbols`
+  oluşmuyor. Uyarı yalnızca ÖNERİ — yayını engellemez. Gerçekten gidermek Flutter
+  motorunun sürüme özel sembol paketini indirip elle zip'lemeyi gerektirir;
+  kazanımı yok (o kod bizim değil, Dart hataları zaten okunur).
 - **Senkronizasyon:** Ayarlar'daki "Bağlan" şu an sadece mesaj gösterir. Gerçek
   senkron `data/` katmanına (repository arkasına) eklenmelidir.
 - **Klasör/etiket:** klasörler belgelerin `folder` alanından türetilir; "Yeni
