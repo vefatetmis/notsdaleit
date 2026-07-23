@@ -473,13 +473,15 @@ kalem olduğundan ızgara/2-kolon düzenler birebir çıkmaz. **Karar: pragmatik
 | Kanal | Sürüm | Durum |
 |-------|-------|-------|
 | Play üretim | 1.0 (mağazada) | Yayında |
-| Play kapalı test | 1.1 (pubspec 1.1.0+3) | Yayın bekliyor |
-| Dev / paralel APK | 1.2 + form şablonları + Faz 1 auth + cila | **Aktif geliştirme burada** |
+| Play kapalı test | **1.3.0+4** | AAB hazır — kullanıcı Play Console'a yükleyecek |
+| Dev / paralel APK | 1.3.0+4 (aynı kod) | **Aktif geliştirme burada** |
 
 **Strateji (kullanıcı kararı):** tüm geliştirme dev APK üzerinden; biriken her
-şey (1.1 + 1.2 + …) kapalı testten geçince **tek AAB** olarak yayınlanır.
-Prod'a ara sürüm çıkılmaz. pubspec sürümü bilinçli olarak `1.1.0+3`'te bekliyor
-(yayın anında güncellenecek).
+şey (1.1 + 1.2 + 1.3 + kütüphane + güvenlik ağı) **tek AAB** olarak önce kapalı
+teste çıkar, orada sorun yoksa üretime yükseltilir. Prod'a ara sürüm çıkılmaz.
+pubspec **1.3.0+4** (23 Tem 2026'da 1.1.0+3'ten yükseltildi). **Her Play
+yüklemesinde versionCode artmalı** (+5, +6…). Ayarlar ekranındaki sürüm yazısı
+(`settings_screen.dart`) elle eşitlenir — package_info_plus eklenmedi.
 
 **Tamamlanan (dev'de, test bekliyor):**
 - 1.1 (varsayılan yazı modu, paylaşımı durdur, klasöre taşı, rutin bildirimi,

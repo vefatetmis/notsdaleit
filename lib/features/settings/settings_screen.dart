@@ -265,7 +265,9 @@ class SettingsScreen extends ConsumerWidget {
                   Expanded(
                       child: Text(context.t('Sürüm', 'Version'),
                           style: const TextStyle(fontSize: 14))),
-                  Text('1.0.0',
+                  // pubspec `version` ile elle eşitlenir (package_info_plus
+                  // bağımlılığı eklemekten kaçınmak için sabit).
+                  Text('1.3.0',
                       style: TextStyle(fontSize: 13, color: nd.text2)),
                 ],
               ),
