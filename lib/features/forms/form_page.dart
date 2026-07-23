@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/i18n/i18n.dart';
 import '../editor/editor_state.dart';
@@ -10,7 +11,7 @@ import 'form_model.dart';
 /// işaretlenebilir kutucuklar, 7 kolonlu hafta ızgarası, Cornell kolonları,
 /// saat çizelgesi, ruh hâli daireleri, eskiz kutusu. Gerçek TextField'lar
 /// kullanılır → klavye/odak sorunsuz (Quill'e gömülmez).
-class FormPage extends StatefulWidget {
+class FormPage extends ConsumerStatefulWidget {
   const FormPage({
     super.key,
     required this.form,
@@ -30,15 +31,62 @@ class FormPage extends StatefulWidget {
   final FormLayoutResult? layout;
 
   @override
-  State<FormPage> createState() => _FormPageState();
+  ConsumerState<FormPage> createState() => _FormPageState();
 }
 
-class _FormPageState extends State<FormPage> {
+class _FormPageState extends ConsumerState<FormPage> {
   final Map<String, TextEditingController> _ctrls = {};
+  final Map<String, FocusNode> _focusNodes = {};
+  String? _activeKey;
 
   TextEditingController _ctrl(String key, String value) {
     final c = _ctrls.putIfAbsent(key, () => TextEditingController(text: value));
     return c;
+  }
+
+  /// Alanın odak düğümü. Odaklanınca araç çubuğuna "bu alanı biçimlendir"
+  /// bilgisini yayınlar; odak kaybında temizler.
+  FocusNode _focusFor(String key) {
+    return _focusNodes.putIfAbsent(key, () {
+      final node = FocusNode();
+      node.addListener(() {
+        if (!mounted) return;
+        if (node.hasFocus) {
+          _publishActive(key);
+        } else if (_activeKey == key) {
+          _activeKey = null;
+          ref.read(activeFormFieldProvider.notifier).state = null;
+        }
+      });
+      return node;
+    });
+  }
+
+  void _publishActive(String key) {
+    _activeKey = key;
+    ref.read(activeFormFieldProvider.notifier).state = ActiveFormField(
+      flags: widget.form.styles[key] ?? '',
+      toggle: (flag) {
+        if (!mounted) return;
+        setState(() => widget.form.toggleFmt(key, flag));
+        widget.onChanged();
+        // Çubuktaki açık/kapalı durumu güncellensin.
+        _publishActive(key);
+      },
+    );
+  }
+
+  /// Alanın kayıtlı biçimini (kalın/italik/altı çizili) taban stile uygular.
+  TextStyle _fmt(String key, TextStyle base) {
+    final flags = widget.form.styles[key];
+    if (flags == null || flags.isEmpty) return base;
+    return base.copyWith(
+      fontWeight: flags.contains(kFmtBold) ? FontWeight.w700 : null,
+      fontStyle: flags.contains(kFmtItalic) ? FontStyle.italic : null,
+      decoration:
+          flags.contains(kFmtUnderline) ? TextDecoration.underline : null,
+      decorationColor: base.color,
+    );
   }
 
   @override
@@ -103,6 +151,9 @@ class _FormPageState extends State<FormPage> {
     for (final c in _ctrls.values) {
       c.dispose();
     }
+    for (final n in _focusNodes.values) {
+      n.dispose();
+    }
     super.dispose();
   }
 
@@ -139,13 +190,15 @@ class _FormPageState extends State<FormPage> {
       padding: const EdgeInsets.only(top: 6, bottom: 7),
       child: TextField(
         controller: _ctrl(key, value),
+        focusNode: _focusFor(key),
         enabled: widget.editable,
         onChanged: (v) {
           onText?.call(v);
           _changed();
         },
         textCapitalization: TextCapitalization.sentences,
-        style: TextStyle(fontSize: fontSize, height: 1.3, color: paper.text),
+        style: _fmt(
+            key, TextStyle(fontSize: fontSize, height: 1.3, color: paper.text)),
         decoration: _bare(hint),
       ),
     );
@@ -187,6 +240,7 @@ class _FormPageState extends State<FormPage> {
         ),
         TextField(
           controller: _ctrl(key, b.value),
+          focusNode: _focusFor(key),
           enabled: widget.editable,
           onChanged: (v) {
             b.value = v;
@@ -196,8 +250,8 @@ class _FormPageState extends State<FormPage> {
           minLines: b.minLines,
           textCapitalization: TextCapitalization.sentences,
           keyboardType: TextInputType.multiline,
-          style: TextStyle(
-              fontSize: 14, height: lineH / 14, color: paper.text),
+          style: _fmt(key,
+              TextStyle(fontSize: 14, height: lineH / 14, color: paper.text)),
           decoration: _bare(b.hint),
         ),
       ],
@@ -221,18 +275,22 @@ class _FormPageState extends State<FormPage> {
         Expanded(
           child: TextField(
             controller: _ctrl('$i.t', b.text),
+            focusNode: _focusFor('$i.t'),
             enabled: widget.editable,
             onChanged: (v) {
               b.text = v;
               _changed();
             },
             textCapitalization: TextCapitalization.sentences,
-            style: TextStyle(
-              fontSize: 22,
-              height: 1.3,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.4,
-              color: paper.text,
+            style: _fmt(
+              '$i.t',
+              TextStyle(
+                fontSize: 22,
+                height: 1.3,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.4,
+                color: paper.text,
+              ),
             ),
             decoration: _bare(b.hint),
           ),
@@ -341,14 +399,15 @@ class _FormPageState extends State<FormPage> {
                 Expanded(
                   child: TextField(
                     controller: _ctrl('$i.i$r', b.items[r].text),
+                    focusNode: _focusFor('$i.i$r'),
                     enabled: widget.editable,
                     onChanged: (v) {
                       b.items[r].text = v;
                       _changed();
                     },
                     textCapitalization: TextCapitalization.sentences,
-                    style: TextStyle(
-                        fontSize: 14.5, height: 1.3, color: paper.text),
+                    style: _fmt('$i.i$r',
+                        TextStyle(fontSize: 14.5, height: 1.3, color: paper.text)),
                     decoration: _bare(''),
                   ),
                 ),
@@ -429,14 +488,15 @@ class _FormPageState extends State<FormPage> {
                 Expanded(
                   child: TextField(
                     controller: _ctrl('$i.n$r', b.items[r]),
+                    focusNode: _focusFor('$i.n$r'),
                     enabled: widget.editable,
                     onChanged: (v) {
                       b.items[r] = v;
                       _changed();
                     },
                     textCapitalization: TextCapitalization.sentences,
-                    style: TextStyle(
-                        fontSize: 14, height: 1.3, color: paper.text),
+                    style: _fmt('$i.n$r',
+                        TextStyle(fontSize: 14, height: 1.3, color: paper.text)),
                     decoration: _bare(''),
                   ),
                 ),
@@ -511,14 +571,15 @@ class _FormPageState extends State<FormPage> {
                 Expanded(
                   child: TextField(
                     controller: _ctrl('$i.h$r', b.rows[r].value),
+                    focusNode: _focusFor('$i.h$r'),
                     enabled: widget.editable,
                     onChanged: (v) {
                       b.rows[r].value = v;
                       _changed();
                     },
                     textCapitalization: TextCapitalization.sentences,
-                    style: TextStyle(
-                        fontSize: 13.5, height: 1.3, color: paper.text),
+                    style: _fmt('$i.h$r',
+                        TextStyle(fontSize: 13.5, height: 1.3, color: paper.text)),
                     decoration: _bare(''),
                   ),
                 ),
@@ -573,15 +634,18 @@ class _FormPageState extends State<FormPage> {
                             child: TextField(
                               controller: _ctrl(
                                   '$i.d$d.$r', b.days[d].items[r].text),
+                              focusNode: _focusFor('$i.d$d.$r'),
                               enabled: widget.editable,
                               onChanged: (v) {
                                 b.days[d].items[r].text = v;
                                 _changed();
                               },
-                              style: TextStyle(
-                                  fontSize: 11,
-                                  height: 1.3,
-                                  color: paper.text),
+                              style: _fmt(
+                                  '$i.d$d.$r',
+                                  TextStyle(
+                                      fontSize: 11,
+                                      height: 1.3,
+                                      color: paper.text)),
                               decoration: _bare(''),
                             ),
                           ),
@@ -616,6 +680,7 @@ class _FormPageState extends State<FormPage> {
                 ),
                 TextField(
                   controller: _ctrl(key, value),
+                  focusNode: _focusFor(key),
                   enabled: widget.editable,
                   onChanged: (v) {
                     onText(v);
@@ -625,8 +690,8 @@ class _FormPageState extends State<FormPage> {
                   minLines: minLines,
                   keyboardType: TextInputType.multiline,
                   textCapitalization: TextCapitalization.sentences,
-                  style: TextStyle(
-                      fontSize: 13, height: 27 / 13, color: paper.text),
+                  style: _fmt(key,
+                      TextStyle(fontSize: 13, height: 27 / 13, color: paper.text)),
                   decoration: _bare(''),
                 ),
               ],

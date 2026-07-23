@@ -891,6 +891,20 @@ void _paintForm(
           weight: weight,
           letterSpacing: letterSpacing);
 
+  // Alan biçimleri (kalın/italik/altı çizili) — FormPage'in `_fmt`'iyle aynı
+  // anahtar şeması, böylece ekranda ne varsa çıktıda da görünür.
+  TextStyle fmt(String key, TextStyle base) {
+    final flags = form.styles[key];
+    if (flags == null || flags.isEmpty) return base;
+    return base.copyWith(
+      fontWeight: flags.contains(kFmtBold) ? FontWeight.w700 : null,
+      fontStyle: flags.contains(kFmtItalic) ? FontStyle.italic : null,
+      decoration:
+          flags.contains(kFmtUnderline) ? TextDecoration.underline : null,
+      decorationColor: base.color,
+    );
+  }
+
   void label(String text, {double size = 11}) {
     final tp = _formTp(
         text.toUpperCase(),
@@ -946,7 +960,7 @@ void _paintForm(
 
   // Satırlı blokların (checklist/numaralı/saat) tek satırını çizen yardımcılar
   // — satır satır sayfalara bölünebildikleri için birim bazlı çizilir.
-  void checkRow(ChecklistBlock b, int r) {
+  void checkRow(int bi, ChecklistBlock b, int r) {
     if (r >= b.items.length) return; // "satır ekle" (PDF'te yok)
     final side = 19.0 * scale;
     final it = b.items[r];
@@ -954,7 +968,7 @@ void _paintForm(
     final textX = x + side + 12 * scale;
     final trailW =
         b.trailingHint.isEmpty ? 0.0 : (b.trailingWidth + 6) * scale;
-    final tp = _formTp(it.text, ts(14.5, scale),
+    final tp = _formTp(it.text, fmt('$bi.i$r', ts(14.5, scale)),
         maxWidth - side - 12 * scale - trailW);
     final rowH = kFbCheckRowH * scale;
     checkbox(x, rowTop + (rowH - side) / 2, side, it.done);
@@ -969,7 +983,7 @@ void _paintForm(
     underline(x, maxWidth, rowTop + rowH);
   }
 
-  void numRow(NumberedBlock b, int r) {
+  void numRow(int bi, NumberedBlock b, int r) {
     final chip = 22.0 * scale;
     final rowTop = cy;
     final rowH = kFbNumRowH * scale;
@@ -982,21 +996,22 @@ void _paintForm(
         '${r + 1}', ts(12, scale, weight: FontWeight.w700), chip);
     nt.paint(canvas,
         Offset(x + (chip - nt.width) / 2, rowTop + (rowH - nt.height) / 2));
-    final tp = _formTp(
-        b.items[r], ts(14, scale), maxWidth - chip - 11 * scale);
+    final tp = _formTp(b.items[r], fmt('$bi.n$r', ts(14, scale)),
+        maxWidth - chip - 11 * scale);
     tp.paint(canvas,
         Offset(x + chip + 11 * scale, rowTop + (rowH - tp.height) / 2));
     underline(x, maxWidth, rowTop + rowH);
   }
 
-  void hourRow(HoursBlock b, int r) {
+  void hourRow(int bi, HoursBlock b, int r) {
     final rowH = kFbHourRowH * scale;
     final rowTop = cy;
     final row = b.rows[r];
     final lt = _formTp(row.label,
         ts(12, scale, color: pal.muted, weight: FontWeight.w600), 44 * scale);
     lt.paint(canvas, Offset(x, rowTop + (rowH - lt.height) / 2));
-    final vt = _formTp(row.value, ts(13.5, scale), maxWidth - 56 * scale);
+    final vt = _formTp(
+        row.value, fmt('$bi.h$r', ts(13.5, scale)), maxWidth - 56 * scale);
     vt.paint(canvas, Offset(x + 56 * scale, rowTop + (rowH - vt.height) / 2));
     underline(x, maxWidth, rowTop + rowH);
   }
@@ -1008,11 +1023,11 @@ void _paintForm(
     if (u.row >= 0) {
       switch (b) {
         case ChecklistBlock():
-          checkRow(b, u.row);
+          checkRow(u.block, b, u.row);
         case NumberedBlock():
-          numRow(b, u.row);
+          numRow(u.block, b, u.row);
         case HoursBlock():
-          hourRow(b, u.row);
+          hourRow(u.block, b, u.row);
         default:
           break;
       }
@@ -1023,8 +1038,11 @@ void _paintForm(
         final has = b.text.isNotEmpty;
         final tp = _formTp(
             has ? b.text : b.hint,
-            ts(22, scale,
-                color: has ? pal.ink : pal.muted, weight: FontWeight.w800),
+            fmt(
+                '${u.block}.t',
+                ts(22, scale,
+                    color: has ? pal.ink : pal.muted,
+                    weight: FontWeight.w800)),
             maxWidth - 60 * scale);
         tp.paint(canvas, Offset(x, cy));
         String? counter;
@@ -1050,7 +1068,8 @@ void _paintForm(
         final avail = maxWidth - gap * (b.fields.length - 1);
         var fx = x;
         var rowH = 0.0;
-        for (final f in b.fields) {
+        for (var fi = 0; fi < b.fields.length; fi++) {
+          final f = b.fields[fi];
           final w = avail * f.flex / totalFlex;
           var fy = cy;
           if (f.label.isNotEmpty) {
@@ -1065,8 +1084,11 @@ void _paintForm(
             fy += lt.height + 3 * scale;
           }
           final has = f.value.isNotEmpty;
-          final vt = _formTp(has ? f.value : (f.hint.isEmpty ? '—' : f.hint),
-              ts(14, scale, color: has ? pal.ink : pal.muted), w);
+          final vt = _formTp(
+              has ? f.value : (f.hint.isEmpty ? '—' : f.hint),
+              fmt('${u.block}.f$fi',
+                  ts(14, scale, color: has ? pal.ink : pal.muted)),
+              w);
           vt.paint(canvas, Offset(fx, fy));
           fy += vt.height + 6 * scale;
           underline(fx, w, fy);
@@ -1087,12 +1109,14 @@ void _paintForm(
         final has = b.value.isNotEmpty;
         final tp = _formTp(
             has ? b.value : b.hint,
-            TextStyle(
-              color: has ? pal.ink : pal.muted,
-              fontFamily: 'InstrumentSans',
-              fontSize: 14 * scale,
-              height: 30 / 14,
-            ),
+            fmt(
+                '${u.block}.a',
+                TextStyle(
+                  color: has ? pal.ink : pal.muted,
+                  fontFamily: 'InstrumentSans',
+                  fontSize: 14 * scale,
+                  height: 30 / 14,
+                )),
             maxWidth);
         final lines = ((tp.height / lineH).ceil()).clamp(b.minLines, 200);
         if (b.lined) {
@@ -1141,7 +1165,8 @@ void _paintForm(
             .fold<int>(0, (a, d) => d.items.length > a ? d.items.length : a);
         final colH = pad * 2 + headH + maxItems * itemH;
         var dx = x;
-        for (final d in b.days) {
+        for (var di = 0; di < b.days.length; di++) {
+          final d = b.days[di];
           final rect = Rect.fromLTWH(dx, cy, colW, colH);
           final rr =
               RRect.fromRectAndRadius(rect, Radius.circular(11 * scale));
@@ -1156,10 +1181,11 @@ void _paintForm(
               colW - pad * 2);
           nt.paint(canvas, Offset(dx + pad, cy + pad));
           var iy = cy + pad + headH;
-          for (final it in d.items) {
+          for (var ri = 0; ri < d.items.length; ri++) {
+            final it = d.items[ri];
             checkbox(dx + pad, iy, side, it.done);
-            final tt = _formTp(
-                it.text, ts(11, scale), colW - pad * 2 - side - 5 * scale);
+            final tt = _formTp(it.text, fmt('${u.block}.d$di.$ri', ts(11, scale)),
+                colW - pad * 2 - side - 5 * scale);
             tt.paint(canvas,
                 Offset(dx + pad + side + 5 * scale, iy + (side - tt.height) / 2));
             iy += itemH;
@@ -1186,7 +1212,8 @@ void _paintForm(
             Paint()
               ..color = pal.line
               ..strokeWidth = 1.5 * scale);
-        void cornellArea(double ax, double aw, String lbl, String val) {
+        void cornellArea(
+            String key, double ax, double aw, String lbl, String val) {
           final lt = _formTp(
               lbl.toUpperCase(),
               ts(10, scale,
@@ -1198,19 +1225,22 @@ void _paintForm(
           if (val.isNotEmpty) {
             final vt = _formTp(
                 val,
-                TextStyle(
-                  color: pal.ink,
-                  fontFamily: 'InstrumentSans',
-                  fontSize: 13 * scale,
-                  height: 27 / 13,
-                ),
+                fmt(
+                    key,
+                    TextStyle(
+                      color: pal.ink,
+                      fontFamily: 'InstrumentSans',
+                      fontSize: 13 * scale,
+                      height: 27 / 13,
+                    )),
                 aw - pad * 2);
             vt.paint(canvas, Offset(ax + pad, cy + pad + labelH));
           }
         }
 
-        cornellArea(x, cueW, b.cuesLabel, b.cues);
-        cornellArea(x + cueW, maxWidth - cueW, b.notesLabel, b.notes);
+        cornellArea('${u.block}.c', x, cueW, b.cuesLabel, b.cues);
+        cornellArea('${u.block}.n', x + cueW, maxWidth - cueW, b.notesLabel,
+            b.notes);
         canvas.restore();
         canvas.drawRRect(
             rr,
@@ -1235,12 +1265,14 @@ void _paintForm(
         if (b.summary.isNotEmpty) {
           final vt = _formTp(
               b.summary,
-              TextStyle(
-                color: pal.ink,
-                fontFamily: 'InstrumentSans',
-                fontSize: 13 * scale,
-                height: 27 / 13,
-              ),
+              fmt(
+                  '${u.block}.s',
+                  TextStyle(
+                    color: pal.ink,
+                    fontFamily: 'InstrumentSans',
+                    fontSize: 13 * scale,
+                    height: 27 / 13,
+                  )),
               maxWidth - pad * 2);
           vt.paint(canvas, Offset(x + pad, cy + pad + labelH));
         }

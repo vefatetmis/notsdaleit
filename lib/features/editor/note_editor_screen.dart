@@ -202,6 +202,11 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     if (ref.read(activeQuillControllerProvider) == _controller) {
       ref.read(activeQuillControllerProvider.notifier).state = null;
     }
+    // Form notundan çıkarken/başka nota geçerken alan biçim çubuğunu temizle
+    // (bayat toggle closure'ı kalmasın).
+    if (ref.read(activeFormFieldProvider) != null) {
+      ref.read(activeFormFieldProvider.notifier).state = null;
+    }
     _controller.dispose();
     _focus.dispose();
     _editorScroll.dispose();

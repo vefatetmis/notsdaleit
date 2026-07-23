@@ -7,6 +7,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 final activeQuillControllerProvider =
     StateProvider<QuillController?>((ref) => null);
 
+/// Form notunda o an **odaklanmış metin alanı**. Form alanları Quill değil düz
+/// `TextField` olduğundan biçimlendirme alan bazlıdır: araç çubuğu bu nesneyi
+/// okuyup alanın tamamına kalın/italik/altı çizili uygular. `FormPage` odak
+/// değiştikçe günceller, odak kaybında `null` yapar.
+class ActiveFormField {
+  const ActiveFormField({required this.flags, required this.toggle});
+
+  /// Alanın mevcut biçim bayrakları ('b', 'i', 'u' — ör. 'bu').
+  final String flags;
+
+  /// Bir bayrağı açar/kapatır; `FormPage` uygular ve notu kaydeder.
+  final void Function(String flag) toggle;
+}
+
+final activeFormFieldProvider = StateProvider<ActiveFormField?>((ref) => null);
+
 /// Kağıt (sayfa) rengi seçenekleri. Metin rengi kağıda göre belirlenir; böylece
 /// yazı, uygulama teması açık/koyu olsa da her zaman okunur (siyah kağıt →
 /// beyaz yazı).

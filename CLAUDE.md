@@ -519,13 +519,13 @@ yüklemesinde versionCode artmalı** (+5, +6…). Ayarlar ekranındaki sürüm y
 - **Faz 1 auth KODU** (e-posta OTP + profil + onboarding turu) — **mail SMTP
   kurulumu ASKIDA** (kullanıcı Supabase panelinde yapacak; bkz. aşağı + SETUP-AUTH.md).
 
-**⭐ SONRAKİ ADIM (yeni session buradan devam):** "Uygulama içi cila + özellikler"
-listesinin **4. maddesi = büyükler**: (a) tabloyu elle ekleme, (b) kalem araçları
-(düz çizgi/şekil, cetvel, lasso), (c) form yazı alanlarını zengin-metin yapmak.
-Madde 1 (kütüphane: pin+sıralama+etiketler), 2 (güvenlik ağı: çöp kutusu +
-yedekleme) ve 3 (PNG dışa aktarma) TAMAMEN BİTTİ (aşağı bkz.). Kullanıcı:
-"hepsini yap, kolaydan zora, sıra sende." Mail/auth ASKIDA (dokunma). Her adım:
-kullanıcıya ne yapacağını söyle → onay → yap → dev APK.
+**⭐ SONRAKİ ADIM (yeni session buradan devam):** "Büyükler" bloğunda kalan iki iş:
+**(b) kalem araçları** (düz çizgi/şekil, cetvel, lasso seçim) ve **(a) tabloyu
+elle ekleme** (araç çubuğundan tablo + satır/sütun düzenleme). (c) form alanlarını
+zengin-metin ALAN BAZINDA bitti (kelime bazlı + boyut "form biçim v2" olarak
+sıraya alındı, aşağı bkz.). Madde 1/2/3 tamamen bitti. Kullanıcı: "hepsini yap,
+kolaydan zora, sıra sende." Mail/auth ASKIDA (dokunma). Her adım: kullanıcıya ne
+yapacağını söyle → onay → yap → dev APK.
 
 **Google Play API 36 (31 Ağu 2026 şartı) — ÇÖZÜLDÜ:** `compileSdk`+`targetSdk`
 elle 36'ya sabitlendi (Flutter yükseltilmedi); ayrıntı "Önemli notlar"da.
@@ -588,8 +588,24 @@ elle 36'ya sabitlendi (Flutter yükseltilmedi); ayrıntı "Önemli notlar"da.
    Üst bar paylaş menüsünde, yalnız notlarda.
 4. **Büyükler:** **tabloyu elle ekleme** (şu an tablo/ızgara yalnız şablonlardan;
    araç çubuğuna ekleme + satır/sütun düzenleme) · **kalem araçları** (düz
-   çizgi/şekil, cetvel, lasso seçim) · **form yazı alanlarını zengin-metin**
-   yapmak (Aa'nın formda gerçekten çalışması — kullanıcı istedi).
+   çizgi/şekil, cetvel, lasso seçim).
+   - **(c) Form alanlarını zengin-metin — ALAN BAZINDA UYGULANDI (dev APK):**
+     Form alanlarına **kalın/italik/altı çizili** (alanın tamamına; kelime bazlı
+     DEĞİL). Model: `FormDoc.styles` (anahtar→bayrak 'biu'; anahtarlar FormPage
+     controller'larıyla aynı: '0.t','2.i3'…). Eski form notlarında harita boş →
+     görünüm değişmez. `encode()`'a 'styles' eklendi (kaydetme/collab/.ntdl/
+     yedek otomatik taşır). `FormPage` artık `ConsumerStatefulWidget`: her alan
+     `_focusFor(key)` + `_fmt(key, base)`; odakta `activeFormFieldProvider`
+     (editor_state) yayınlanır, odak kaybında/editör dispose'unda temizlenir.
+     Araç çubuğu (`drawing_toolbar`): yazı modunda Quill yoksa + alan odaklıysa
+     `_FormTextBar` (B/I/U). Kalem çubuğuna form notları için de **Aa** düğmesi
+     (canText||isForm) — eskiden form notunda çizime geçince yazıya dönülemiyordu.
+     PDF/PNG export (`_paintForm`) alan bazlı `fmt(key, style)` ile aynı biçimi
+     çizer. **Boyut yok** (satır yükseklikleri `form_layout`'ta sabit boyuta
+     dayalı; boyut değişimi sayfalamayı bozar) — tam sürüme ertelendi (aşağı).
+   - **Bekleyen (form biçim v2):** kelime bazlı biçim (alan içi seçim) + yazı
+     **boyutu** (satır yüksekliği/sayfalama senkronu gerektirir). Kullanıcı "tam
+     yapılacak" dedi, sıraya alındı.
 
 **Bilinen küçük pürüzler (sıraya alındı):**
 - Quill (serbest) notlarda uzun metin sayfa sınırından taşabilir (satır-bazlı

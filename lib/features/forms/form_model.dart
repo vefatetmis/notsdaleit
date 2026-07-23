@@ -20,19 +20,61 @@ bool isFormBody(String body) {
   }
 }
 
+/// Alan biçim bayrakları: kalın · italik · altı çizili. Yazı boyutu BİLEREK
+/// yok — satır yükseklikleri (`form_layout`) sabit boyutlara göre hesaplandığı
+/// için boyut değişimi ekran/PDF/sayfalama senkronunu bozar (bkz. CLAUDE.md).
+const String kFmtBold = 'b';
+const String kFmtItalic = 'i';
+const String kFmtUnderline = 'u';
+
 class FormDoc {
-  FormDoc(this.blocks);
+  FormDoc(this.blocks, {Map<String, String>? styles})
+      : styles = styles ?? <String, String>{};
 
   final List<FormBlock> blocks;
+
+  /// Alan biçimleri: alan anahtarı ('0.t', '2.i3'…) → bayrak dizesi ('bu' =
+  /// kalın + altı çizili). Anahtarlar `FormPage`'in controller anahtarlarıyla
+  /// birebir aynıdır; böylece blok sınıflarına dokunmadan biçim taşınır.
+  /// Eski form notlarında bu harita boştur → görünüm değişmez.
+  final Map<String, String> styles;
+
+  bool hasFmt(String key, String flag) => (styles[key] ?? '').contains(flag);
+
+  /// Bir alanın bir biçim bayrağını açar/kapatır.
+  void toggleFmt(String key, String flag) {
+    final cur = styles[key] ?? '';
+    final String s;
+    if (cur.contains(flag)) {
+      s = cur.replaceAll(flag, '');
+    } else {
+      s = ((cur + flag).split('')..sort()).join();
+    }
+    if (s.isEmpty) {
+      styles.remove(key);
+    } else {
+      styles[key] = s;
+    }
+  }
 
   static FormDoc? tryParse(String body) {
     try {
       final j = jsonDecode(body);
       if (j is! Map || j['ndform'] != 1) return null;
-      return FormDoc([
-        for (final b in (j['blocks'] as List? ?? const []))
-          FormBlock.fromJson((b as Map).cast<String, dynamic>()),
-      ]);
+      final raw = j['styles'];
+      return FormDoc(
+        [
+          for (final b in (j['blocks'] as List? ?? const []))
+            FormBlock.fromJson((b as Map).cast<String, dynamic>()),
+        ],
+        styles: raw is Map
+            ? {
+                for (final e in raw.entries)
+                  if (e.value is String && (e.value as String).isNotEmpty)
+                    e.key.toString(): e.value as String,
+              }
+            : null,
+      );
     } catch (_) {
       return null;
     }
@@ -41,6 +83,7 @@ class FormDoc {
   String encode() => jsonEncode({
         'ndform': 1,
         'blocks': [for (final b in blocks) b.toJson()],
+        if (styles.isNotEmpty) 'styles': styles,
       });
 
   /// Önizleme/arama için düz metin.

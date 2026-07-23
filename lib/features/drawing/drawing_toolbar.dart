@@ -6,6 +6,7 @@ import '../../core/i18n/i18n.dart';
 import '../../core/theme/nd_colors.dart';
 import '../../data/data_providers.dart';
 import '../editor/editor_state.dart';
+import '../forms/form_model.dart';
 import '../shell/shell_state.dart';
 import 'color_picker.dart';
 import 'drawing_state.dart';
@@ -29,10 +30,19 @@ class DrawingToolbar extends ConsumerWidget {
     final nd = context.nd;
     final tool = ref.watch(toolProvider);
     final controller = ref.watch(activeQuillControllerProvider);
+    final formField = ref.watch(activeFormFieldProvider);
 
-    final isText = tool == PenTool.yazi && controller != null;
-    final Widget child =
-        isText ? _TextBar(controller: controller) : const _PenBar();
+    // Yazı modunda: serbest not → Quill biçim çubuğu; form notu (Quill yok) +
+    // bir alan odaklıysa → alan biçim çubuğu (kalın/italik/altı çizili); aksi
+    // halde kalem çubuğu.
+    final isQuillText = tool == PenTool.yazi && controller != null;
+    final isFormText =
+        tool == PenTool.yazi && controller == null && formField != null;
+    final Widget child = isQuillText
+        ? _TextBar(controller: controller)
+        : isFormText
+            ? _FormTextBar(field: formField)
+            : const _PenBar();
 
     // Araç çubuğuna dokununca editörün odağı (klavye) kapanmasın; böylece
     // biçimlendirme ve font seçimi imleci koruyup sonraki yazıya da uygulanır.
@@ -63,7 +73,8 @@ class DrawingToolbar extends ConsumerWidget {
             transitionBuilder: (c, anim) =>
                 FadeTransition(opacity: anim, child: c),
             child: KeyedSubtree(
-              key: ValueKey(isText ? 'text' : 'pen'),
+              key: ValueKey(
+                  isQuillText ? 'text' : (isFormText ? 'form' : 'pen')),
               child: child,
             ),
           ),
@@ -88,7 +99,11 @@ class _PenBar extends ConsumerWidget {
     final docId = ref.watch(navProvider).activeDocId;
     final canText = ref.watch(activeQuillControllerProvider) != null;
     final palette = ref.watch(penPaletteProvider);
-    final isNote = ref.watch(activeDocumentProvider)?.type == 'not';
+    final activeDoc = ref.watch(activeDocumentProvider);
+    final isNote = activeDoc?.type == 'not';
+    // Form notlarında Quill yok ama yine de yazı modu var (alanları düzenlemek
+    // + biçim çubuğu için) → Aa düğmesi burada da görünmeli.
+    final isForm = isNote && isFormBody(activeDoc?.body ?? '');
     final hasStrokes =
         (ref.watch(activeStrokesProvider).valueOrNull ?? const []).isNotEmpty;
 
@@ -103,7 +118,7 @@ class _PenBar extends ConsumerWidget {
           tooltip: 'Seç / kaydır',
           onTap: () => setTool(PenTool.el),
         ),
-        if (canText)
+        if (canText || isForm)
           _ToolButton(
             icon: Icons.text_format,
             active: false,
@@ -261,6 +276,50 @@ class _TextBar extends ConsumerWidget {
           ],
         );
       },
+    );
+  }
+}
+
+/// Form notu biçim çubuğu: odaklanmış alanın tamamına kalın/italik/altı çizili
+/// uygular (alan bazlı — Quill değil). Boyut/liste yok (satır yükseklikleri
+/// sabit; ayrıntı form_model.dart).
+class _FormTextBar extends ConsumerWidget {
+  const _FormTextBar({required this.field});
+
+  final ActiveFormField field;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final nd = context.nd;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _ToolButton(
+          icon: Icons.edit_outlined,
+          active: false,
+          tooltip: 'Çizime dön',
+          onTap: () => ref.read(toolProvider.notifier).state = PenTool.kalem,
+        ),
+        _divider(nd.border),
+        _ToolButton(
+          icon: Icons.format_bold,
+          active: field.flags.contains(kFmtBold),
+          tooltip: 'Kalın',
+          onTap: () => field.toggle(kFmtBold),
+        ),
+        _ToolButton(
+          icon: Icons.format_italic,
+          active: field.flags.contains(kFmtItalic),
+          tooltip: 'İtalik',
+          onTap: () => field.toggle(kFmtItalic),
+        ),
+        _ToolButton(
+          icon: Icons.format_underlined,
+          active: field.flags.contains(kFmtUnderline),
+          tooltip: 'Altı çizili',
+          onTap: () => field.toggle(kFmtUnderline),
+        ),
+      ],
     );
   }
 }
