@@ -472,9 +472,17 @@ kalem olduğundan ızgara/2-kolon düzenler birebir çıkmaz. **Karar: pragmatik
 
 | Kanal | Sürüm | Durum |
 |-------|-------|-------|
-| Play üretim | 1.0 (mağazada) | Yayında |
-| Play kapalı test | **1.3.0+4** | AAB hazır — kullanıcı Play Console'a yükleyecek |
+| Play üretim | — | **ETKİN DEĞİL** — uygulama hiç üretime çıkmadı (eski notlardaki "1.0 mağazada yayında" YANLIŞTI, 23 Tem 2026'da konsoldan doğrulandı) |
+| Play kapalı test (Alpha) | **1.3.0+4** (vc 4) | ✅ Yayında — 23 Tem 2026 16:35, testçilere sunuldu |
+| Play dahili test | 1.0.0 (vc 2) | Etkin (16 Tem 2026) |
 | Dev / paralel APK | 1.3.0+4 (aynı kod) | **Aktif geliştirme burada** |
+
+**Üretime çıkış şartı (kişisel hesap):** Play, üretim erişimi için ≥12 test
+kullanıcısının **kesintisiz 14 gün** kapalı teste kayıtlı kalmasını istiyor.
+23 Tem 2026 itibarıyla: 12 testçi kayıtlı, **6/14 gün** doldu (~31 Tem'de dolar),
+sonra "Üretime başvur" açılır. **Kanıtlandı:** kapalı teste yeni sürüm yüklemek
+bu sayacı SIFIRLAMIYOR (1.3.0+4 yüklendiği gün sayaç 6'da kaldı). Sayaç
+**kayıtlı kalmayı** ölçüyor, testçinin güncellemeyi kurmasını değil.
 
 **Strateji (kullanıcı kararı):** tüm geliştirme dev APK üzerinden; biriken her
 şey (1.1 + 1.2 + 1.3 + kütüphane + güvenlik ağı) **tek AAB** olarak önce kapalı
@@ -505,17 +513,19 @@ yüklemesinde versionCode artmalı** (+5, +6…). Ayarlar ekranındaki sürüm y
 - **Yerel yedekleme/geri yükleme** (`.ntdlbak`): tüm veriyi (PDF dosyaları hariç)
   tek dosyaya dışa aktar + birleştirerek geri yükle. Ayarlar → "Yedekleme".
   Ayrıntı: "Uygulama içi cila" madde 2.
+- **PNG dışa aktarma**: notu görüntü olarak kaydet (çok sayfalı not tek uzun
+  görüntüde). Paylaş menüsünde. Ayrıntı: "Uygulama içi cila" madde 3.
 - **Google Play API 36 hedefi** (31 Ağu 2026 şartı) — compileSdk/targetSdk elle 36.
 - **Faz 1 auth KODU** (e-posta OTP + profil + onboarding turu) — **mail SMTP
   kurulumu ASKIDA** (kullanıcı Supabase panelinde yapacak; bkz. aşağı + SETUP-AUTH.md).
 
 **⭐ SONRAKİ ADIM (yeni session buradan devam):** "Uygulama içi cila + özellikler"
-listesinin **3. maddesi = notu PNG (görüntü) olarak paylaş**. Madde 1 (kütüphane:
-pin+sıralama+etiketler) ve madde 2 (güvenlik ağı: çöp kutusu + yerel yedekleme)
-TAMAMEN BİTTİ (aşağı bkz.). Sonra madde 4 (büyükler: tablo ekleme / kalem araçları
-/ form alanlarını zengin-metin). Kullanıcı: "hepsini yap, kolaydan zora, sıra
-sende." Mail/auth ASKIDA (dokunma). Her adım: kullanıcıya ne yapacağını söyle →
-onay → yap → dev APK.
+listesinin **4. maddesi = büyükler**: (a) tabloyu elle ekleme, (b) kalem araçları
+(düz çizgi/şekil, cetvel, lasso), (c) form yazı alanlarını zengin-metin yapmak.
+Madde 1 (kütüphane: pin+sıralama+etiketler), 2 (güvenlik ağı: çöp kutusu +
+yedekleme) ve 3 (PNG dışa aktarma) TAMAMEN BİTTİ (aşağı bkz.). Kullanıcı:
+"hepsini yap, kolaydan zora, sıra sende." Mail/auth ASKIDA (dokunma). Her adım:
+kullanıcıya ne yapacağını söyle → onay → yap → dev APK.
 
 **Google Play API 36 (31 Ağu 2026 şartı) — ÇÖZÜLDÜ:** `compileSdk`+`targetSdk`
 elle 36'ya sabitlendi (Flutter yükseltilmedi); ayrıntı "Önemli notlar"da.
@@ -564,7 +574,18 @@ elle 36'ya sabitlendi (Flutter yükseltilmedi); ayrıntı "Önemli notlar"da.
      Çağrı yerleri: kütüphane seçim çubuğu, klasör dosya satırı, arama satırı
      hepsi `trashDocument(s)`'e geçti. **Otomatik temizleme (30 gün) YOK** —
      kullanıcı elle boşaltır (veri güvenliği için bilinçli).
-3. **Dışa aktarım:** notu **görüntü (PNG) olarak paylaş**.
+3. **Dışa aktarım — UYGULANDI (dev APK):** notu **görüntü (PNG) olarak kaydet**.
+   `features/export/pdf_export.dart` (aynı dosya — private çizim yardımcılarını
+   paylaşıyor): `sharePngWithPaperPrompt` + `exportDocumentAsPng`. Sayfa çizici
+   ikiye ayrıldı: `_renderPageUiImage` (→ `ui.Image`, yeni) ve onu saran
+   `_renderPageImage` (→ PNG baytı, PDF export'un kullandığı; davranış aynı).
+   Kâğıt rengi diyaloğu `_askPaper(context, doc, başlık)` olarak ortaklaştırıldı
+   (PDF + PNG). Çok sayfalı not **tek uzun görüntüde** birleşir (aralık
+   `gapRatio 0.02`, ayraç rengi `pal.line`); çizim kaydırması editörün kendi
+   `kPageGapRatio`'suyla yapılır (koordinatlar bozulmasın). **Bellek koruması:**
+   toplam ~20 MP'yi aşarsa genişlik `sqrt` ile küçültülür. Kayıt
+   `FilePicker.saveFile` ile (share_plus YOK → kullanıcı galeriden paylaşır).
+   Üst bar paylaş menüsünde, yalnız notlarda.
 4. **Büyükler:** **tabloyu elle ekleme** (şu an tablo/ızgara yalnız şablonlardan;
    araç çubuğuna ekleme + satır/sütun düzenleme) · **kalem araçları** (düz
    çizgi/şekil, cetvel, lasso seçim) · **form yazı alanlarını zengin-metin**

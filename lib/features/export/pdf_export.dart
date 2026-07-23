@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pdf/pdf.dart';
@@ -95,12 +97,22 @@ Future<void> sharePdfWithPaperPrompt(
     return;
   }
 
+  final choice = await _askPaper(
+      context, doc, context.t('PDF kâğıt rengi', 'PDF paper color'));
+  if (choice == null) return;
+  await exportDocumentAsPdf(ref, doc, paper: choice);
+}
+
+/// Renkli kâğıtlı bir not dışa aktarılırken kâğıdın çıktıda nasıl görüneceğini
+/// sorar. PDF ve PNG akışları ortak kullanır. Vazgeçilirse null döner.
+Future<PdfPaper?> _askPaper(
+    BuildContext context, Document doc, String dialogTitle) {
   final paper = paperStyleFor(doc.pageColor);
   final tintBg = paper.isDark
       ? const Color(0xFFFFFFFF)
       : Color.lerp(const Color(0xFFFFFFFF), paper.background, 0.55)!;
 
-  final choice = await showDialog<PdfPaper>(
+  return showDialog<PdfPaper>(
     context: context,
     builder: (context) {
       Widget option(PdfPaper mode, Color swatch, String title, String sub) {
@@ -139,7 +151,7 @@ Future<void> sharePdfWithPaperPrompt(
       }
 
       return AlertDialog(
-        title: Text(context.t('PDF kâğıt rengi', 'PDF paper color')),
+        title: Text(dialogTitle),
         contentPadding: const EdgeInsets.symmetric(vertical: 10),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -170,9 +182,6 @@ Future<void> sharePdfWithPaperPrompt(
       );
     },
   );
-
-  if (choice == null) return;
-  await exportDocumentAsPdf(ref, doc, paper: choice);
 }
 
 /// Bir belgeyi PDF olarak dışa aktarır ve paylaşım sayfasını açar. [paper]
@@ -264,10 +273,162 @@ Future<void> exportDocumentAsPdf(
   await Printing.sharePdf(bytes: await pdf.save(), filename: filename);
 }
 
-/// Bir sayfayı (beyaz zemin + kâğıt deseni + varsa biçimli metin / form
-/// blokları + çizimler) PNG'ye çizer. [strokeOffsetY] o sayfanın sürekli
-/// çizim düzlemindeki üst konumu (piksel).
+/// "Görüntü olarak paylaş" akışı: renkli kâğıtlı notlarda önce kâğıt rengini
+/// sorar (not değişmez), sonra PNG olarak dışa aktarır. Beyaz kâğıtta sormaz.
+Future<void> sharePngWithPaperPrompt(
+  BuildContext context,
+  WidgetRef ref,
+  Document doc,
+) async {
+  if (doc.pageColor == 'beyaz') {
+    await exportDocumentAsPng(context, ref, doc);
+    return;
+  }
+  final choice = await _askPaper(
+      context, doc, context.t('Görüntü kâğıt rengi', 'Image paper color'));
+  if (choice == null || !context.mounted) return;
+  await exportDocumentAsPng(context, ref, doc, paper: choice);
+}
+
+/// Notu **PNG görüntü** olarak dışa aktarır; kullanıcı kayıt konumunu seçer
+/// (sonra galeriden/dosyalardan paylaşabilir — uygulamada share_plus yok).
+/// Çok sayfalı notta tüm sayfalar tek bir uzun görüntüde alt alta birleşir;
+/// çok uzun notlarda bellek için genişlik otomatik küçültülür.
+Future<void> exportDocumentAsPng(
+  BuildContext context,
+  WidgetRef ref,
+  Document doc, {
+  PdfPaper paper = PdfPaper.white,
+}) async {
+  final messenger = ScaffoldMessenger.of(context);
+  final okMsg = context.t('Görüntü kaydedildi', 'Image saved');
+  final failMsg =
+      context.t('Görüntü kaydedilemedi', 'Image could not be saved');
+  final saveTitle = context.t('Görüntüyü kaydet', 'Save image');
+
+  final pal = _pdfPalette(doc.pageColor, paper);
+  final rows = await ref.read(drawingRepositoryProvider).getStrokes(doc.id);
+  final aspect = aspectForPageSize(doc.pageSize);
+  var pageCount = doc.pageCount ?? 1;
+
+  // Form notu: ekranla aynı sanal metriklerle sayfalanır (PDF ile birebir).
+  FormDoc? form;
+  FormLayoutResult? formLayout;
+  FormMetrics? metrics;
+  if (isFormBody(doc.body)) {
+    form = FormDoc.tryParse(doc.body);
+    if (form != null) {
+      metrics = formMetrics(doc.pageSize);
+      formLayout = paginateForm(
+          form, metrics.virtualW, metrics.contentH, metrics.pageSkip,
+          editable: false);
+      if (formLayout.pages > pageCount) pageCount = formLayout.pages;
+    }
+  }
+  if (pageCount < 1) pageCount = 1;
+
+  // Sayfa aralığı (görüntüde ince ayraç) ve bellek bütçesi. Toplam piksel
+  // ~20 MP'yi aşarsa genişlik küçültülür (uzun notlarda bellek taşmasın).
+  const gapRatio = 0.02;
+  const budget = 20000000.0;
+  final totalRatio = pageCount * aspect + (pageCount - 1) * gapRatio;
+  var w = 1240.0;
+  if (w * w * totalRatio > budget) w = math.sqrt(budget / totalRatio);
+  final h = w * aspect;
+  final gap = w * gapRatio;
+  final totalH = pageCount * h + (pageCount - 1) * gap;
+  final formScale = metrics == null ? 1.0 : w / metrics.virtualPageW;
+
+  final allStrokes = [for (final s in rows) PenStroke.fromRow(s)];
+
+  // Her sayfayı ayrı çiz, sonra tek uzun görüntüde birleştir.
+  final images = <ui.Image>[];
+  for (var i = 0; i < pageCount; i++) {
+    images.add(await _renderPageUiImage(
+      w,
+      h,
+      allStrokes,
+      body: form == null && i == 0 ? doc.body : null,
+      background: doc.pageBackground,
+      pal: pal,
+      form: form,
+      formLayout: formLayout,
+      formPage: i,
+      formScale: formScale,
+      // Çizimler editörün sürekli düzleminde durur → editörün kendi sayfa
+      // aralığı (kPageGapRatio) ile kaydırılır, görüntünün ayracıyla değil.
+      strokeOffsetY: i * (aspect + kPageGapRatio) * w,
+    ));
+  }
+
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder);
+  canvas.drawRect(Rect.fromLTWH(0, 0, w, totalH), Paint()..color = pal.line);
+  for (var i = 0; i < images.length; i++) {
+    canvas.drawImage(images[i], Offset(0, i * (h + gap)), Paint());
+  }
+  final picture = recorder.endRecording();
+  final composite = await picture.toImage(w.round(), totalH.round());
+  picture.dispose();
+  for (final img in images) {
+    img.dispose();
+  }
+  final data = await composite.toByteData(format: ui.ImageByteFormat.png);
+  composite.dispose();
+  if (data == null) {
+    messenger.showSnackBar(SnackBar(content: Text(failMsg)));
+    return;
+  }
+
+  try {
+    final path = await FilePicker.saveFile(
+      dialogTitle: saveTitle,
+      fileName: '${_safeName(doc.title)}.png',
+      bytes: data.buffer.asUint8List(),
+    );
+    messenger.showSnackBar(
+        SnackBar(content: Text(path == null ? failMsg : okMsg)));
+  } catch (_) {
+    messenger.showSnackBar(SnackBar(content: Text(failMsg)));
+  }
+}
+
+/// Bir sayfayı PNG baytlarına çizer (PDF export bunu kullanır).
 Future<Uint8List> _renderPageImage(
+  double w,
+  double h,
+  List<PenStroke> strokes, {
+  String? body,
+  String background = 'duz',
+  _PdfPalette pal = _whitePalette,
+  FormDoc? form,
+  FormLayoutResult? formLayout,
+  int formPage = 0,
+  double formScale = 1,
+  double strokeOffsetY = 0,
+}) async {
+  final image = await _renderPageUiImage(
+    w,
+    h,
+    strokes,
+    body: body,
+    background: background,
+    pal: pal,
+    form: form,
+    formLayout: formLayout,
+    formPage: formPage,
+    formScale: formScale,
+    strokeOffsetY: strokeOffsetY,
+  );
+  final data = await image.toByteData(format: ui.ImageByteFormat.png);
+  image.dispose();
+  return data!.buffer.asUint8List();
+}
+
+/// Bir sayfayı (kâğıt zemini + deseni + varsa biçimli metin / form blokları +
+/// çizimler) bir [ui.Image]'a çizer. [strokeOffsetY] o sayfanın sürekli çizim
+/// düzlemindeki üst konumu (piksel). PNG export bunları alt alta birleştirir.
+Future<ui.Image> _renderPageUiImage(
   double w,
   double h,
   List<PenStroke> strokes, {
@@ -336,8 +497,8 @@ Future<Uint8List> _renderPageImage(
 
   final picture = recorder.endRecording();
   final image = await picture.toImage(w.round(), h.round());
-  final data = await image.toByteData(format: ui.ImageByteFormat.png);
-  return data!.buffer.asUint8List();
+  picture.dispose();
+  return image;
 }
 
 // ─────────────────────── Quill Delta → biçimli metin ───────────────────────

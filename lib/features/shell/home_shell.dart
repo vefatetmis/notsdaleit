@@ -541,6 +541,7 @@ class _TopBar extends ConsumerWidget {
               icon: Icon(Icons.ios_share, size: 18, color: nd.text2),
               onSelected: (v) {
                 if (v == 'pdf') sharePdfWithPaperPrompt(context, ref, activeDoc);
+                if (v == 'png') sharePngWithPaperPrompt(context, ref, activeDoc);
                 if (v == 'ntdl') exportNtdl(ref, activeDoc);
                 if (v == 'savetpl') saveNoteAsTemplate(context, ref, activeDoc);
                 if (v == 'live') shareLive(context, ref, activeDoc);
@@ -561,6 +562,11 @@ class _TopBar extends ConsumerWidget {
                 PopupMenuItem(
                     value: 'pdf',
                     child: Text(context.t('PDF olarak paylaş', 'Share as PDF'))),
+                if (activeDoc.type == 'not')
+                  PopupMenuItem(
+                      value: 'png',
+                      child: Text(context.t(
+                          'Görüntü (PNG) olarak kaydet', 'Save as image (PNG)'))),
                 if (activeDoc.type == 'not')
                   PopupMenuItem(
                       value: 'savetpl',
