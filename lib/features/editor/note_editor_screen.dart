@@ -41,6 +41,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   final _titleController = TextEditingController();
   final _tc = TransformationController();
   Timer? _saveTimer;
+  Timer? _growTimer;
   int? _docId;
   bool _loaded = false;
   bool _addingPage = false;
@@ -116,8 +117,20 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     _growPagesForForm();
   }
 
-  /// Form içeriği mevcut sayfalara sığmıyorsa sayfa sayısını büyütür (tablo
-  /// eklendiğinde kullanıcı "Yeni sayfa"ya basmak zorunda kalmasın). Küçültmez.
+  /// Form alanlarında bir değişiklik olduğunda: kaydet + gerekiyorsa sayfa
+  /// sayısını büyüt. Büyütme ayrı bir gecikmeyle yapılır — her tuş vuruşunda
+  /// tüm formu yeniden sayfalamak pahalı olurdu.
+  void _onFormChanged() {
+    _scheduleSave();
+    _growTimer?.cancel();
+    _growTimer = Timer(const Duration(milliseconds: 400), () {
+      if (mounted) _growPagesForForm();
+    });
+  }
+
+  /// Form içeriği mevcut sayfalara sığmıyorsa sayfa sayısını büyütür (satır/
+  /// tablo eklenince yazılan şey kartın altında kırpılıp kaybolmasın). ASLA
+  /// küçültmez — kullanıcının elle eklediği boş sayfalar korunur.
   Future<void> _growPagesForForm() async {
     final id = _docId;
     final doc = ref.read(activeDocumentProvider);
@@ -240,6 +253,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   @override
   void dispose() {
     _saveTimer?.cancel();
+    _growTimer?.cancel();
     _save();
     if (ref.read(activeQuillControllerProvider) == _controller) {
       ref.read(activeQuillControllerProvider.notifier).state = null;
@@ -351,7 +365,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                             pageSize: pageSize,
                             form: _form,
                             formEditable: textMode,
-                            onFormChanged: _scheduleSave,
+                            onFormChanged: _onFormChanged,
                           ),
                           const SizedBox(height: 16),
                           _AddPageButton(onTap: _addPage),

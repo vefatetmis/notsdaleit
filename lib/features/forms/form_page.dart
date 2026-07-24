@@ -909,6 +909,29 @@ class _FormPageState extends ConsumerState<FormPage> {
     );
   }
 
+  /// Tablonun altındaki küçük ekleme düğmesi (satır / sütun). Dikey ölçüsü
+  /// [kFbTableAddH] ile birebir aynı kalmalı.
+  Widget _tableAddButton(String label, VoidCallback onTap) => InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.add, size: 16, color: paper.muted),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: paper.muted),
+              ),
+            ],
+          ),
+        ),
+      );
+
   Widget _table(int i, TableBlock b) {
     final line = BorderSide(color: paper.line, width: kFbTableBorder);
     final lineH = kFbTableLineH;
@@ -977,24 +1000,17 @@ class _FormPageState extends ConsumerState<FormPage> {
         if (widget.editable) ...[
           if (_rowSpacer(i, b.rows.length) > 0)
             SizedBox(height: _rowSpacer(i, b.rows.length)),
-          InkWell(
-            onTap: () => _editTable(i, b.addRow),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              child: Row(
-                children: [
-                  Icon(Icons.add, size: 16, color: paper.muted),
-                  const SizedBox(width: 10),
-                  Text(
-                    context.t('Satır ekle', 'Add row'),
-                    style: TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w600,
-                        color: paper.muted),
-                  ),
-                ],
-              ),
-            ),
+          // Satır + sütun ekleme AYNI satırda: ölçüde (kFbTableAddH) bir
+          // değişiklik olmaz → sayfalama bozulmaz. (Araya ekleme/silme hâlâ
+          // araç çubuğundaki tablo menüsünde.)
+          Row(
+            children: [
+              _tableAddButton(
+                  context.t('Satır ekle', 'Add row'), () => _editTable(i, b.addRow)),
+              const SizedBox(width: 22),
+              _tableAddButton(context.t('Sütun ekle', 'Add column'),
+                  () => _editTable(i, b.addColumn)),
+            ],
           ),
         ],
       ],

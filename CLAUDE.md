@@ -523,7 +523,8 @@ sonraki Play yüklemesinde (versionCode **+5**) gidecek:
 | Form alanlarında alan-bazlı biçim (B/I/U) | `6d8ea51` |
 | Şekiller (düz çizgi/dikdörtgen/elips) + dikdörtgen köşe düzeltmesi | `cd0d4a6`, `f5ec9c2` |
 | Lasso (kement) seçim / taşıma / silme | `f5ec9c2` |
-| Tablo ekleme + satır/sütun düzenleme (24 Tem 2026) | bu oturum |
+| Tablo ekleme + satır/sütun düzenleme (24 Tem 2026) | `51c5ab7` |
+| Tablo saha hataları düzeltmesi (otomatik sayfa büyütme + "Sütun ekle") | bu oturum |
 
 **Kapalı testteki 1.3.0+4'ün içeriği (aşağıdaki listenin ilk 9 maddesi):**
 
@@ -563,31 +564,31 @@ sonraki Play yüklemesinde (versionCode **+5**) gidecek:
 - **Lasso seçim** (seç/taşı/sil). Madde 4(b3).
 - **Tablo ekleme** (araç çubuğundan; satır/sütun düzenleme). Madde 4(a).
 
-### 🔴 AÇIK HATA — YENİ OTURUM ÖNCE BUNLARI DÜZELTSİN (24 Tem 2026, saha testi)
+### ✅ DÜZELTİLDİ — tablo saha testi hataları (24 Tem 2026)
 
-Tablo özelliği (madde 4(a)) cihazda denendi, **iki kusur** çıktı. Kullanıcı
-"düzeltmeleri yeni sohbette yapalım" dedi. Önce bunlar, sonra yeni iş.
+Tablo özelliği (madde 4(a)) cihazda denendi, iki kusur çıktı; **ikisi de
+düzeltildi** (dev APK'da):
 
-1. **Taşan içerik GÖRÜNMÜYOR.** Tablo/satır büyüyüp son sayfa kartını aşınca
-   fazlası ekranda yok. Sebep tespit edildi: `_Sheet` (note_editor_screen) içeriği
-   bir `Stack` çocuğu ve `Stack` varsayılan olarak **kırpıyor** (`Clip.hardEdge`);
-   `paginateForm(maxPages: pageCount)` da son sayfada artık atlama yapmadığından
-   içerik kartın altından taşıyor → kırpılıyor. (Form notlarında sayfa MANUEL
-   olduğu için tasarım gereği taşıyordu, ama kırpılınca kullanıcı yazdığını
-   göremiyor.) **Önerilen çözüm:** form değişince sayfa sayısını otomatik
-   BÜYÜT (asla küçültme) — `_growPagesForForm()` zaten yazılı (tablo eklerken
-   çağrılıyor), onu `onFormChanged`/`_scheduleSave` yolunda debounce'lu çağırmak
-   yetiyor. "Yeni sayfa" düğmesi kalsın. (Alternatif — Stack'i kırpmamak — sayfa
-   kartının dışına taşan yazı demek, çirkin; önerilmez.)
-2. **Sütun ekleme bulunamıyor.** Tablonun altında yalnız "Satır ekle" düğmesi
-   var; sütun ekleme sadece araç çubuğundaki menüde (hücreye dokun → çerçeve
-   ikonu) ve kullanıcı bulamadı. **Önerilen çözüm:** alt satıra ikinci bir
-   düğme — "Sütun ekle" (sona ekler, `b.addColumn()`); ikisi aynı satırda
-   olduğundan `kFbTableAddH` ölçüsü değişmez, sayfalama bozulmaz. Araç çubuğu
-   menüsü (araya ekleme/silme) kalsın.
+1. **Taşan içerik GÖRÜNMÜYOR — düzeltildi.** Sebep: `_Sheet` içeriği `Stack`
+   çocuğu ve `Stack` varsayılan olarak **kırpıyor**; `paginateForm(maxPages:
+   pageCount)` son sayfada artık atlama yapmadığından içerik kartın altından
+   taşıp kırpılıyordu. **Çözüm:** form değişince sayfa sayısı otomatik BÜYÜR
+   (asla küçülmez) — `note_editor_screen._onFormChanged()` = `_scheduleSave()` +
+   400 ms gecikmeli `_growPagesForForm()`. `FormPage.onChanged` artık bu yeni
+   metoda bağlı (eskiden doğrudan `_scheduleSave`'e gidiyordu). "Yeni sayfa"
+   düğmesi duruyor. Büyütme `formNaturalPageCount` (editable: true) ile hesaplanır.
+2. **Sütun ekleme bulunamıyor — düzeltildi.** Tablonun altındaki satıra ikinci
+   düğme eklendi: **"Satır ekle" + "Sütun ekle"** aynı `Row` içinde
+   (`form_page._tableAddButton`) → `kFbTableAddH` ölçüsü değişmedi, sayfalama
+   bozulmadı. Araç çubuğundaki tablo menüsü (araya ekleme/silme/başlık) duruyor.
 
-**⭐ SONRAKİ ADIM (yeni session buradan devam):** ÖNCE yukarıdaki 🔴 iki hata.
-Sonrası: "Büyükler" bloğunun **tamamı bitti** — (a) tablo ekleme, (b1) şekiller,
+**Bu düzeltmelerin getirdiği bilinen sınır:** sayfa sayısı büyür, **küçülmez** —
+tablo satırı silince fazladan sayfa kartı boş kalır ve kullanıcı onu
+kaldıramaz (sayfa silme özelliği YOK). İstenirse "Sayfayı sil" ayrı iş olarak
+eklenebilir.
+
+**⭐ SONRAKİ ADIM (yeni session buradan devam):** açık hata YOK.
+"Büyükler" bloğunun **tamamı bitti** — (a) tablo ekleme, (b1) şekiller,
 (b3) lasso, (c) form alan biçimi (alan bazında). **(b2) cetvel YAPILMAYACAK — kullanıcı kararı: "gerek yok".**
 Madde 1/2/3 de bitti. Yani "Uygulama içi cila + özellikler" listesinde açık iş
 KALMADI; sıradaki adaylar "Bilinçli ertelenenler" (form biçim v2) ya da
@@ -730,9 +731,8 @@ hepsi uygulandı. Yeni iş kullanıcıdan gelecek; kendiliğinden başlanacak te
      aynen kalır. **PDF/PNG:** `_paintForm.tableRow` aynı metriklerle çizer.
      Ayrıca yeni-not "Temel" sekmesine **Tablo** şablonu (başlık + 5×3) eklendi.
      **Bilinen sınırlar:** dönüştürmede Quill biçimleri (kalın/italik/madde) düz
-     metne iner; hücre içinde yazı boyutu yok (form biçim v2 ile gelecek); satır
-     eklemek sayfayı otomatik büyütmez (form notlarında sayfa MANUEL — "Yeni
-     sayfa"), yalnız tablo eklenirken büyür.
+     metne iner; hücre içinde yazı boyutu yok (form biçim v2 ile gelecek).
+     *(Sayfa büyütme artık otomatik — bkz. "✅ DÜZELTİLDİ" bloğu.)*
    - **(b1) Şekiller — UYGULANDI (dev APK):** kalem/fosfor ile **düz çizgi,
      dikdörtgen, elips**. `ShapeMode` enum + `shapeModeProvider` (oturumluk,
      `drawing_state`). `buildShapePoints(mode,a,b)` başlangıç→güncelden nokta
@@ -843,12 +843,14 @@ olarak çizilir.**
   (kendi zemin/kenarlık/gölge/desen), aralarda gerçek boşluk
   (`kPageGapRatio = 0.05 × genişlik`). Eski sürekli-tabaka + bant ayracı
   (`_PageLinesPainter`) KALDIRILDI.
-- **Sayfa sayısı MANUEL (form notları; kullanıcı kararı):** form açılınca
-  otomatik büyümez. `createConfiguredNote` oluştururken `formNaturalPageCount`
-  ile içeriğe yetecek sayfa sayısını hesaplayıp `pageCount`'a yazar. İçerik
-  (satır ekleyince) son sayfayı aşarsa `paginateForm(maxPages: pageCount)`
-  boşluk atlamadan bırakır → içerik son kartın altından taşar; kullanıcı
-  **"Yeni sayfa"** düğmesiyle yer açar (pageCount++). Metrikler `formMetrics()`
+- **Sayfa sayısı (form notları): otomatik BÜYÜR, küçülmez.**
+  `createConfiguredNote` oluştururken `formNaturalPageCount` ile içeriğe yetecek
+  sayfa sayısını hesaplayıp `pageCount`'a yazar. Sonrasında her form değişikliği
+  `_onFormChanged` → 400 ms sonra `_growPagesForForm()` ile yeniden ölçer;
+  içerik son sayfayı aşarsa pageCount büyür (aksi hâlde `paginateForm(maxPages:
+  pageCount)` boşluk atlamadan bırakır ve taşan kısım `Stack` tarafından
+  KIRPILIR — eski hata buydu). Küçülme yok; kullanıcı ayrıca **"Yeni sayfa"**
+  düğmesiyle elle boş sayfa ekleyebilir. Metrikler `formMetrics()`
   (ekran + doğal sayı + PDF export ortak). **Quill (serbest) notlar** hâlâ
   post-frame ölçümle (`_quillKey` → RenderBox) otomatik büyür — akışkan metin
   için manuel sayfa mantıksız. **PDF export** form içeriğini tam sayfalar
