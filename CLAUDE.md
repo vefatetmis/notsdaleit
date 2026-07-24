@@ -40,10 +40,11 @@ Tasarımdaki **tüm ekranlar** kodlandı ve çalışıyor:
   `onboardingDoneProvider` (kalıcı) ile bir kez gösterilir; "Geç" ile atlanır.
 - **İki dil (TR/EN):** `core/i18n/i18n.dart` — `localeProvider` (kalıcı) +
   `context.t('Türkçe','English')` uzantısı (ARB/kod üretimi YOK). `MaterialApp.locale`
-  buradan gelir; dil Ayarlar'dan seçilir. **Çevrilen ekranlar:** kabuk, kütüphane,
-  ayarlar, takvim, onboarding, yeni-not/sil, editör temelleri, boş durumlar.
-  **Henüz Türkçe kalan:** klasörler/arama ekranları, bazı araç çubuğu tooltip'leri,
-  `date_format` göreli tarihler. Yeni metin eklerken `context.t(tr, en)` kullan.
+  buradan gelir; dil Ayarlar'dan seçilir. **Tüm ekranlar çevrildi** (24 Tem
+  2026'da son eksikler kapandı: araç çubuğu, klasörler, arama, renk seçici,
+  göreli tarihler). Göreli tarih için `formatRelative(context, tarih)` kullan
+  (saf hâli `formatRelativeIn(tarih, en: …)`). Yeni metin eklerken her zaman
+  `context.t(tr, en)` kullan.
 - **Örnek not tohumlaması KALDIRILDI** — uygulama boş başlar (`seedIfEmpty` no-op).
 - **Not editörü (`NoteEditorScreen`):** tüm notlar **boyutlu beyaz sayfa**
   (A4 / Kare). Aynı sayfada hem **biçimli yazı** (flutter_quill) hem **kalemle
@@ -528,8 +529,10 @@ sonraki Play yüklemesinde (versionCode **+5**) gidecek:
 | Tablo ekleme + satır/sütun düzenleme (24 Tem 2026) | `51c5ab7` |
 | Tablo saha hataları düzeltmesi (sayfa kabuğu tazeleme + "Sütun ekle") | `694ac19`, `a094952` |
 | Tablo satır/sütun üst sınırları (sayfa boyutuna göre) | `a094952` |
-| Renk paleti: sıcak bej + denim mavi | bu oturum |
-| E-posta girişi arayüzü gizlendi (`kAuthEnabled = false`) | bu oturum |
+| Renk paleti: sıcak bej + mavi `#295DB4` | `bb7995f` + bu oturum |
+| E-posta girişi arayüzü gizlendi (`kAuthEnabled = false`) | `bb7995f` |
+| Geri al / ileri al (yazı + çizim) | bu oturum |
+| Çeviri eksikleri kapandı (araç çubuğu, klasörler, arama, tarihler) | bu oturum |
 
 **Kapalı testteki 1.3.0+4'ün içeriği (aşağıdaki listenin ilk 9 maddesi):**
 
@@ -596,13 +599,26 @@ asıl sebep bulundu.
 
 **Tablo boyut sınırları (kullanıcı kararı: "her boyut için maksimum satır ve
 sütun belirleyelim, sonrasına karışmayalım")** — `form_layout.maxTableRows/
-maxTableCols`, sayfa boyutundan **hesaplanır** (sabit tablo değil):
-satır = bir sayfaya sığan tek-satırlık satır sayısı, sütun = hücre iç genişliği
-44 sanal px altına düşmeyen sayı. Bugünkü değerler: **A4 22×8 · kare 14×8 ·
-yatay 14×12 · telefon 26×6**. Sınır üç yerde birden uygulanır: ekleme diyaloğu
-(`insert_table` stepper max + altında açıklama satırı), tablo altı düğmeler
-(soluklaşır + `Icons.block`, basınca sebebi snackbar'da), araç çubuğu tablo
-menüsü (ekleme öğeleri gizlenir).
+maxTableCols`. Sınır üç yerde birden uygulanır: ekleme diyaloğu (`insert_table`
+stepper max + altında açıklama satırı), tablo altı düğmeler (soluklaşır +
+`Icons.block`, basınca sebebi snackbar'da), araç çubuğu tablo menüsü (ekleme
+öğeleri gizlenir).
+
+- **Satır sınırı SABİT ve CİHAZDA ÖLÇÜLDÜ:** `a4 12 · kare 8 · yatay 8 ·
+  telefon 14`. İlk sürümde hesapla türetilmişti (`contentH / satır yüksekliği`
+  → A4 için 22) ama sahada **başlıkla birlikte 12. satırdan sonrası
+  görünmüyordu**: gerçek hücreler (TextField) tek satırlık taban ölçüden yüksek
+  çiziliyor ve içerik girildikçe satırlar sarıyor. Yani `tableRowHeight` ekranı
+  olduğundan küçük tahmin ediyor — **`formNaturalPageCount` da bu yüzden
+  "sığıyor" deyip sayfa açmıyordu.** Formülü zorlamak yerine kullanıcının
+  ölçtüğü sayı sabitlendi ("12'de keselim, diğerlerini de buna göre
+  düzenleyelim"); diğer boyutlar A4'ün içerik yüksekliğine oranlandı.
+  *(Ölçüm/çizim farkı hâlâ duruyor — uzun checklist'lerde de aynı iyimserlik
+  görülebilir. Kökten çözüm hücre satır yüksekliğini `forceStrutHeight` ile
+  sabitlemek olurdu; denenmedi.)*
+- **Sütun sınırı hesaplanır:** hücre iç genişliği 44 sanal px altına düşmeyen
+  sayı → `a4/kare 8 · yatay 12 · telefon 6`. Genişlik hesabı kesin olduğu için
+  bu formül sahada tutuyor.
 
 **Bilinen sınır:** sayfa sayısı büyür, **küçülmez** — içerik silince fazladan
 sayfa kartı boş kalır ve kullanıcı onu kaldıramaz (sayfa silme özelliği YOK).
@@ -634,9 +650,12 @@ için ekran ekran dolaşmak gerekmedi) + `app_theme` seed rengi:
 | border / borderStrong | `#E7E0D3` / `#DBD2C1` | `#2C2820` / `#3A3529` |
 | text / text2 | `#2B2723` / `#8B8175` | `#ECE7DE` / `#9A9184` |
 | bar / bar2 / hover | `#CFC6B5` / `#E6DFD2` / `#EDE6D8` | `#4A453A` / `#2A261E` / `#232019` |
-| **accent** | **`#3F6E9E` denim mavi** | **`#7FB2E0`** |
-| accentFg | `#FFFFFF` | `#101A22` |
-| **accentSoft** (YENİ) | `#E4EDF5` | `#1F2A33` |
+| **accent** | **`#295DB4`** (kullanıcının verdiği kod) | **`#6E9FE8`** |
+| accentFg | `#FFFFFF` | `#0B162B` |
+| **accentSoft** (YENİ) | `#DFE8F7` | `#1B2740` |
+
+> İlk denenen vurgu `#3F6E9E` idi; kullanıcı "soluk olmuş, koyulaştıralım"
+> deyip `#295DB4`'ü verdi. Koyu tema tonu ondan türetildi.
 
 - **`accentSoft` yeni token:** vurgunun soluk zemini (seçili öğe/çip). copyWith
   + lerp'e eklendi.
@@ -679,11 +698,41 @@ yok, controller'lar düzgün dispose ediliyor. Çıkan iş listesi (sıralı):
    bildirim kurulmuyor). En azından geri yükleme sonrası kullanıcı uyarılmalı.
 
 **B — tamamlanmamış işler**
-6. **Çeviri eksikleri:** `drawing_toolbar` 22, `folders_screen` 13 sabit Türkçe
-   metin + `core/utils/date_format.dart` göreli tarihler ("2 sa önce") tamamen
-   Türkçe. İngilizce seçilince bunlar Türkçe kalıyor.
+6. ~~Çeviri eksikleri~~ → **YAPILDI** (aşağı bkz.).
 7. **Etiketleme yalnız kütüphane seçim çubuğundan** (editör içinden yok).
 8. **Lasso ile taşıma canlı paylaşıma gitmiyor** (collab yalnız ekleme/silme).
+
+### ✅ ÇEVİRİ EKSİKLERİ KAPANDI (24 Tem 2026)
+
+İngilizce seçiliyken Türkçe kalan metinler `context.t(tr, en)`'e çevrildi:
+`drawing_toolbar` (25 tooltip/etiket — araç adları, biçim düğmeleri, şekil
+menüsü, kâğıt/yazı boyutu), `folders_screen` (klasör + etiket diyaloglarının
+tamamı), `search_screen` (arama ipucu, "sonuç bulunamadı", "Adsız not"),
+`color_picker` ("Renk seç").
+
+**Göreli tarihler artık iki dilli.** `core/utils/date_format.dart` yeniden
+yazıldı: saf fonksiyon `formatRelativeIn(dateTime, {required bool en})`
+(test edilebilir) + ekranların kullandığı `formatRelative(context, dateTime)`
+kısayolu. **Çağrı yeri imzası değişti** — dört ekran güncellendi (folders,
+library, search, trash). `test/widget_test.dart` iki dili de kapsıyor (8 test,
+hepsi geçiyor).
+
+### ✅ GERİ AL / İLERİ AL (24 Tem 2026)
+
+Kullanıcı isteği: "notlara geri alma ileri alma butonları ekleyelim."
+
+- **Yazı modunda (Quill):** araç çubuğuna undo/redo düğmeleri —
+  `controller.undo()/redo()`, etkinlik `hasUndo/hasRedo`'dan. Ayrı bir geçmiş
+  tutulmadı, Quill'in kendi geçmişi kullanıldı.
+- **Çizim modunda:** "Geri al" zaten vardı, **"İleri al" yeni**.
+  `undoLastForDoc` artık sildiği `Stroke`'u döndürüyor; kaldırılan çizimler
+  `strokeRedoProvider` (oturumluk liste) içinde birikiyor, ileri al
+  `restoreStroke` ile geri koyuyor (yeni satır olarak → `remoteId` taşınmaz,
+  canlı paylaşımda yeniden gönderilir). Yeni bir çizim yapılınca redo yığını
+  temizlenir (`drawing_layer`), çünkü geri alınan dal artık geçerli değildir.
+- **Form notlarında yazı geri alma YOK** — alanlar düz `TextField`, ortak bir
+  geçmiş yığını yok. (Sistem klavyesinin kendi geri alması çalışır.) Gerekirse
+  `FormDoc` anlık görüntüleriyle ayrı bir yığın kurulmalı.
 
 **C — fazlalıklar**
 9. **`features/editor/table_embed.dart`** (318 satır) — başarısız ndtable
@@ -699,9 +748,10 @@ elle 36'ya sabitlendi (Flutter yükseltilmedi); ayrıntı "Önemli notlar"da.
 ### 📋 YARIM KALANLAR & KARARLAR — tek bakışta (yeni oturum önce burayı okusun)
 
 **Sıradaki iş:** yukarıdaki **"YENİ YOL HARİTASI (24 Tem 2026 kod denetimi)"**
-bölümü — sırada A3 (sayfa silme), sonra B6 (çeviri eksikleri), A4 (Quill sayfa
-taşması), A5 (yedek hatırlatıcıları), C9 (table_embed temizliği). Eski "Uygulama
-içi cila + özellikler" listesinin tamamı uygulandı.
+bölümü. Kapananlar: A1 (giriş düğmesi), A2 (renk paleti), B6 (çeviriler), +
+geri/ileri al. **Sırada: A3 sayfa silme → A4 Quill sayfa taşması → A5 yedek
+hatırlatıcıları → B7 editörden etiketleme → B8 lasso collab → C9 table_embed
+temizliği.** Eski "Uygulama içi cila + özellikler" listesinin tamamı uygulandı.
 
 **Bilinçli ertelenenler (yapılacak, sırası gelmedi):**
 1. **Form biçim v2** — alan içi **kelime bazlı** biçim + **yazı boyutu**. İkisi de
@@ -736,7 +786,8 @@ içi cila + özellikler" listesinin tamamı uygulandı.
   çakışması); `printing` yalnız PDF paylaşabiliyor. Kullanıcı galeriden paylaşır.
 - **Etiketleme yalnız kütüphane seçim çubuğundan** (editör içinden etiketleme
   yok). Etiket **rengi** yok (düz `#ad`).
-- Kalan **Türkçe** ekranlar: klasörler/arama, bazı tooltip'ler, `date_format`.
+- **Form notlarında yazı için geri/ileri al yok** (alanlar düz TextField;
+  Quill notlarında ve çizimde var).
 
 ## PLANLANAN — sonraki işler (sıralı)
 
@@ -882,8 +933,7 @@ içi cila + özellikler" listesinin tamamı uygulandı.
 **Bilinen küçük pürüzler (sıraya alındı):**
 - Quill (serbest) notlarda uzun metin sayfa sınırından taşabilir (satır-bazlı
   Quill sayfalama yapılmadı).
-- Kalan Türkçe metinler (klasörler/arama ekranları, bazı tooltip'ler,
-  `date_format` göreli tarihler) İngilizce'ye çevrilmedi.
+- ~~Kalan Türkçe metinler~~ → çevrildi (24 Tem 2026).
 
 ### Tasarım sadakati — form-not sayfaları (UYGULANDI, referans)
 

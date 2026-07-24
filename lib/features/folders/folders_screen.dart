@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/i18n/i18n.dart';
 import '../../core/theme/nd_colors.dart';
 import '../../core/utils/date_format.dart';
 import '../../data/data_providers.dart';
@@ -76,15 +77,18 @@ class _TagsSection extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Etiketler',
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          Text(
+            context.t('Etiketler', 'Tags'),
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
           if (tags.isEmpty)
             Text(
-              'Henüz etiket yok. Kütüphanede bir notu seçip "Etiketle" ile '
-              'etiket ekleyin.',
+              context.t(
+                  'Henüz etiket yok. Kütüphanede bir notu seçip "Etiketle" ile '
+                      'etiket ekleyin.',
+                  'No tags yet. Select a note in the library and use "Etiketle" '
+                      'to add one.'),
               style: TextStyle(fontSize: 13, color: nd.text2, height: 1.4),
             )
           else
@@ -153,12 +157,12 @@ Future<void> _showTagMenu(BuildContext context, WidgetRef ref, Tag tag) async {
         children: [
           ListTile(
             leading: const Icon(Icons.edit_outlined),
-            title: const Text('Yeniden adlandır'),
+            title: Text(context.t('Yeniden adlandır', 'Rename')),
             onTap: () => Navigator.of(context).pop('rename'),
           ),
           ListTile(
             leading: const Icon(Icons.delete_outline),
-            title: const Text('Etiketi sil'),
+            title: Text(context.t('Etiketi sil', 'Delete tag')),
             onTap: () => Navigator.of(context).pop('delete'),
           ),
         ],
@@ -177,21 +181,22 @@ Future<void> _renameTag(BuildContext context, WidgetRef ref, Tag tag) async {
   final name = await showDialog<String>(
     context: context,
     builder: (context) => AlertDialog(
-      title: const Text('Etiketi yeniden adlandır'),
+      title: Text(context.t('Etiketi yeniden adlandır', 'Rename tag')),
       content: TextField(
         controller: controller,
         autofocus: true,
-        decoration: const InputDecoration(prefixText: '#', hintText: 'Etiket adı'),
+        decoration: InputDecoration(
+            prefixText: '#', hintText: context.t('Etiket adı', 'Tag name')),
         onSubmitted: (v) => Navigator.of(context).pop(v),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Vazgeç'),
+          child: Text(context.t('Vazgeç', 'Cancel')),
         ),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(controller.text),
-          child: const Text('Kaydet'),
+          child: Text(context.t('Kaydet', 'Save')),
         ),
       ],
     ),
@@ -203,7 +208,9 @@ Future<void> _renameTag(BuildContext context, WidgetRef ref, Tag tag) async {
   } catch (_) {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('"#$n" adında bir etiket zaten var.')),
+        SnackBar(
+            content: Text(context.t('"#$n" adında bir etiket zaten var.',
+                'A tag named "#$n" already exists.'))),
       );
     }
   }
@@ -213,17 +220,19 @@ Future<void> _deleteTag(BuildContext context, WidgetRef ref, Tag tag) async {
   final ok = await showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(
-      title: Text('"#${tag.name}" silinsin mi?'),
-      content: const Text(
-          'Etiket kaldırılacak; notlar silinmez, yalnızca bu etiketi kaybeder.'),
+      title: Text(context.t('"#${tag.name}" silinsin mi?',
+          'Delete "#${tag.name}"?')),
+      content: Text(context.t(
+          'Etiket kaldırılacak; notlar silinmez, yalnızca bu etiketi kaybeder.',
+          'The tag is removed; notes are kept, they just lose this tag.')),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(false),
-          child: const Text('Vazgeç'),
+          child: Text(context.t('Vazgeç', 'Cancel')),
         ),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(true),
-          child: const Text('Sil'),
+          child: Text(context.t('Sil', 'Delete')),
         ),
       ],
     ),
@@ -254,19 +263,23 @@ class _FolderTile extends ConsumerWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('"$name" silinsin mi?'),
+        title: Text(context.t('"$name" silinsin mi?', 'Delete "$name"?')),
         content: Text(hasFiles
-            ? 'Klasör silinecek; içindeki ${files.length} belge "Kişisel" '
-                'klasörüne taşınacak.'
-            : 'Bu klasör silinecek.'),
+            ? context.t(
+                'Klasör silinecek; içindeki ${files.length} belge "Kişisel" '
+                    'klasörüne taşınacak.',
+                'The folder will be deleted; the ${files.length} documents '
+                    'inside move to "Kişisel".')
+            : context.t('Bu klasör silinecek.',
+                'This folder will be deleted.')),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Vazgeç'),
+            child: Text(context.t('Vazgeç', 'Cancel')),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Sil'),
+            child: Text(context.t('Sil', 'Delete')),
           ),
         ],
       ),
@@ -317,7 +330,9 @@ class _FolderTile extends ConsumerWidget {
                           fontSize: 14.5, fontWeight: FontWeight.w600),
                     ),
                   ),
-                  Text('${files.length} öğe',
+                  Text(
+                      context.t('${files.length} öğe',
+                          '${files.length} item${files.length == 1 ? '' : 's'}'),
                       style: TextStyle(fontSize: 12.5, color: nd.text2)),
                 ],
               ),
@@ -333,7 +348,7 @@ class _FolderTile extends ConsumerWidget {
                       padding: const EdgeInsets.fromLTRB(36, 6, 10, 6),
                       child: Align(
                         alignment: Alignment.centerLeft,
-                        child: Text('Boş klasör',
+                        child: Text(context.t('Boş klasör', 'Empty folder'),
                             style: TextStyle(fontSize: 13.5, color: nd.text2)),
                       ),
                     )
@@ -371,7 +386,9 @@ class _FileRow extends ConsumerWidget {
               const SizedBox(width: 11),
               Expanded(
                 child: Text(
-                  doc.title.trim().isEmpty ? 'Adsız not' : doc.title,
+                  doc.title.trim().isEmpty
+                      ? context.t('Adsız not', 'Untitled note')
+                      : doc.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -395,7 +412,7 @@ class _FileRow extends ConsumerWidget {
                 ),
                 const SizedBox(width: 8),
               ],
-              Text(formatRelative(doc.updatedAt),
+              Text(formatRelative(context, doc.updatedAt),
                   style: TextStyle(fontSize: 12, color: nd.text2)),
             ],
           ),
@@ -425,7 +442,7 @@ class _NewFolderButton extends ConsumerWidget {
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: nd.borderStrong),
         ),
-        child: Text('+ Yeni klasör',
+        child: Text(context.t('+ Yeni klasör', '+ New folder'),
             style: TextStyle(
                 fontSize: 13.5, fontWeight: FontWeight.w600, color: nd.text2)),
       ),
@@ -437,21 +454,22 @@ class _NewFolderButton extends ConsumerWidget {
     return showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Yeni klasör'),
+        title: Text(context.t('Yeni klasör', 'New folder')),
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(hintText: 'Klasör adı'),
+          decoration: InputDecoration(
+              hintText: context.t('Klasör adı', 'Folder name')),
           onSubmitted: (v) => Navigator.of(context).pop(v),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Vazgeç'),
+            child: Text(context.t('Vazgeç', 'Cancel')),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(controller.text),
-            child: const Text('Ekle'),
+            child: Text(context.t('Ekle', 'Add')),
           ),
         ],
       ),

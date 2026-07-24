@@ -120,6 +120,7 @@ class _PenBar extends ConsumerWidget {
     final isForm = isNote && isFormBody(activeDoc?.body ?? '');
     final hasStrokes =
         (ref.watch(activeStrokesProvider).valueOrNull ?? const []).isNotEmpty;
+    final canRedo = ref.watch(strokeRedoProvider).isNotEmpty;
 
     void setTool(PenTool t) {
       ref.read(toolProvider.notifier).state = t;
@@ -136,39 +137,39 @@ class _PenBar extends ConsumerWidget {
         _ToolButton(
           icon: Icons.pan_tool_alt_outlined,
           active: tool == PenTool.el,
-          tooltip: 'Seç / kaydır',
+          tooltip: context.t('Seç / kaydır', 'Select / pan'),
           onTap: () => setTool(PenTool.el),
         ),
         if (canText || isForm)
           _ToolButton(
             icon: Icons.text_format,
             active: false,
-            tooltip: 'Yazı (Aa)',
+            tooltip: context.t('Yazı (Aa)', 'Text (Aa)'),
             onTap: () => setTool(PenTool.yazi),
           ),
         _ToolButton(
           icon: Icons.edit_outlined,
           active: tool == PenTool.kalem,
-          tooltip: 'Kalem',
+          tooltip: context.t('Kalem', 'Pen'),
           onTap: () => setTool(PenTool.kalem),
         ),
         _ToolButton(
           icon: Icons.border_color_outlined,
           active: tool == PenTool.fosfor,
-          tooltip: 'Fosforlu kalem',
+          tooltip: context.t('Fosforlu kalem', 'Highlighter'),
           onTap: () => setTool(PenTool.fosfor),
         ),
         _ToolButton(
           icon: Icons.auto_fix_normal_outlined,
           active: tool == PenTool.silgi,
-          tooltip: 'Silgi',
+          tooltip: context.t('Silgi', 'Eraser'),
           onTap: () => setTool(PenTool.silgi),
         ),
         const _ShapeButton(),
         _ToolButton(
           icon: Icons.highlight_alt_outlined,
           active: tool == PenTool.lasso,
-          tooltip: 'Kement (seç ve taşı)',
+          tooltip: context.t('Kement (seç ve taşı)', 'Lasso (select & move)'),
           onTap: () => setTool(PenTool.lasso),
         ),
         _divider(nd.border),
@@ -196,16 +197,39 @@ class _PenBar extends ConsumerWidget {
         _ToolButton(
           icon: Icons.undo,
           active: false,
-          tooltip: 'Geri al',
+          tooltip: context.t('Geri al', 'Undo'),
           opacity: hasStrokes ? 1 : 0.35,
           onTap: docId == null || !hasStrokes
               ? null
-              : () => ref.read(drawingRepositoryProvider).undoLastForDoc(docId),
+              : () async {
+                  final removed = await ref
+                      .read(drawingRepositoryProvider)
+                      .undoLastForDoc(docId);
+                  if (removed == null) return;
+                  ref.read(strokeRedoProvider.notifier).state = [
+                    ...ref.read(strokeRedoProvider),
+                    removed,
+                  ];
+                },
+        ),
+        _ToolButton(
+          icon: Icons.redo,
+          active: false,
+          tooltip: context.t('İleri al', 'Redo'),
+          opacity: canRedo ? 1 : 0.35,
+          onTap: !canRedo
+              ? null
+              : () {
+                  final stack = [...ref.read(strokeRedoProvider)];
+                  final s = stack.removeLast();
+                  ref.read(strokeRedoProvider.notifier).state = stack;
+                  ref.read(drawingRepositoryProvider).restoreStroke(s);
+                },
         ),
         _ToolButton(
           icon: Icons.delete_outline,
           active: false,
-          tooltip: 'Tümünü temizle',
+          tooltip: context.t('Tümünü temizle', 'Clear all'),
           opacity: hasStrokes ? 1 : 0.35,
           onTap: docId == null || !hasStrokes
               ? null
@@ -255,47 +279,64 @@ class _TextBar extends ConsumerWidget {
             _ToolButton(
               icon: Icons.edit_outlined,
               active: false,
-              tooltip: 'Çizime dön',
+              tooltip: context.t('Çizime dön', 'Back to drawing'),
               onTap: () =>
                   ref.read(toolProvider.notifier).state = PenTool.kalem,
+            ),
+            _divider(nd.border),
+            // Yazının geri/ileri alınması Quill'in kendi geçmişinden gelir
+            // (çizim geri alma ayrı — kalem çubuğunda).
+            _ToolButton(
+              icon: Icons.undo,
+              active: false,
+              tooltip: context.t('Geri al', 'Undo'),
+              opacity: controller.hasUndo ? 1 : 0.35,
+              onTap: controller.hasUndo ? controller.undo : null,
+            ),
+            _ToolButton(
+              icon: Icons.redo,
+              active: false,
+              tooltip: context.t('İleri al', 'Redo'),
+              opacity: controller.hasRedo ? 1 : 0.35,
+              onTap: controller.hasRedo ? controller.redo : null,
             ),
             _divider(nd.border),
             _ToolButton(
               icon: Icons.format_bold,
               active: _has(controller, Attribute.bold.key),
-              tooltip: 'Kalın',
+              tooltip: context.t('Kalın', 'Bold'),
               onTap: () => _toggle(Attribute.bold),
             ),
             _ToolButton(
               icon: Icons.format_italic,
               active: _has(controller, Attribute.italic.key),
-              tooltip: 'İtalik',
+              tooltip: context.t('İtalik', 'Italic'),
               onTap: () => _toggle(Attribute.italic),
             ),
             _ToolButton(
               icon: Icons.format_underlined,
               active: _has(controller, Attribute.underline.key),
-              tooltip: 'Altı çizili',
+              tooltip: context.t('Altı çizili', 'Underline'),
               onTap: () => _toggle(Attribute.underline),
             ),
             _ToolButton(
               icon: Icons.strikethrough_s,
               active: _has(controller, Attribute.strikeThrough.key),
-              tooltip: 'Üstü çizili',
+              tooltip: context.t('Üstü çizili', 'Strikethrough'),
               onTap: () => _toggle(Attribute.strikeThrough),
             ),
             _divider(nd.border),
             _ToolButton(
               icon: Icons.format_list_bulleted,
               active: _has(controller, Attribute.list.key, 'bullet'),
-              tooltip: 'Madde işareti',
+              tooltip: context.t('Madde işareti', 'Bulleted list'),
               onTap: () => _toggleList('bullet'),
             ),
             _ToolButton(
               icon: Icons.checklist,
               active: _has(controller, Attribute.list.key, 'unchecked') ||
                   _has(controller, Attribute.list.key, 'checked'),
-              tooltip: 'Onay kutulu liste',
+              tooltip: context.t('Onay kutulu liste', 'Checklist'),
               onTap: () => _toggleList('unchecked'),
             ),
             _divider(nd.border),
@@ -328,7 +369,7 @@ class _FormTextBar extends ConsumerWidget {
         _ToolButton(
           icon: Icons.edit_outlined,
           active: false,
-          tooltip: 'Çizime dön',
+          tooltip: context.t('Çizime dön', 'Back to drawing'),
           onTap: () => ref.read(toolProvider.notifier).state = PenTool.kalem,
         ),
         _divider(nd.border),
@@ -336,19 +377,19 @@ class _FormTextBar extends ConsumerWidget {
           _ToolButton(
             icon: Icons.format_bold,
             active: f.flags.contains(kFmtBold),
-            tooltip: 'Kalın',
+            tooltip: context.t('Kalın', 'Bold'),
             onTap: () => f.toggle(kFmtBold),
           ),
           _ToolButton(
             icon: Icons.format_italic,
             active: f.flags.contains(kFmtItalic),
-            tooltip: 'İtalik',
+            tooltip: context.t('İtalik', 'Italic'),
             onTap: () => f.toggle(kFmtItalic),
           ),
           _ToolButton(
             icon: Icons.format_underlined,
             active: f.flags.contains(kFmtUnderline),
-            tooltip: 'Altı çizili',
+            tooltip: context.t('Altı çizili', 'Underline'),
             onTap: () => f.toggle(kFmtUnderline),
           ),
           _divider(nd.border),
@@ -357,7 +398,7 @@ class _FormTextBar extends ConsumerWidget {
             _ToolButton(
               icon: Icons.border_all,
               active: false,
-              tooltip: 'Satır / sütun düzenle',
+              tooltip: context.t('Satır / sütun düzenle', 'Edit rows / columns'),
               onTap: f.tableMenu,
             ),
         ],
@@ -377,7 +418,7 @@ class _TableButton extends ConsumerWidget {
     return _ToolButton(
       icon: Icons.grid_on,
       active: false,
-      tooltip: 'Tablo ekle',
+      tooltip: context.t('Tablo ekle', 'Add table'),
       onTap: () => showInsertTableDialog(context, ref),
     );
   }
@@ -486,7 +527,7 @@ class _FontButtonState extends State<_FontButton> {
     return CompositedTransformTarget(
       link: _link,
       child: Tooltip(
-        message: 'Yazı tipi',
+        message: context.t('Yazı tipi', 'Font'),
         child: Material(
           color: Colors.transparent,
           shape: const CircleBorder(),
@@ -536,7 +577,7 @@ class _LassoBar extends ConsumerWidget {
         _ToolButton(
           icon: Icons.edit_outlined,
           active: false,
-          tooltip: 'Çizime dön',
+          tooltip: context.t('Çizime dön', 'Back to drawing'),
           onTap: () {
             clear();
             ref.read(toolProvider.notifier).state = PenTool.kalem;
@@ -546,14 +587,15 @@ class _LassoBar extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8),
           child: Text(
-            '${selection.length} seçili',
+            context.t('${selection.length} seçili',
+                '${selection.length} selected'),
             style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
           ),
         ),
         _ToolButton(
           icon: Icons.delete_outline,
           active: false,
-          tooltip: 'Seçili çizimleri sil',
+          tooltip: context.t('Seçili çizimleri sil', 'Delete selected drawings'),
           onTap: docId == null
               ? null
               : () async {
@@ -566,7 +608,7 @@ class _LassoBar extends ConsumerWidget {
         _ToolButton(
           icon: Icons.close,
           active: false,
-          tooltip: 'Seçimi bırak',
+          tooltip: context.t('Seçimi bırak', 'Clear selection'),
           onTap: clear,
         ),
       ],
@@ -586,11 +628,11 @@ class _ShapeButton extends ConsumerWidget {
         ShapeMode.elips => Icons.circle_outlined,
       };
 
-  String _label(ShapeMode m) => switch (m) {
-        ShapeMode.serbest => 'Serbest çizim',
-        ShapeMode.cizgi => 'Düz çizgi',
-        ShapeMode.dikdortgen => 'Dikdörtgen',
-        ShapeMode.elips => 'Elips',
+  String _label(BuildContext c, ShapeMode m) => switch (m) {
+        ShapeMode.serbest => c.t('Serbest çizim', 'Freehand'),
+        ShapeMode.cizgi => c.t('Düz çizgi', 'Straight line'),
+        ShapeMode.dikdortgen => c.t('Dikdörtgen', 'Rectangle'),
+        ShapeMode.elips => c.t('Elips', 'Ellipse'),
       };
 
   @override
@@ -599,7 +641,7 @@ class _ShapeButton extends ConsumerWidget {
     final mode = ref.watch(shapeModeProvider);
     final active = mode != ShapeMode.serbest;
     return PopupMenuButton<ShapeMode>(
-      tooltip: 'Şekil',
+      tooltip: context.t('Şekil', 'Shape'),
       color: nd.card,
       position: PopupMenuPosition.under,
       onSelected: (m) => ref.read(shapeModeProvider.notifier).state = m,
@@ -612,7 +654,7 @@ class _ShapeButton extends ConsumerWidget {
                 Icon(_icon(m),
                     size: 18, color: m == mode ? nd.accent : nd.text2),
                 const SizedBox(width: 12),
-                Text(_label(m),
+                Text(_label(context, m),
                     style: TextStyle(
                         fontSize: 13.5,
                         fontWeight:
@@ -993,7 +1035,7 @@ class _PaperButtonState extends ConsumerState<_PaperButton> {
     return CompositedTransformTarget(
       link: _link,
       child: Tooltip(
-        message: 'Kağıt rengi',
+        message: context.t('Kağıt rengi', 'Paper colour'),
         child: Material(
           color: Colors.transparent,
           shape: const CircleBorder(),
@@ -1120,7 +1162,7 @@ class _SizeButtonState extends State<_SizeButton> {
     return CompositedTransformTarget(
       link: _link,
       child: Tooltip(
-        message: 'Yazı boyutu',
+        message: context.t('Yazı boyutu', 'Text size'),
         child: Material(
           color: Colors.transparent,
           shape: const CircleBorder(),

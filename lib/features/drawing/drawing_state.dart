@@ -172,6 +172,11 @@ final sizeIndexProvider = StateProvider<int>((ref) => 1);
 /// PDF yakınlaştırma çarpanı.
 final zoomProvider = StateProvider<double>((ref) => 1.0);
 
+/// "Geri al" ile kaldırılan çizimler — "ileri al" bunları geri koyar.
+/// Oturumluk (kaydedilmez); yeni bir çizim yapılınca temizlenir, çünkü o an
+/// geri alınan dal artık geçerli değildir.
+final strokeRedoProvider = StateProvider<List<Stroke>>((ref) => const []);
+
 /// Aktif belgenin tüm çizimleri (tüm sayfalar) — canlı akış.
 final activeStrokesProvider = StreamProvider<List<Stroke>>((ref) {
   final id = ref.watch(navProvider).activeDocId;

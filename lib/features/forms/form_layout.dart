@@ -128,11 +128,6 @@ double tableRowHeight(TableBlock b, int r, double w) {
 /// Tablonun altındaki "satır ekle" düğmesinin yüksekliği (yalnız düzenlerken).
 double get kFbTableAddH => 20.0 + fbLine(13.5);
 
-/// Tek satırlık (sarmayan) bir tablo satırının yüksekliği — limit hesapları
-/// için taban ölçü.
-double get kFbTableMinRowH =>
-    kFbTableLineH + 2 * kFbTableCellPadV + kFbTableBorder;
-
 /// Bir hücrenin okunabilir kalması için gereken en küçük iç genişlik (sanal).
 const double _kFbTableMinCellW = 44;
 
@@ -146,15 +141,21 @@ int maxTableCols(String? pageSize) {
   return ((w + kFbTableBorder) / per).floor().clamp(2, 12);
 }
 
-/// Sayfa boyutuna göre bir tablonun **en fazla** kaç satırı olabilir: tek
-/// satırlık hücrelerle bir sayfayı (artı "satır ekle" şeridini) dolduran sayı.
-/// Böylece tablo tek başına sayfayı aşmaz.
-int maxTableRows(String? pageSize) {
-  final m = formMetrics(pageSize);
-  return ((m.contentH - kFbTableAddH) / kFbTableMinRowH)
-      .floor()
-      .clamp(3, 40);
-}
+/// Sayfa boyutuna göre bir tablonun **en fazla** kaç satırı olabilir.
+///
+/// Bu sayılar **cihazda ölçüldü**, hesapla türetilmedi: teorik sınır
+/// (`contentH / kFbTableMinRowH`) A4 için 22 diyordu ama sahada başlıkla
+/// birlikte 12. satırdan sonrası sayfaya sığmıyordu — çünkü gerçek hücreler
+/// (TextField) tek satırlık taban ölçüden yüksek çiziliyor ve içerik girildikçe
+/// satırlar sarıyor. Kullanıcı kararı: "12'de keselim, diğerlerini de buna göre
+/// düzenleyelim." Diğer boyutlar A4'ün sayfa içerik yüksekliğine oranlanarak
+/// verildi (kare/yatay ~2/3, telefon ~7/6).
+int maxTableRows(String? pageSize) => switch (pageSize) {
+      'telefon' => 14,
+      'kare' => 8,
+      'yatay' => 8,
+      _ => 12, // a4 / bilinmeyen
+    };
 
 double _wrapLines(String text, double fontSize, double lineH, double width) {
   if (text.isEmpty) return 1;

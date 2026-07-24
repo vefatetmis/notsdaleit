@@ -95,8 +95,9 @@ class DrawingRepository {
         .go();
   }
 
-  /// Belgedeki (tüm sayfalar) en son çizimi geri alır.
-  Future<void> undoLastForDoc(int docId) async {
+  /// Belgedeki (tüm sayfalar) en son çizimi geri alır ve silinen satırı
+  /// döndürür — "ileri al" bu satırı geri koyabilsin diye.
+  Future<Stroke?> undoLastForDoc(int docId) async {
     final last = await (_db.select(_db.strokes)
           ..where((t) => t.docId.equals(docId))
           ..orderBy([
@@ -104,9 +105,22 @@ class DrawingRepository {
           ])
           ..limit(1))
         .getSingleOrNull();
-    if (last != null) {
-      await (_db.delete(_db.strokes)..where((t) => t.id.equals(last.id))).go();
-    }
+    if (last == null) return null;
+    await (_db.delete(_db.strokes)..where((t) => t.id.equals(last.id))).go();
+    return last;
+  }
+
+  /// Geri alınan bir çizimi geri koyar ("ileri al"). Yeni bir satır olarak
+  /// eklenir; `remoteId` taşınmaz, böylece canlı paylaşımda yeniden gönderilir.
+  Future<void> restoreStroke(Stroke s) {
+    return addStroke(
+      docId: s.docId,
+      page: s.page,
+      tool: s.tool,
+      color: s.color,
+      width: s.width,
+      pointsJson: s.points,
+    );
   }
 
   /// Belgedeki tüm çizimleri siler.

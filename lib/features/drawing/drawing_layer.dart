@@ -272,6 +272,10 @@ class _DrawingLayerState extends ConsumerState<DrawingLayer> {
       if (live != null) {
         _live = null;
         _pending.add(live);
+        // Yeni çizim, geri alınmış dalı geçersiz kılar (standart undo/redo).
+        if (ref.read(strokeRedoProvider).isNotEmpty) {
+          ref.read(strokeRedoProvider.notifier).state = const [];
+        }
         ref.read(drawingRepositoryProvider).addStroke(
               docId: widget.docId,
               page: widget.page,

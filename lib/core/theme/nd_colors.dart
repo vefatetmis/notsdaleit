@@ -3,10 +3,11 @@ import 'package:flutter/material.dart';
 /// Uygulamanın renk tokenları. Açık ve koyu için ayrı setler. Widget'lar
 /// `Theme.of(context).extension<NdColors>()!` ile erişir.
 ///
-/// **Palet: sıcak bej + denim mavi.** İlk tasarım (notdaleit.dc.html) saf
+/// **Palet: sıcak bej + koyu mavi.** İlk tasarım (notdaleit.dc.html) saf
 /// beyaz yüzey + siyah vurgu kullanıyordu; kullanıcı geri bildirimi "çok
 /// parlak, çok soğuk" olduğu için zemin/kart sıcak bej-fildişine, vurgu da
-/// denim maviye çevrildi. Not **kâğıdının** beyazı buraya dâhil DEĞİL — o
+/// maviye çevrildi. Vurgu tonu kullanıcının verdiği `#295DB4` (ilk denenen
+/// `#3F6E9E` "soluk" bulundu). Not **kâğıdının** beyazı buraya dâhil DEĞİL — o
 /// `editor_state.kPaperStyles`'ta ve olduğu gibi kalmalı (PDF çıktısıyla
 /// uyuşması için). Kalem renkleri ([inks]) de ayrı kalır.
 @immutable
@@ -54,9 +55,9 @@ class NdColors extends ThemeExtension<NdColors> {
     bar: Color(0xFFCFC6B5),
     bar2: Color(0xFFE6DFD2),
     hover: Color(0xFFEDE6D8),
-    accent: Color(0xFF3F6E9E),
+    accent: Color(0xFF295DB4),
     accentFg: Color(0xFFFFFFFF),
-    accentSoft: Color(0xFFE4EDF5),
+    accentSoft: Color(0xFFDFE8F7),
     inks: [
       Color(0xFF262626),
       Color(0xFF4A6CF7),
@@ -76,9 +77,9 @@ class NdColors extends ThemeExtension<NdColors> {
     bar: Color(0xFF4A453A),
     bar2: Color(0xFF2A261E),
     hover: Color(0xFF232019),
-    accent: Color(0xFF7FB2E0),
-    accentFg: Color(0xFF101A22),
-    accentSoft: Color(0xFF1F2A33),
+    accent: Color(0xFF6E9FE8),
+    accentFg: Color(0xFF0B162B),
+    accentSoft: Color(0xFF1B2740),
     inks: [
       Color(0xFFECECEA),
       Color(0xFF4A6CF7),

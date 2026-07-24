@@ -332,8 +332,8 @@ class _DocCard extends ConsumerWidget {
         : doc.title.trim();
     final preview = plainTextFromBody(doc.body);
     final meta = isPdf
-        ? '${doc.pageCount ?? 1} ${context.t('sayfa', 'pages')} · ${formatRelative(doc.updatedAt)}'
-        : '${doc.folder} · ${formatRelative(doc.updatedAt)}';
+        ? '${doc.pageCount ?? 1} ${context.t('sayfa', 'pages')} · ${formatRelative(context, doc.updatedAt)}'
+        : '${doc.folder} · ${formatRelative(context, doc.updatedAt)}';
 
     return Container(
       // "Bombe/kabarık" his: yumuşak üst-ışık gradyanı + yumuşak gölge.

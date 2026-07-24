@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/i18n/i18n.dart';
 import '../../core/theme/nd_colors.dart';
 import '../../core/utils/date_format.dart';
 import '../../core/utils/note_text.dart';
@@ -72,11 +73,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       onChanged: (v) =>
                           ref.read(searchQueryProvider.notifier).state = v,
                       style: const TextStyle(fontSize: 14.5),
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         isCollapsed: true,
                         border: InputBorder.none,
-                        hintText: 'Not, PDF veya klasör ara',
-                        contentPadding: EdgeInsets.symmetric(vertical: 12),
+                        hintText: context.t('Not, PDF veya klasör ara',
+                            'Search notes, PDFs or folders'),
+                        contentPadding:
+                            const EdgeInsets.symmetric(vertical: 12),
                       ),
                     ),
                   ),
@@ -103,7 +106,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   border: Border.all(color: nd.border),
                 ),
                 child: Text(
-                  '"$query" için sonuç bulunamadı',
+                  context.t('"$query" için sonuç bulunamadı',
+                      'No results for "$query"'),
                   style: TextStyle(fontSize: 14, color: nd.text2),
                 ),
               )
@@ -158,7 +162,9 @@ class _ResultRow extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      doc.title.trim().isEmpty ? 'Adsız not' : doc.title,
+                      doc.title.trim().isEmpty
+                          ? context.t('Adsız not', 'Untitled note')
+                          : doc.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -166,7 +172,7 @@ class _ResultRow extends ConsumerWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${doc.folder} · ${formatRelative(doc.updatedAt)}',
+                      '${doc.folder} · ${formatRelative(context, doc.updatedAt)}',
                       style: TextStyle(fontSize: 12, color: nd.text2),
                     ),
                   ],

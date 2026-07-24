@@ -99,8 +99,8 @@ class _TrashRow extends ConsumerWidget {
         : doc.title.trim();
     final when = doc.deletedAt == null
         ? ''
-        : context.t('${formatRelative(doc.deletedAt!)} silindi',
-            'deleted ${formatRelative(doc.deletedAt!)}');
+        : context.t('${formatRelative(context, doc.deletedAt!)} silindi',
+            'deleted ${formatRelative(context, doc.deletedAt!)}');
 
     return DecoratedBox(
       decoration: BoxDecoration(

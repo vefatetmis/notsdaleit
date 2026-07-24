@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/i18n/i18n.dart';
 import '../../core/theme/nd_colors.dart';
 
 /// Paletten renk seçmek için ortak palet (rengarenk kalem + ayarlardaki kalem
@@ -31,7 +32,7 @@ Future<Color?> showColorGridDialog(BuildContext context, {Color? current}) {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Renk seç',
+            Text(context.t('Renk seç', 'Pick a colour'),
                 style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
