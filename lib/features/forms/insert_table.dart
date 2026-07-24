@@ -5,6 +5,7 @@ import '../../core/i18n/i18n.dart';
 import '../../core/theme/nd_colors.dart';
 import '../../data/data_providers.dart';
 import '../editor/editor_state.dart';
+import 'form_layout.dart';
 import 'form_model.dart';
 
 /// "Tablo ekle" akışı: satır/sütun sorar, gerekiyorsa serbest notun forma
@@ -20,7 +21,11 @@ Future<void> showInsertTableDialog(BuildContext context, WidgetRef ref) async {
 
   final result = await showDialog<(int, int)>(
     context: context,
-    builder: (_) => _InsertTableDialog(warnConvert: needsConvert),
+    builder: (_) => _InsertTableDialog(
+      warnConvert: needsConvert,
+      maxRows: maxTableRows(doc?.pageSize),
+      maxCols: maxTableCols(doc?.pageSize),
+    ),
   );
   if (result == null) return;
   insert(result.$1, result.$2);
@@ -36,9 +41,17 @@ Future<void> showInsertTableDialog(BuildContext context, WidgetRef ref) async {
 }
 
 class _InsertTableDialog extends StatefulWidget {
-  const _InsertTableDialog({required this.warnConvert});
+  const _InsertTableDialog({
+    required this.warnConvert,
+    required this.maxRows,
+    required this.maxCols,
+  });
 
   final bool warnConvert;
+
+  /// Sayfa boyutunun izin verdiği üst sınırlar (bkz. `form_layout`).
+  final int maxRows;
+  final int maxCols;
 
   @override
   State<_InsertTableDialog> createState() => _InsertTableDialogState();
@@ -61,7 +74,7 @@ class _InsertTableDialogState extends State<_InsertTableDialog> {
             label: context.t('Satır', 'Rows'),
             value: _rows,
             min: 1,
-            max: 20,
+            max: widget.maxRows,
             onChanged: (v) => setState(() => _rows = v),
           ),
           const SizedBox(height: 6),
@@ -69,8 +82,16 @@ class _InsertTableDialogState extends State<_InsertTableDialog> {
             label: context.t('Sütun', 'Columns'),
             value: _cols,
             min: 1,
-            max: 8,
+            max: widget.maxCols,
             onChanged: (v) => setState(() => _cols = v),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            context.t(
+              'Bu sayfa boyutunda en fazla ${widget.maxRows} satır, ${widget.maxCols} sütun.',
+              'This page size allows up to ${widget.maxRows} rows and ${widget.maxCols} columns.',
+            ),
+            style: TextStyle(fontSize: 12, color: nd.text2),
           ),
           const SizedBox(height: 14),
           _Preview(rows: _rows, cols: _cols),

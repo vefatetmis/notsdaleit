@@ -128,6 +128,34 @@ double tableRowHeight(TableBlock b, int r, double w) {
 /// Tablonun altındaki "satır ekle" düğmesinin yüksekliği (yalnız düzenlerken).
 double get kFbTableAddH => 20.0 + fbLine(13.5);
 
+/// Tek satırlık (sarmayan) bir tablo satırının yüksekliği — limit hesapları
+/// için taban ölçü.
+double get kFbTableMinRowH =>
+    kFbTableLineH + 2 * kFbTableCellPadV + kFbTableBorder;
+
+/// Bir hücrenin okunabilir kalması için gereken en küçük iç genişlik (sanal).
+const double _kFbTableMinCellW = 44;
+
+/// Sayfa boyutuna göre bir tablonun **en fazla** kaç sütunu olabilir.
+/// Sütunlar `Expanded` ile eşit bölüşüldüğü için, sayfa dar olduğunda çok
+/// sütun hücreleri okunmaz hâle getirir (kullanıcı kararı: her boyut için
+/// maksimum belirle, sonrasına karışma).
+int maxTableCols(String? pageSize) {
+  final w = formVirtualWidth(pageSize);
+  final per = _kFbTableMinCellW + 2 * kFbTableCellPadH + kFbTableBorder;
+  return ((w + kFbTableBorder) / per).floor().clamp(2, 12);
+}
+
+/// Sayfa boyutuna göre bir tablonun **en fazla** kaç satırı olabilir: tek
+/// satırlık hücrelerle bir sayfayı (artı "satır ekle" şeridini) dolduran sayı.
+/// Böylece tablo tek başına sayfayı aşmaz.
+int maxTableRows(String? pageSize) {
+  final m = formMetrics(pageSize);
+  return ((m.contentH - kFbTableAddH) / kFbTableMinRowH)
+      .floor()
+      .clamp(3, 40);
+}
+
 double _wrapLines(String text, double fontSize, double lineH, double width) {
   if (text.isEmpty) return 1;
   final tp = TextPainter(

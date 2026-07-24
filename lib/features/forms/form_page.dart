@@ -18,6 +18,7 @@ class FormPage extends ConsumerStatefulWidget {
     required this.paper,
     required this.editable,
     required this.onChanged,
+    required this.pageSize,
     this.layout,
   });
 
@@ -25,6 +26,9 @@ class FormPage extends ConsumerStatefulWidget {
   final PaperStyle paper;
   final bool editable;
   final VoidCallback onChanged;
+
+  /// Sayfa boyutu — tablo satır/sütun üst sınırları buradan türetilir.
+  final String? pageSize;
 
   /// Sayfalama (`paginateForm` üretir): bloklar/satırlar sayfa sınırını
   /// ortalamak yerine spacer'la sonraki sayfanın başına düşer.
@@ -841,6 +845,19 @@ class _FormPageState extends ConsumerState<FormPage> {
       ));
   }
 
+  /// Tabloya satır/sütun eklenebilir mi (sayfa boyutunun üst sınırı).
+  bool _canAddRow(TableBlock b) => b.rows.length < maxTableRows(widget.pageSize);
+  bool _canAddCol(TableBlock b) => b.cols < maxTableCols(widget.pageSize);
+
+  void _limitReached(String what) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        behavior: SnackBarBehavior.floating,
+        content: Text(what),
+      ));
+  }
+
   /// Hücreye uzun basınca açılan satır/sütun düzenleme menüsü.
   void _tableMenu(int i, TableBlock b, int r, int c) {
     final nav = Navigator.of(context);
@@ -875,14 +892,23 @@ class _FormPageState extends ConsumerState<FormPage> {
                   ),
                 ),
               ),
-              item(Icons.keyboard_arrow_up, ctx.t('Üste satır ekle', 'Add row above'),
-                  () => _editTable(i, () => b.addRow(r))),
-              item(Icons.keyboard_arrow_down, ctx.t('Alta satır ekle', 'Add row below'),
-                  () => _editTable(i, () => b.addRow(r + 1))),
-              item(Icons.keyboard_arrow_left, ctx.t('Sola sütun ekle', 'Add column left'),
-                  () => _editTable(i, () => b.addColumn(c))),
-              item(Icons.keyboard_arrow_right, ctx.t('Sağa sütun ekle', 'Add column right'),
-                  () => _editTable(i, () => b.addColumn(c + 1))),
+              // Sayfa boyutunun üst sınırına gelindiyse ekleme öğeleri gizlenir.
+              if (_canAddRow(b)) ...[
+                item(Icons.keyboard_arrow_up,
+                    ctx.t('Üste satır ekle', 'Add row above'),
+                    () => _editTable(i, () => b.addRow(r))),
+                item(Icons.keyboard_arrow_down,
+                    ctx.t('Alta satır ekle', 'Add row below'),
+                    () => _editTable(i, () => b.addRow(r + 1))),
+              ],
+              if (_canAddCol(b)) ...[
+                item(Icons.keyboard_arrow_left,
+                    ctx.t('Sola sütun ekle', 'Add column left'),
+                    () => _editTable(i, () => b.addColumn(c))),
+                item(Icons.keyboard_arrow_right,
+                    ctx.t('Sağa sütun ekle', 'Add column right'),
+                    () => _editTable(i, () => b.addColumn(c + 1))),
+              ],
               const Divider(height: 1),
               item(
                 b.header ? Icons.check_box : Icons.check_box_outline_blank,
@@ -910,27 +936,29 @@ class _FormPageState extends ConsumerState<FormPage> {
   }
 
   /// Tablonun altındaki küçük ekleme düğmesi (satır / sütun). Dikey ölçüsü
-  /// [kFbTableAddH] ile birebir aynı kalmalı.
-  Widget _tableAddButton(String label, VoidCallback onTap) => InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.add, size: 16, color: paper.muted),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w600,
-                    color: paper.muted),
-              ),
-            ],
-          ),
+  /// [kFbTableAddH] ile birebir aynı kalmalı — sınıra gelince düğme kaybolmaz,
+  /// yalnızca soluklaşır (yükseklik değişirse sayfalama kayar).
+  Widget _tableAddButton(String label, bool enabled, VoidCallback onTap) {
+    final color = enabled ? paper.muted : paper.faint;
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(enabled ? Icons.add : Icons.block, size: 16, color: color),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                  fontSize: 13.5, fontWeight: FontWeight.w600, color: color),
+            ),
+          ],
         ),
-      );
+      ),
+    );
+  }
 
   Widget _table(int i, TableBlock b) {
     final line = BorderSide(color: paper.line, width: kFbTableBorder);
@@ -1006,10 +1034,24 @@ class _FormPageState extends ConsumerState<FormPage> {
           Row(
             children: [
               _tableAddButton(
-                  context.t('Satır ekle', 'Add row'), () => _editTable(i, b.addRow)),
+                context.t('Satır ekle', 'Add row'),
+                _canAddRow(b),
+                () => _canAddRow(b)
+                    ? _editTable(i, b.addRow)
+                    : _limitReached(context.t(
+                        'Bu sayfa boyutunda en fazla ${maxTableRows(widget.pageSize)} satır olabilir',
+                        'This page size allows at most ${maxTableRows(widget.pageSize)} rows')),
+              ),
               const SizedBox(width: 22),
-              _tableAddButton(context.t('Sütun ekle', 'Add column'),
-                  () => _editTable(i, b.addColumn)),
+              _tableAddButton(
+                context.t('Sütun ekle', 'Add column'),
+                _canAddCol(b),
+                () => _canAddCol(b)
+                    ? _editTable(i, b.addColumn)
+                    : _limitReached(context.t(
+                        'Bu sayfa boyutunda en fazla ${maxTableCols(widget.pageSize)} sütun olabilir',
+                        'This page size allows at most ${maxTableCols(widget.pageSize)} columns')),
+              ),
             ],
           ),
         ],

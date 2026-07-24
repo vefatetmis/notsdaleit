@@ -41,8 +41,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   final _titleController = TextEditingController();
   final _tc = TransformationController();
   Timer? _saveTimer;
-  Timer? _growTimer;
   int? _docId;
+  int _requestedPages = 0;
   bool _loaded = false;
   bool _addingPage = false;
 
@@ -114,34 +114,23 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       }
     });
     _save();
-    _growPagesForForm();
-  }
-
-  /// Form alanlarında bir değişiklik olduğunda: kaydet + gerekiyorsa sayfa
-  /// sayısını büyüt. Büyütme ayrı bir gecikmeyle yapılır — her tuş vuruşunda
-  /// tüm formu yeniden sayfalamak pahalı olurdu.
-  void _onFormChanged() {
-    _scheduleSave();
-    _growTimer?.cancel();
-    _growTimer = Timer(const Duration(milliseconds: 400), () {
-      if (mounted) _growPagesForForm();
-    });
+    // Sayfa sayısı gerekiyorsa `_Sheet`'in bir sonraki çiziminde büyür.
   }
 
   /// Form içeriği mevcut sayfalara sığmıyorsa sayfa sayısını büyütür (satır/
   /// tablo eklenince yazılan şey kartın altında kırpılıp kaybolmasın). ASLA
-  /// küçültmez — kullanıcının elle eklediği boş sayfalar korunur.
-  Future<void> _growPagesForForm() async {
+  /// küçültmez — kullanıcının elle eklediği boş sayfalar korunur. `_Sheet`
+  /// her çiziminde çağırır; aynı isteği iki kez yazmamak için son değer
+  /// [_requestedPages]'te tutulur.
+  Future<void> _ensurePages(int needed) async {
     final id = _docId;
     final doc = ref.read(activeDocumentProvider);
-    final form = _form;
-    if (id == null || doc == null || form == null) return;
-    final needed = formNaturalPageCount(form, doc.pageSize);
-    if (needed > (doc.pageCount ?? 1)) {
-      await ref
-          .read(documentRepositoryProvider)
-          .setPageCount(id: id, pageCount: needed);
-    }
+    if (id == null || doc == null) return;
+    if (needed <= (doc.pageCount ?? 1) || needed <= _requestedPages) return;
+    _requestedPages = needed;
+    await ref
+        .read(documentRepositoryProvider)
+        .setPageCount(id: id, pageCount: needed);
   }
 
   Document _parseDoc(String body) {
@@ -253,7 +242,6 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   @override
   void dispose() {
     _saveTimer?.cancel();
-    _growTimer?.cancel();
     _save();
     if (ref.read(activeQuillControllerProvider) == _controller) {
       ref.read(activeQuillControllerProvider.notifier).state = null;
@@ -365,7 +353,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                             pageSize: pageSize,
                             form: _form,
                             formEditable: textMode,
-                            onFormChanged: _onFormChanged,
+                            onFormChanged: _scheduleSave,
+                            onNeedPages: _ensurePages,
                           ),
                           const SizedBox(height: 16),
                           _AddPageButton(onTap: _addPage),
@@ -428,6 +417,7 @@ class _Sheet extends ConsumerStatefulWidget {
     required this.form,
     required this.formEditable,
     required this.onFormChanged,
+    required this.onNeedPages,
   });
 
   final int? docId;
@@ -444,6 +434,9 @@ class _Sheet extends ConsumerStatefulWidget {
   final bool formEditable;
   final VoidCallback onFormChanged;
 
+  /// Form içeriği mevcut sayfalara sığmıyorsa çağrılır (gereken sayfa sayısı).
+  final ValueChanged<int> onNeedPages;
+
   @override
   ConsumerState<_Sheet> createState() => _SheetState();
 }
@@ -451,6 +444,15 @@ class _Sheet extends ConsumerStatefulWidget {
 class _SheetState extends ConsumerState<_Sheet> {
   final GlobalKey _quillKey = GlobalKey();
   double _quillH = 0;
+
+  /// Form alanlarında bir değişiklik: notu kaydet **ve sayfa kabuğunu yeniden
+  /// çiz**. FormPage kendi `setState`'ini yaptığı için buradaki sayfalama
+  /// (`layout`) ve sayfa sayısı aksi hâlde eski kalırdı — satır eklenince
+  /// içeriğin son kartın altında kaybolmasının sebebi buydu.
+  void _formChanged() {
+    widget.onFormChanged();
+    if (mounted) setState(() {});
+  }
 
   /// Quill içeriğinin çizilen yüksekliğini kare sonrası ölçer (sayfa sayısı
   /// içerikten otomatik büyüsün diye).
@@ -473,10 +475,9 @@ class _SheetState extends ConsumerState<_Sheet> {
     final gap = w * kPageGapRatio;
     final paper = widget.paper;
 
-    // Sayfa sayısı MANUEL: form notlarında otomatik büyümez; içerik son
-    // sayfayı aşarsa boşluk bırakmadan kartın altından taşar ve kullanıcı
-    // "Yeni sayfa" ile yer açar. (Serbest/Quill notlarda içerik ölçülüp
-    // gerekiyorsa büyür — akışkan metin için manuel sayfa mantıksız olurdu.)
+    // Sayfa sayısı: içerik sığmıyorsa otomatik büyür (asla küçülmez).
+    // Kontrol her çizimde yapılır — bir zamanlayıcıya bağlı olsaydı, kaçırılan
+    // tek bir değişiklikte içerik sayfa kartının altında kırpılırdı.
     var pages = widget.pageCount;
     double contentPad = 22;
     FormLayoutResult? layout;
@@ -488,6 +489,12 @@ class _SheetState extends ConsumerState<_Sheet> {
       contentPad = 22 * (w / m.virtualPageW);
       layout = paginateForm(widget.form!, m.virtualW, m.contentH, m.pageSkip,
           editable: widget.formEditable, maxPages: pages);
+      final needed = formNaturalPageCount(widget.form!, widget.pageSize);
+      if (needed > pages) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) widget.onNeedPages(needed);
+        });
+      }
     } else {
       _scheduleQuillMeasure();
       if (_quillH > 0) {
@@ -556,7 +563,8 @@ class _SheetState extends ConsumerState<_Sheet> {
                             form: widget.form!,
                             paper: paper,
                             editable: widget.formEditable,
-                            onChanged: widget.onFormChanged,
+                            onChanged: _formChanged,
+                            pageSize: widget.pageSize,
                             layout: layout,
                           ),
                         ),
