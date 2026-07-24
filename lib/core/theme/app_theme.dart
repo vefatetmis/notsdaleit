@@ -15,7 +15,7 @@ class AppTheme {
 
   static ThemeData _build(Brightness brightness, NdColors nd) {
     final base = ColorScheme.fromSeed(
-      seedColor: const Color(0xFF4A6CF7),
+      seedColor: NdColors.light.accent, // denim mavi
       brightness: brightness,
     );
     final colorScheme = base.copyWith(

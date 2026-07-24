@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
 
-/// Tasarımdaki (notdaleit.dc.html) renk tokenları. Açık ve koyu için ayrı
-/// setler. Widget'lar `Theme.of(context).extension<NdColors>()!` ile erişir.
+/// Uygulamanın renk tokenları. Açık ve koyu için ayrı setler. Widget'lar
+/// `Theme.of(context).extension<NdColors>()!` ile erişir.
+///
+/// **Palet: sıcak bej + denim mavi.** İlk tasarım (notdaleit.dc.html) saf
+/// beyaz yüzey + siyah vurgu kullanıyordu; kullanıcı geri bildirimi "çok
+/// parlak, çok soğuk" olduğu için zemin/kart sıcak bej-fildişine, vurgu da
+/// denim maviye çevrildi. Not **kâğıdının** beyazı buraya dâhil DEĞİL — o
+/// `editor_state.kPaperStyles`'ta ve olduğu gibi kalmalı (PDF çıktısıyla
+/// uyuşması için). Kalem renkleri ([inks]) de ayrı kalır.
 @immutable
 class NdColors extends ThemeExtension<NdColors> {
   const NdColors({
@@ -17,6 +24,7 @@ class NdColors extends ThemeExtension<NdColors> {
     required this.hover,
     required this.accent,
     required this.accentFg,
+    required this.accentSoft,
     required this.inks,
   });
 
@@ -30,23 +38,25 @@ class NdColors extends ThemeExtension<NdColors> {
   final Color bar; // iskelet çubuk (koyu)
   final Color bar2; // iskelet çubuk (açık)
   final Color hover; // hover zemini
-  final Color accent; // vurgu (buton) zemini
+  final Color accent; // vurgu (buton) zemini — denim mavi
   final Color accentFg; // vurgu üzeri metin
+  final Color accentSoft; // vurgunun soluk zemini (seçili öğe, çip)
   final List<Color> inks; // kalem renkleri
 
   static const light = NdColors(
-    bg: Color(0xFFFAFAFA),
-    card: Color(0xFFFFFFFF),
-    sidebar: Color(0xFFF5F5F3),
-    border: Color(0xFFEBEBE9),
-    borderStrong: Color(0xFFE1E1DF),
-    text: Color(0xFF262626),
-    text2: Color(0xFF8F8F8C),
-    bar: Color(0xFFCFCFCC),
-    bar2: Color(0xFFE7E7E4),
-    hover: Color(0xFFF0F0EE),
-    accent: Color(0xFF262626),
+    bg: Color(0xFFF6F2EA),
+    card: Color(0xFFFFFCF6),
+    sidebar: Color(0xFFEFE9DE),
+    border: Color(0xFFE7E0D3),
+    borderStrong: Color(0xFFDBD2C1),
+    text: Color(0xFF2B2723),
+    text2: Color(0xFF8B8175),
+    bar: Color(0xFFCFC6B5),
+    bar2: Color(0xFFE6DFD2),
+    hover: Color(0xFFEDE6D8),
+    accent: Color(0xFF3F6E9E),
     accentFg: Color(0xFFFFFFFF),
+    accentSoft: Color(0xFFE4EDF5),
     inks: [
       Color(0xFF262626),
       Color(0xFF4A6CF7),
@@ -56,18 +66,19 @@ class NdColors extends ThemeExtension<NdColors> {
   );
 
   static const dark = NdColors(
-    bg: Color(0xFF141414),
-    card: Color(0xFF1A1A1A),
-    sidebar: Color(0xFF171717),
-    border: Color(0xFF262626),
-    borderStrong: Color(0xFF333333),
-    text: Color(0xFFECECEA),
-    text2: Color(0xFF8F8F8C),
-    bar: Color(0xFF4A4A48),
-    bar2: Color(0xFF262626),
-    hover: Color(0xFF202020),
-    accent: Color(0xFFECECEA),
-    accentFg: Color(0xFF191918),
+    bg: Color(0xFF16140F),
+    card: Color(0xFF1E1B16),
+    sidebar: Color(0xFF1A1712),
+    border: Color(0xFF2C2820),
+    borderStrong: Color(0xFF3A3529),
+    text: Color(0xFFECE7DE),
+    text2: Color(0xFF9A9184),
+    bar: Color(0xFF4A453A),
+    bar2: Color(0xFF2A261E),
+    hover: Color(0xFF232019),
+    accent: Color(0xFF7FB2E0),
+    accentFg: Color(0xFF101A22),
+    accentSoft: Color(0xFF1F2A33),
     inks: [
       Color(0xFFECECEA),
       Color(0xFF4A6CF7),
@@ -105,6 +116,7 @@ class NdColors extends ThemeExtension<NdColors> {
     Color? hover,
     Color? accent,
     Color? accentFg,
+    Color? accentSoft,
     List<Color>? inks,
   }) {
     return NdColors(
@@ -120,6 +132,7 @@ class NdColors extends ThemeExtension<NdColors> {
       hover: hover ?? this.hover,
       accent: accent ?? this.accent,
       accentFg: accentFg ?? this.accentFg,
+      accentSoft: accentSoft ?? this.accentSoft,
       inks: inks ?? this.inks,
     );
   }
@@ -140,6 +153,7 @@ class NdColors extends ThemeExtension<NdColors> {
       hover: Color.lerp(hover, other.hover, t)!,
       accent: Color.lerp(accent, other.accent, t)!,
       accentFg: Color.lerp(accentFg, other.accentFg, t)!,
+      accentSoft: Color.lerp(accentSoft, other.accentSoft, t)!,
       inks: t < 0.5 ? inks : other.inks,
     );
   }

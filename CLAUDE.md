@@ -34,8 +34,8 @@ Tasarımdaki **tüm ekranlar** kodlandı ve çalışıyor:
 - **Arama:** başlık/klasör/içerik üzerinde canlı arama.
 - **Ayarlar:** tema (açık/koyu) · **dil (Türkçe/English)** · kalem renkleri
   (çubuktaki 3 renk — dokunup paletten seçilir, kalıcı) + kalınlık · seri/rozet
-  anahtarı · **hesap** (e-posta girişi — mail ASKIDA) · **yedekleme** (dışa
-  aktar / geri yükle) · sürüm (elle eşitlenen sabit yazı).
+  anahtarı · **hesap kartı GİZLİ** (`kAuthEnabled = false` — mail ASKIDA) ·
+  **yedekleme** (dışa aktar / geri yükle) · sürüm (elle eşitlenen sabit yazı).
 - **Onboarding:** ilk açılışta kısa 4 slaytlı tanıtım (`features/onboarding/`),
   `onboardingDoneProvider` (kalıcı) ile bir kez gösterilir; "Geç" ile atlanır.
 - **İki dil (TR/EN):** `core/i18n/i18n.dart` — `localeProvider` (kalıcı) +
@@ -96,8 +96,10 @@ Tasarımdaki **tüm ekranlar** kodlandı ve çalışıyor:
 - **Çizim:** kalem · fosforlu · silgi · 4 renk · 3 kalınlık · geri al · temizle ·
   **şekil modu** (düz çizgi/dikdörtgen/elips) · **lasso (kement)** seçim →
   taşıma/silme. Çizimler veritabanında kalıcıdır (belge + sayfa bazında).
-- **Tema:** Material 3 + tasarımın renk token'ları (açık/koyu), Instrument Sans
-  fontu (çevrimdışı için `assets/fonts` içine gömülü).
+- **Tema:** Material 3 + `NdColors` token'ları (açık/koyu) — **sıcak bej zemin +
+  denim mavi vurgu** (24 Tem 2026'da saf beyaz/siyahtan değiştirildi; bkz.
+  "RENK PALETİ DEĞİŞTİ"), Instrument Sans fontu (çevrimdışı için `assets/fonts`
+  içine gömülü).
 - Tüm veri cihazda kalıcı (SQLite), internetsiz çalışır.
 
 > **Henüz gerçek olmayan tek şey senkronizasyondur** (tasarımda da temsilî).
@@ -524,7 +526,10 @@ sonraki Play yüklemesinde (versionCode **+5**) gidecek:
 | Şekiller (düz çizgi/dikdörtgen/elips) + dikdörtgen köşe düzeltmesi | `cd0d4a6`, `f5ec9c2` |
 | Lasso (kement) seçim / taşıma / silme | `f5ec9c2` |
 | Tablo ekleme + satır/sütun düzenleme (24 Tem 2026) | `51c5ab7` |
-| Tablo saha hataları düzeltmesi (otomatik sayfa büyütme + "Sütun ekle") | bu oturum |
+| Tablo saha hataları düzeltmesi (sayfa kabuğu tazeleme + "Sütun ekle") | `694ac19`, `a094952` |
+| Tablo satır/sütun üst sınırları (sayfa boyutuna göre) | `a094952` |
+| Renk paleti: sıcak bej + denim mavi | bu oturum |
+| E-posta girişi arayüzü gizlendi (`kAuthEnabled = false`) | bu oturum |
 
 **Kapalı testteki 1.3.0+4'ün içeriği (aşağıdaki listenin ilk 9 maddesi):**
 
@@ -564,46 +569,139 @@ sonraki Play yüklemesinde (versionCode **+5**) gidecek:
 - **Lasso seçim** (seç/taşı/sil). Madde 4(b3).
 - **Tablo ekleme** (araç çubuğundan; satır/sütun düzenleme). Madde 4(a).
 
-### ✅ DÜZELTİLDİ — tablo saha testi hataları (24 Tem 2026)
+### ✅ DÜZELTİLDİ — tablo saha testi hataları (24 Tem 2026, iki turda)
 
-Tablo özelliği (madde 4(a)) cihazda denendi, iki kusur çıktı; **ikisi de
-düzeltildi** (dev APK'da):
+Tablo özelliği (madde 4(a)) cihazda denendi, iki kusur çıktı. **İlk düzeltme
+turu yetmedi** (kullanıcı: "yeni sayfa oluşmuyor ne yazık ki"); ikinci turda
+asıl sebep bulundu.
 
-1. **Taşan içerik GÖRÜNMÜYOR — düzeltildi.** Sebep: `_Sheet` içeriği `Stack`
-   çocuğu ve `Stack` varsayılan olarak **kırpıyor**; `paginateForm(maxPages:
-   pageCount)` son sayfada artık atlama yapmadığından içerik kartın altından
-   taşıp kırpılıyordu. **Çözüm:** form değişince sayfa sayısı otomatik BÜYÜR
-   (asla küçülmez) — `note_editor_screen._onFormChanged()` = `_scheduleSave()` +
-   400 ms gecikmeli `_growPagesForForm()`. `FormPage.onChanged` artık bu yeni
-   metoda bağlı (eskiden doğrudan `_scheduleSave`'e gidiyordu). "Yeni sayfa"
-   düğmesi duruyor. Büyütme `formNaturalPageCount` (editable: true) ile hesaplanır.
+1. **Taşan içerik GÖRÜNMÜYOR — düzeltildi (2. tur).** Görünen sebep: `_Sheet`
+   içeriği `Stack` çocuğu ve `Stack` varsayılan olarak **kırpıyor**. **ASIL
+   SEBEP:** tabloya satır eklendiğinde yalnız `FormPage` kendi `setState`'ini
+   yapıyor, **sayfa kabuğu `_Sheet` HİÇ yeniden çizilmiyordu** → hem sayfalama
+   sonucu (`layout`) hem sayfa sayısı bayat kalıyordu; yeni satırlar hesaba hiç
+   girmiyordu. Çözüm üç parça:
+   - `_SheetState._formChanged()` — `FormPage.onChanged` artık buraya bağlı:
+     `widget.onFormChanged()` + `setState(() {})`. **Kritik olan buydu.**
+   - Sayfa sayısı kontrolü **build sırasında** yapılır (`_Sheet.build` →
+     `formNaturalPageCount` > `pageCount` ise post-frame `onNeedPages`).
+     Zamanlayıcıya bağlı DEĞİL — kaçırılan tek bir değişiklikte içerik
+     kırpılırdı. Editörde `_ensurePages(needed)` yazar (`_requestedPages` ile
+     aynı isteği iki kez yazmaz). Sayfa sayısı **büyür, asla küçülmez**.
+   - Tablo satır/sütun **üst sınırı** (aşağıda) → tablo tek başına sayfayı aşamaz.
 2. **Sütun ekleme bulunamıyor — düzeltildi.** Tablonun altındaki satıra ikinci
    düğme eklendi: **"Satır ekle" + "Sütun ekle"** aynı `Row` içinde
    (`form_page._tableAddButton`) → `kFbTableAddH` ölçüsü değişmedi, sayfalama
    bozulmadı. Araç çubuğundaki tablo menüsü (araya ekleme/silme/başlık) duruyor.
 
-**Bu düzeltmelerin getirdiği bilinen sınır:** sayfa sayısı büyür, **küçülmez** —
-tablo satırı silince fazladan sayfa kartı boş kalır ve kullanıcı onu
-kaldıramaz (sayfa silme özelliği YOK). İstenirse "Sayfayı sil" ayrı iş olarak
-eklenebilir.
+**Tablo boyut sınırları (kullanıcı kararı: "her boyut için maksimum satır ve
+sütun belirleyelim, sonrasına karışmayalım")** — `form_layout.maxTableRows/
+maxTableCols`, sayfa boyutundan **hesaplanır** (sabit tablo değil):
+satır = bir sayfaya sığan tek-satırlık satır sayısı, sütun = hücre iç genişliği
+44 sanal px altına düşmeyen sayı. Bugünkü değerler: **A4 22×8 · kare 14×8 ·
+yatay 14×12 · telefon 26×6**. Sınır üç yerde birden uygulanır: ekleme diyaloğu
+(`insert_table` stepper max + altında açıklama satırı), tablo altı düğmeler
+(soluklaşır + `Icons.block`, basınca sebebi snackbar'da), araç çubuğu tablo
+menüsü (ekleme öğeleri gizlenir).
 
-**⭐ SONRAKİ ADIM (yeni session buradan devam):** açık hata YOK.
-"Büyükler" bloğunun **tamamı bitti** — (a) tablo ekleme, (b1) şekiller,
+**Bilinen sınır:** sayfa sayısı büyür, **küçülmez** — içerik silince fazladan
+sayfa kartı boş kalır ve kullanıcı onu kaldıramaz (sayfa silme özelliği YOK).
+"Sayfayı sil" yeni yol haritasında (aşağı bkz.).
+
+**⭐ SONRAKİ ADIM (yeni session buradan devam):** açık hata YOK. Sıradaki iş
+listesi = aşağıdaki **"YENİ YOL HARİTASI (24 Tem 2026 denetimi)"** bölümü.
+"Büyükler" bloğunun tamamı bitti — (a) tablo ekleme, (b1) şekiller,
 (b3) lasso, (c) form alan biçimi (alan bazında). **(b2) cetvel YAPILMAYACAK — kullanıcı kararı: "gerek yok".**
-Madde 1/2/3 de bitti. Yani "Uygulama içi cila + özellikler" listesinde açık iş
-KALMADI; sıradaki adaylar "Bilinçli ertelenenler" (form biçim v2) ya da
-kullanıcının yeni isteği. Kullanıcı: "hepsini yap, kolaydan zora, sıra sende."
+Kullanıcı: "hepsini yap, kolaydan zora, sıra sende."
 Mail/auth ASKIDA (dokunma). Her adım: kullanıcıya ne yapacağını söyle → onay →
 yap → dev APK.
+
+### 🎨 RENK PALETİ DEĞİŞTİ — sıcak bej + denim mavi (24 Tem 2026)
+
+Kullanıcıya gelen geri bildirim: arayüz **"çok parlak, çok soğuk"** (saf beyaz
+kart + `#FAFAFA` zemin + **siyah** vurgu = hiç renk yok). Kullanıcı bej zemin +
+mavi bir ikon/vurgu tonu istedi; üç palet sunuldu, **"Sıcak bej + denim mavi"**
+seçildi.
+
+Değişen tek yer `core/theme/nd_colors.dart` (tüm ekranlar token'dan beslendiği
+için ekran ekran dolaşmak gerekmedi) + `app_theme` seed rengi:
+
+| Token | Açık | Koyu |
+|---|---|---|
+| bg | `#F6F2EA` sıcak bej | `#16140F` |
+| card | `#FFFCF6` fildişi | `#1E1B16` |
+| sidebar | `#EFE9DE` | `#1A1712` |
+| border / borderStrong | `#E7E0D3` / `#DBD2C1` | `#2C2820` / `#3A3529` |
+| text / text2 | `#2B2723` / `#8B8175` | `#ECE7DE` / `#9A9184` |
+| bar / bar2 / hover | `#CFC6B5` / `#E6DFD2` / `#EDE6D8` | `#4A453A` / `#2A261E` / `#232019` |
+| **accent** | **`#3F6E9E` denim mavi** | **`#7FB2E0`** |
+| accentFg | `#FFFFFF` | `#101A22` |
+| **accentSoft** (YENİ) | `#E4EDF5` | `#1F2A33` |
+
+- **`accentSoft` yeni token:** vurgunun soluk zemini (seçili öğe/çip). copyWith
+  + lerp'e eklendi.
+- **İkon rengi kararı:** her ikon maviye boyanmadı (görsel gürültü olurdu) —
+  yalnızca **aktif yan panel sekmesi** vurgu rengiyle işaretlenir
+  (`home_shell` `_NavItem`: aktif ikon `nd.accent`, etiket `w600`).
+- **DOKUNULMADI:** not **kâğıdı** renkleri (`editor_state.kPaperStyles` —
+  beyaz kâğıt beyaz kalmalı, PDF çıktısıyla uyuşsun diye; isteyen "krem"
+  kâğıdı seçebiliyor) ve **kalem renkleri** (`inks` + `penPaletteProvider`).
+- Bilinen küçük pürüz: kütüphane kartındaki mini sayfa önizlemesi ve bazı
+  onboarding illüstrasyonları hâlâ sabit `Colors.white` kullanıyor (kâğıt
+  temsili). Bej zeminde sırıtırsa token'a çevrilebilir.
+
+### 🔒 E-POSTA GİRİŞİ ARAYÜZÜ KAPATILDI — `kAuthEnabled = false`
+
+Faz 1 auth kodu hazır ama Supabase'de **SMTP kurulmadığı** için doğrulama kodu
+hiç gitmiyordu; kapalı testteki 12 kişi "Giriş yap"a basınca çıkmaz sokağa
+giriyordu. `features/auth/auth_service.dart` → `const bool kAuthEnabled = false`.
+Gizlenen yerler: Ayarlar `_AccountCard` (`CollabConfig.enabled && kAuthEnabled`)
+ve onboarding'in **senkron slaytı** (artık son slayt "Başla" ile biter).
+**Kod silinmedi** — SMTP kurulunca (bkz. `SETUP-AUTH.md`) yalnız bayrağı `true`
+yapmak yeterli. Canlı ortak not (anonim oturum) bundan etkilenmez.
+
+### 📋 YENİ YOL HARİTASI (24 Tem 2026 kod denetimi)
+
+Kullanıcı "bütün uygulamayı gözden geçirip eksik/hata/fazlalık planı çıkaralım"
+dedi. 17.500 satır tarandı: `flutter analyze` temiz, TODO/FIXME yok, boş `catch`
+yok, controller'lar düzgün dispose ediliyor. Çıkan iş listesi (sıralı):
+
+**A — kullanıcıyı doğrudan etkileyen**
+1. ~~Giriş düğmesi çıkmaz sokak~~ → **YAPILDI** (`kAuthEnabled`, yukarı bkz.).
+2. ~~Renk paleti~~ → **YAPILDI** (yukarı bkz.).
+3. **Sayfa silme yok.** Sayfa artık otomatik büyüdüğü için, içerik silinince
+   fazladan boş kart kalıyor ve kaldırılamıyor. "Yeni sayfa" düğmesinin yanına
+   son sayfayı silen bir eylem (yalnız son sayfa boşsa) gerekiyor.
+4. **Serbest (Quill) notlarda uzun yazı sayfa sınırını aşıyor.** Form
+   notlarında satır-bazlı sayfalama var, Quill'de yok → yazı sayfa kartının
+   dışına taşabiliyor. En zor madde.
+5. **Yedekten dönen görev/rutin hatırlatıcıları planlanmıyor** (veri geliyor,
+   bildirim kurulmuyor). En azından geri yükleme sonrası kullanıcı uyarılmalı.
+
+**B — tamamlanmamış işler**
+6. **Çeviri eksikleri:** `drawing_toolbar` 22, `folders_screen` 13 sabit Türkçe
+   metin + `core/utils/date_format.dart` göreli tarihler ("2 sa önce") tamamen
+   Türkçe. İngilizce seçilince bunlar Türkçe kalıyor.
+7. **Etiketleme yalnız kütüphane seçim çubuğundan** (editör içinden yok).
+8. **Lasso ile taşıma canlı paylaşıma gitmiyor** (collab yalnız ekleme/silme).
+
+**C — fazlalıklar**
+9. **`features/editor/table_embed.dart`** (318 satır) — başarısız ndtable
+   denemesinden kalma. Yeni tablo bunu KULLANMIYOR; yalnız eski test notları
+   bozulmasın diye okuma tarafında duruyor (`note_editor_screen` embedBuilders
+   + `pdf_export` import). Temizlenebilir.
+10. **Sürüm yazısı elle eşitleniyor** (`settings_screen`'de `'1.3.0'` sabiti) —
+    pubspec değişip burası unutulabilir. package_info_plus eklenmedi (bilinçli).
 
 **Google Play API 36 (31 Ağu 2026 şartı) — ÇÖZÜLDÜ:** `compileSdk`+`targetSdk`
 elle 36'ya sabitlendi (Flutter yükseltilmedi); ayrıntı "Önemli notlar"da.
 
 ### 📋 YARIM KALANLAR & KARARLAR — tek bakışta (yeni oturum önce burayı okusun)
 
-**Sıradaki iş:** planlı liste BOŞ — "Uygulama içi cila + özellikler" maddelerinin
-hepsi uygulandı. Yeni iş kullanıcıdan gelecek; kendiliğinden başlanacak tek aday
-"Bilinçli ertelenenler" listesindeki **form biçim v2**.
+**Sıradaki iş:** yukarıdaki **"YENİ YOL HARİTASI (24 Tem 2026 kod denetimi)"**
+bölümü — sırada A3 (sayfa silme), sonra B6 (çeviri eksikleri), A4 (Quill sayfa
+taşması), A5 (yedek hatırlatıcıları), C9 (table_embed temizliği). Eski "Uygulama
+içi cila + özellikler" listesinin tamamı uygulandı.
 
 **Bilinçli ertelenenler (yapılacak, sırası gelmedi):**
 1. **Form biçim v2** — alan içi **kelime bazlı** biçim + **yazı boyutu**. İkisi de
@@ -617,9 +715,9 @@ hepsi uygulandı. Yeni iş kullanıcıdan gelecek; kendiliğinden başlanacak te
   gönderimi kullanıcının Supabase panelinde SMTP kurmasını bekliyor
   (`SETUP-AUTH.md`). Bu yüzden Faz 2/3/4 de beklemede.
 - Not: giriş **opsiyonel**, uygulama hesapsız tam çalışıyor (kodda doğrulandı:
-  `app.dart`'ta auth kapısı yok, onboarding'de "Geç"/"Şimdilik geç" var).
-  Ama giriş **düğmesi görünür** → testçi denerse kod gelmez, çıkmaz sokak.
-  Kullanıcı bunu biliyor; istenirse SMTP hazır olana kadar gizlenebilir.
+  `app.dart`'ta auth kapısı yok). Giriş **arayüzü artık gizli**
+  (`kAuthEnabled = false`, 24 Tem 2026 — testçiler çıkmaz sokağa girmesin
+  diye). SMTP kurulunca bayrağı `true` yapmak yeterli.
 
 **Kullanıcı kararıyla YAPILMAYACAK (tekrar önerme):**
 - **Cetvel** (kalem araçları b2) — "gerek yok".

@@ -3,6 +3,18 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/collab/collab_config.dart';
 
+/// E-posta girişi arayüzü kullanıcıya gösterilsin mi?
+///
+/// Faz 1 kodu (kod gönderme, doğrulama, profil) hazır ve çalışır durumda,
+/// ancak Supabase projesinde **SMTP kurulmadığı** için kod e-postası hiç
+/// gitmiyor — düğme görünür kalsaydı denemeye kalkan çıkmaz sokağa girerdi.
+/// Bu yüzden giriş arayüzü kapalı. SMTP kurulunca (bkz. SETUP-AUTH.md)
+/// yalnızca burayı `true` yapmak yeterli; hiçbir kod silinmedi.
+///
+/// Not: bu bayrak yalnızca **hesap girişini** kapatır. Canlı ortak not
+/// (anonim oturum) etkilenmez — o `CollabConfig.enabled`'a bağlı.
+const bool kAuthEnabled = false;
+
 /// Giriş yapmış (kalıcı, anonim olmayan) hesap. Görünen ad auth kullanıcı
 /// metadata'sında saklanır (Faz 1'de ayrı profiles tablosu gerekmez; başka
 /// kullanıcıların adı görmesi Faz 2'de profiles tablosuyla gelecek).

@@ -214,7 +214,7 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 12),
-            if (CollabConfig.enabled) _AccountCard(),
+            if (CollabConfig.enabled && kAuthEnabled) _AccountCard(),
             const SizedBox(height: 12),
             _Card(
               child: Column(

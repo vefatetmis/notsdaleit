@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/collab/collab_config.dart';
 import '../../core/i18n/i18n.dart';
 import '../../core/theme/nd_colors.dart';
+import '../auth/auth_service.dart';
 import '../auth/auth_ui.dart';
 
 /// İlk açılış tanıtımı — uygulamadaki her şeyi (şablonlar, yaz&çiz, PDF,
@@ -76,7 +77,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             'Track habits and build streaks 🔥; get reminders for tasks and '
                 'routines right on time.'),
       ),
-      if (CollabConfig.enabled)
+      // Giriş arayüzü kapalıyken bu slayt hiç gösterilmez (bkz. kAuthEnabled).
+      if (CollabConfig.enabled && kAuthEnabled)
         _Slide(
           art: const _SyncArt(),
           title: context.t('Her cihazda yanında', 'On every device'),

@@ -316,14 +316,15 @@ class _NavButton extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Icon(icon,
-                    size: 18, color: active ? nd.text : nd.text2),
+                // Aktif sekme vurgu rengiyle (mavi) işaretlenir; nötr öğeler
+                // soluk kalır — her ikonu boyamak görsel gürültü yapardı.
+                Icon(icon, size: 18, color: active ? nd.accent : nd.text2),
                 if (showLabel) ...[
                   const SizedBox(width: 11),
                   Text(label,
                       style: TextStyle(
                           fontSize: 14,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: active ? FontWeight.w600 : FontWeight.w500,
                           color: active ? nd.text : nd.text2)),
                 ],
               ],
