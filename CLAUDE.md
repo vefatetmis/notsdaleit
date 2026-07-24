@@ -563,9 +563,32 @@ sonraki Play yüklemesinde (versionCode **+5**) gidecek:
 - **Lasso seçim** (seç/taşı/sil). Madde 4(b3).
 - **Tablo ekleme** (araç çubuğundan; satır/sütun düzenleme). Madde 4(a).
 
-**⭐ SONRAKİ ADIM (yeni session buradan devam):** "Büyükler" bloğunun **tamamı
-bitti** — (a) tablo ekleme, (b1) şekiller, (b3) lasso, (c) form alan biçimi
-(alan bazında). **(b2) cetvel YAPILMAYACAK — kullanıcı kararı: "gerek yok".**
+### 🔴 AÇIK HATA — YENİ OTURUM ÖNCE BUNLARI DÜZELTSİN (24 Tem 2026, saha testi)
+
+Tablo özelliği (madde 4(a)) cihazda denendi, **iki kusur** çıktı. Kullanıcı
+"düzeltmeleri yeni sohbette yapalım" dedi. Önce bunlar, sonra yeni iş.
+
+1. **Taşan içerik GÖRÜNMÜYOR.** Tablo/satır büyüyüp son sayfa kartını aşınca
+   fazlası ekranda yok. Sebep tespit edildi: `_Sheet` (note_editor_screen) içeriği
+   bir `Stack` çocuğu ve `Stack` varsayılan olarak **kırpıyor** (`Clip.hardEdge`);
+   `paginateForm(maxPages: pageCount)` da son sayfada artık atlama yapmadığından
+   içerik kartın altından taşıyor → kırpılıyor. (Form notlarında sayfa MANUEL
+   olduğu için tasarım gereği taşıyordu, ama kırpılınca kullanıcı yazdığını
+   göremiyor.) **Önerilen çözüm:** form değişince sayfa sayısını otomatik
+   BÜYÜT (asla küçültme) — `_growPagesForForm()` zaten yazılı (tablo eklerken
+   çağrılıyor), onu `onFormChanged`/`_scheduleSave` yolunda debounce'lu çağırmak
+   yetiyor. "Yeni sayfa" düğmesi kalsın. (Alternatif — Stack'i kırpmamak — sayfa
+   kartının dışına taşan yazı demek, çirkin; önerilmez.)
+2. **Sütun ekleme bulunamıyor.** Tablonun altında yalnız "Satır ekle" düğmesi
+   var; sütun ekleme sadece araç çubuğundaki menüde (hücreye dokun → çerçeve
+   ikonu) ve kullanıcı bulamadı. **Önerilen çözüm:** alt satıra ikinci bir
+   düğme — "Sütun ekle" (sona ekler, `b.addColumn()`); ikisi aynı satırda
+   olduğundan `kFbTableAddH` ölçüsü değişmez, sayfalama bozulmaz. Araç çubuğu
+   menüsü (araya ekleme/silme) kalsın.
+
+**⭐ SONRAKİ ADIM (yeni session buradan devam):** ÖNCE yukarıdaki 🔴 iki hata.
+Sonrası: "Büyükler" bloğunun **tamamı bitti** — (a) tablo ekleme, (b1) şekiller,
+(b3) lasso, (c) form alan biçimi (alan bazında). **(b2) cetvel YAPILMAYACAK — kullanıcı kararı: "gerek yok".**
 Madde 1/2/3 de bitti. Yani "Uygulama içi cila + özellikler" listesinde açık iş
 KALMADI; sıradaki adaylar "Bilinçli ertelenenler" (form biçim v2) ya da
 kullanıcının yeni isteği. Kullanıcı: "hepsini yap, kolaydan zora, sıra sende."
