@@ -67,6 +67,17 @@ const List<NoteTemplate> kBuiltInTemplates = [
     pageBackground: 'duz',
     buildBody: _todoBody,
   ),
+  NoteTemplate(
+    id: 'table',
+    category: 'temel',
+    tr: 'Tablo',
+    en: 'Table',
+    icon: Icons.grid_on,
+    pageSize: 'a4',
+    pageColor: 'beyaz',
+    pageBackground: 'duz',
+    buildBody: _tableBody,
+  ),
   // ── Yazı ───────────────────────────────────────────────────────────
   NoteTemplate(
     id: 'journal',
@@ -174,6 +185,13 @@ String _todoBody(bool en) => FormDoc([
         items: _checks(8),
         addLabel: en ? 'Add task' : 'Görev ekle',
       ),
+    ]).encode();
+
+/// Boş tablo sayfası: başlık + 5×3 tablo (ilk satır başlık satırı). Satır/sütun
+/// hücreye uzun basılıp eklenir-silinir.
+String _tableBody(bool en) => FormDoc([
+      TitleBlock(hint: en ? 'Table title' : 'Tablo başlığı'),
+      TableBlock.empty(r: 5, c: 3),
     ]).encode();
 
 String _journalBody(bool en) => FormDoc([

@@ -39,6 +39,10 @@ class _FormPageState extends ConsumerState<FormPage> {
   final Map<String, FocusNode> _focusNodes = {};
   String? _activeKey;
 
+  /// Tablo hücresi anahtarı → o hücrenin satır/sütun menüsünü açan kanca.
+  /// Her build'de yeniden kurulur (satır/sütun silinince bayat kalmasın).
+  final Map<String, VoidCallback> _tableMenus = {};
+
   TextEditingController _ctrl(String key, String value) {
     final c = _ctrls.putIfAbsent(key, () => TextEditingController(text: value));
     return c;
@@ -73,6 +77,7 @@ class _FormPageState extends ConsumerState<FormPage> {
         // Çubuktaki açık/kapalı durumu güncellensin.
         _publishActive(key);
       },
+      tableMenu: _tableMenus[key],
     );
   }
 
@@ -140,6 +145,12 @@ class _FormPageState extends ConsumerState<FormPage> {
           sync('$i.c', b.cues);
           sync('$i.n', b.notes);
           sync('$i.s', b.summary);
+        case TableBlock():
+          for (var r = 0; r < b.rows.length; r++) {
+            for (var c = 0; c < b.rows[r].length; c++) {
+              sync('$i.t${r}_$c', b.rows[r][c]);
+            }
+          }
         default:
           break;
       }
@@ -748,6 +759,248 @@ class _FormPageState extends ConsumerState<FormPage> {
     );
   }
 
+  // ── Tablo ────────────────────────────────────────────────────────────
+
+  /// Bir tablonun hücre controller'larını atar (satır/sütun eklenip silinince
+  /// index tabanlı anahtarlar kaydığı için yeniden kurulmaları gerekir).
+  void _clearTableCtrls(int block) {
+    _ctrls.removeWhere((k, c) {
+      if (k.startsWith('$block.t')) {
+        c.dispose();
+        return true;
+      }
+      return false;
+    });
+  }
+
+  /// Tablonun yapısını değiştiren işlemler ortak yol: biçimler (hücre bazlı)
+  /// kayan index'lere yapışmasın diye o bloğun biçimleri temizlenir.
+  void _editTable(int block, VoidCallback change) {
+    setState(() {
+      change();
+      widget.form.clearStylesForBlock(block);
+      _clearTableCtrls(block);
+    });
+    if (_activeKey != null && _activeKey!.startsWith('$block.')) {
+      _activeKey = null;
+      ref.read(activeFormFieldProvider.notifier).state = null;
+    }
+    _changed();
+  }
+
+  /// Bir bloğu tamamen kaldırır. Sonraki blokların index'i kaydığı için biçim
+  /// anahtarları yeniden numaralanır ve controller'lar sıfırlanır (metinler
+  /// modelden yeniden okunur).
+  void _deleteBlock(int block) {
+    final removed = widget.form.blocks[block];
+    void reindex(int at, {required bool inserting}) {
+      final old = Map<String, String>.from(widget.form.styles);
+      widget.form.styles.clear();
+      for (final e in old.entries) {
+        final dot = e.key.indexOf('.');
+        final bi = dot < 0 ? -1 : int.tryParse(e.key.substring(0, dot)) ?? -1;
+        if (bi < 0) continue;
+        if (!inserting && bi == at) continue; // silinen bloğun biçimleri gider
+        final next = bi > at ? (inserting ? bi + 1 : bi - 1) : bi;
+        widget.form.styles['$next${e.key.substring(dot)}'] = e.value;
+      }
+    }
+
+    void resetCtrls() {
+      for (final c in _ctrls.values) {
+        c.dispose();
+      }
+      _ctrls.clear();
+    }
+
+    setState(() {
+      widget.form.blocks.removeAt(block);
+      reindex(block, inserting: false);
+      resetCtrls();
+    });
+    ref.read(activeFormFieldProvider.notifier).state = null;
+    _activeKey = null;
+    _changed();
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        behavior: SnackBarBehavior.floating,
+        content: Text(context.t('Tablo silindi', 'Table deleted')),
+        action: SnackBarAction(
+          label: context.t('Geri al', 'Undo'),
+          onPressed: () {
+            setState(() {
+              widget.form.blocks
+                  .insert(block.clamp(0, widget.form.blocks.length), removed);
+              reindex(block, inserting: true);
+              resetCtrls();
+            });
+            _changed();
+          },
+        ),
+      ));
+  }
+
+  /// Hücreye uzun basınca açılan satır/sütun düzenleme menüsü.
+  void _tableMenu(int i, TableBlock b, int r, int c) {
+    final nav = Navigator.of(context);
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) {
+        Widget item(IconData icon, String label, VoidCallback onTap,
+            {bool danger = false}) {
+          final color = danger ? Theme.of(ctx).colorScheme.error : null;
+          return ListTile(
+            leading: Icon(icon, size: 20, color: color),
+            title: Text(label, style: TextStyle(color: color)),
+            onTap: () {
+              nav.pop();
+              onTap();
+            },
+          );
+        }
+
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 6),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    '${ctx.t('Tablo', 'Table')} · ${ctx.t('satır', 'row')} ${r + 1}, ${ctx.t('sütun', 'column')} ${c + 1}',
+                    style: const TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+              item(Icons.keyboard_arrow_up, ctx.t('Üste satır ekle', 'Add row above'),
+                  () => _editTable(i, () => b.addRow(r))),
+              item(Icons.keyboard_arrow_down, ctx.t('Alta satır ekle', 'Add row below'),
+                  () => _editTable(i, () => b.addRow(r + 1))),
+              item(Icons.keyboard_arrow_left, ctx.t('Sola sütun ekle', 'Add column left'),
+                  () => _editTable(i, () => b.addColumn(c))),
+              item(Icons.keyboard_arrow_right, ctx.t('Sağa sütun ekle', 'Add column right'),
+                  () => _editTable(i, () => b.addColumn(c + 1))),
+              const Divider(height: 1),
+              item(
+                b.header ? Icons.check_box : Icons.check_box_outline_blank,
+                ctx.t('Başlık satırı', 'Header row'),
+                () => _editTable(i, () => b.header = !b.header),
+              ),
+              const Divider(height: 1),
+              if (b.rows.length > 1)
+                item(Icons.remove_circle_outline, ctx.t('Satırı sil', 'Delete row'),
+                    () => _editTable(i, () => b.removeRow(r)),
+                    danger: true),
+              if (b.cols > 1)
+                item(Icons.remove_circle_outline, ctx.t('Sütunu sil', 'Delete column'),
+                    () => _editTable(i, () => b.removeColumn(c)),
+                    danger: true),
+              item(Icons.delete_outline, ctx.t('Tabloyu sil', 'Delete table'),
+                  () => _deleteBlock(i),
+                  danger: true),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _table(int i, TableBlock b) {
+    final line = BorderSide(color: paper.line, width: kFbTableBorder);
+    final lineH = kFbTableLineH;
+
+    Widget cell(int r, int c) {
+      final key = '$i.t${r}_$c';
+      final isHead = b.header && r == 0;
+      // Araç çubuğu bu hücre odaklanınca satır/sütun menüsünü açabilsin.
+      if (widget.editable) _tableMenus[key] = () => _tableMenu(i, b, r, c);
+      return Container(
+        decoration: BoxDecoration(
+          border: c < b.cols - 1 ? Border(right: line) : null,
+        ),
+        padding: const EdgeInsets.symmetric(
+            horizontal: kFbTableCellPadH, vertical: kFbTableCellPadV),
+        child: TextField(
+          controller: _ctrl(key, b.rows[r][c]),
+          focusNode: _focusFor(key),
+          enabled: widget.editable,
+          onChanged: (v) {
+            // setState: hücre sarınca satır yüksekliği büyüsün (sayfalama
+            // kaydetmeden sonraki karede yakalar).
+            setState(() => b.rows[r][c] = v);
+            _changed();
+          },
+          maxLines: null,
+          textCapitalization: TextCapitalization.sentences,
+          style: _fmt(
+            key,
+            TextStyle(
+              fontSize: kFbTableFont,
+              height: lineH / kFbTableFont,
+              fontWeight: isHead ? FontWeight.w700 : FontWeight.w400,
+              color: paper.text,
+            ),
+          ),
+          decoration: _bare(''),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        for (var r = 0; r < b.rows.length; r++) ...[
+          if (_rowSpacer(i, r) > 0) SizedBox(height: _rowSpacer(i, r)),
+          Container(
+            decoration: BoxDecoration(
+              color: b.header && r == 0 ? paper.faint : null,
+              border: Border(
+                top: line,
+                left: line,
+                right: line,
+                bottom: r == b.rows.length - 1 ? line : BorderSide.none,
+              ),
+            ),
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (var c = 0; c < b.cols; c++) Expanded(child: cell(r, c)),
+                ],
+              ),
+            ),
+          ),
+        ],
+        if (widget.editable) ...[
+          if (_rowSpacer(i, b.rows.length) > 0)
+            SizedBox(height: _rowSpacer(i, b.rows.length)),
+          InkWell(
+            onTap: () => _editTable(i, b.addRow),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Row(
+                children: [
+                  Icon(Icons.add, size: 16, color: paper.muted),
+                  const SizedBox(width: 10),
+                  Text(
+                    context.t('Satır ekle', 'Add row'),
+                    style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                        color: paper.muted),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
   Widget _sketch(SketchBlock b) {
     return CustomPaint(
       painter: _SketchBoxPainter(paper.line),
@@ -758,6 +1011,9 @@ class _FormPageState extends ConsumerState<FormPage> {
   @override
   Widget build(BuildContext context) {
     final children = <Widget>[];
+    // Tablo menü kancaları her karede yeniden kurulur (silinen satır/sütuna
+    // ait bayat kanca kalmasın).
+    _tableMenus.clear();
     final blocks = widget.form.blocks;
     for (var i = 0; i < blocks.length; i++) {
       final b = blocks[i];
@@ -777,6 +1033,7 @@ class _FormPageState extends ConsumerState<FormPage> {
         WeekBlock() => _week(i, b),
         CornellBlock() => _cornell(i, b),
         SketchBlock() => _sketch(b),
+        TableBlock() => _table(i, b),
       };
       // Sayfalama: bütün-blok birimleri (row == -1) sığmazsa sonraki sayfaya
       // atlar. Satırlı bloklar (checklist/numaralı/saat) kendi satır

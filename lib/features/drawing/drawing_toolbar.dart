@@ -7,6 +7,7 @@ import '../../core/theme/nd_colors.dart';
 import '../../data/data_providers.dart';
 import '../editor/editor_state.dart';
 import '../forms/form_model.dart';
+import '../forms/insert_table.dart';
 import '../shell/shell_state.dart';
 import 'color_picker.dart';
 import 'drawing_state.dart';
@@ -32,12 +33,15 @@ class DrawingToolbar extends ConsumerWidget {
     final controller = ref.watch(activeQuillControllerProvider);
     final formField = ref.watch(activeFormFieldProvider);
 
-    // Yazı modunda: serbest not → Quill biçim çubuğu; form notu (Quill yok) +
-    // bir alan odaklıysa → alan biçim çubuğu (kalın/italik/altı çizili); aksi
+    // Yazı modunda: serbest not → Quill biçim çubuğu; form notu (Quill yok) →
+    // form çubuğu (odaklı alan varsa kalın/italik/altı çizili + tablo); aksi
     // halde kalem çubuğu.
+    final activeDoc = ref.watch(activeDocumentProvider);
+    final isFormNote =
+        activeDoc?.type == 'not' && isFormBody(activeDoc?.body ?? '');
     final isQuillText = tool == PenTool.yazi && controller != null;
     final isFormText =
-        tool == PenTool.yazi && controller == null && formField != null;
+        tool == PenTool.yazi && controller == null && isFormNote;
     // Lasso ile bir şey seçildiyse seçim çubuğu (sil / bırak) gösterilir.
     final selection = ref.watch(strokeSelectionProvider);
     final isLassoSel = tool == PenTool.lasso && selection.isNotEmpty;
@@ -297,6 +301,7 @@ class _TextBar extends ConsumerWidget {
             _divider(nd.border),
             _SizeButton(controller: controller),
             _FontButton(controller: controller),
+            const _TableButton(),
           ],
         );
       },
@@ -306,15 +311,17 @@ class _TextBar extends ConsumerWidget {
 
 /// Form notu biçim çubuğu: odaklanmış alanın tamamına kalın/italik/altı çizili
 /// uygular (alan bazlı — Quill değil). Boyut/liste yok (satır yükseklikleri
-/// sabit; ayrıntı form_model.dart).
+/// sabit; ayrıntı form_model.dart). Alan odaklı değilken yalnızca tablo ekleme
+/// ve çizime dönüş görünür.
 class _FormTextBar extends ConsumerWidget {
   const _FormTextBar({required this.field});
 
-  final ActiveFormField field;
+  final ActiveFormField? field;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final nd = context.nd;
+    final f = field;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -325,25 +332,53 @@ class _FormTextBar extends ConsumerWidget {
           onTap: () => ref.read(toolProvider.notifier).state = PenTool.kalem,
         ),
         _divider(nd.border),
-        _ToolButton(
-          icon: Icons.format_bold,
-          active: field.flags.contains(kFmtBold),
-          tooltip: 'Kalın',
-          onTap: () => field.toggle(kFmtBold),
-        ),
-        _ToolButton(
-          icon: Icons.format_italic,
-          active: field.flags.contains(kFmtItalic),
-          tooltip: 'İtalik',
-          onTap: () => field.toggle(kFmtItalic),
-        ),
-        _ToolButton(
-          icon: Icons.format_underlined,
-          active: field.flags.contains(kFmtUnderline),
-          tooltip: 'Altı çizili',
-          onTap: () => field.toggle(kFmtUnderline),
-        ),
+        if (f != null) ...[
+          _ToolButton(
+            icon: Icons.format_bold,
+            active: f.flags.contains(kFmtBold),
+            tooltip: 'Kalın',
+            onTap: () => f.toggle(kFmtBold),
+          ),
+          _ToolButton(
+            icon: Icons.format_italic,
+            active: f.flags.contains(kFmtItalic),
+            tooltip: 'İtalik',
+            onTap: () => f.toggle(kFmtItalic),
+          ),
+          _ToolButton(
+            icon: Icons.format_underlined,
+            active: f.flags.contains(kFmtUnderline),
+            tooltip: 'Altı çizili',
+            onTap: () => f.toggle(kFmtUnderline),
+          ),
+          _divider(nd.border),
+          // Odaklı alan bir tablo hücresiyse satır/sütun düzenleme menüsü.
+          if (f.tableMenu != null)
+            _ToolButton(
+              icon: Icons.border_all,
+              active: false,
+              tooltip: 'Satır / sütun düzenle',
+              onTap: f.tableMenu,
+            ),
+        ],
+        const _TableButton(),
       ],
+    );
+  }
+}
+
+/// Tablo ekleme düğmesi (yazı modu). Editör kancayı kurmuşsa görünür.
+class _TableButton extends ConsumerWidget {
+  const _TableButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (ref.watch(tableInserterProvider) == null) return const SizedBox.shrink();
+    return _ToolButton(
+      icon: Icons.grid_on,
+      active: false,
+      tooltip: 'Tablo ekle',
+      onTap: () => showInsertTableDialog(context, ref),
     );
   }
 }

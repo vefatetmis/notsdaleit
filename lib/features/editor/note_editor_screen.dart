@@ -83,10 +83,52 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       if (_form == null) {
         ref.read(activeQuillControllerProvider.notifier).state = _controller;
       }
+      // Araç çubuğundaki tablo düğmesi bu kancayı çağırır.
+      ref.read(tableInserterProvider.notifier).state = _insertTable;
       if (emptyOnOpen && ref.read(toolProvider) == PenTool.yazi) {
         _focus.requestFocus();
       }
     });
+  }
+
+  /// Araç çubuğundan tablo ekler. Not form değilse (serbest/Quill) önce forma
+  /// dönüştürülür: mevcut yazı çizgili bir metin alanına taşınır, tablo onun
+  /// altına eklenir. Tablo **sona** eklenir — araya girmek sonraki blokların
+  /// index'ini kaydırıp alan biçimlerini bozardı.
+  void _insertTable(int rows, int cols) {
+    final table = TableBlock.empty(r: rows, c: cols);
+    setState(() {
+      if (_form == null) {
+        final text = _controller.document.toPlainText().trimRight();
+        _form = FormDoc([
+          if (text.isNotEmpty) AreaBlock(value: text, minLines: 3),
+          table,
+        ]);
+        // Artık Quill çizilmiyor → araç çubuğu form yoluna geçsin.
+        if (ref.read(activeQuillControllerProvider) == _controller) {
+          ref.read(activeQuillControllerProvider.notifier).state = null;
+        }
+      } else {
+        _form!.blocks.add(table);
+      }
+    });
+    _save();
+    _growPagesForForm();
+  }
+
+  /// Form içeriği mevcut sayfalara sığmıyorsa sayfa sayısını büyütür (tablo
+  /// eklendiğinde kullanıcı "Yeni sayfa"ya basmak zorunda kalmasın). Küçültmez.
+  Future<void> _growPagesForForm() async {
+    final id = _docId;
+    final doc = ref.read(activeDocumentProvider);
+    final form = _form;
+    if (id == null || doc == null || form == null) return;
+    final needed = formNaturalPageCount(form, doc.pageSize);
+    if (needed > (doc.pageCount ?? 1)) {
+      await ref
+          .read(documentRepositoryProvider)
+          .setPageCount(id: id, pageCount: needed);
+    }
   }
 
   Document _parseDoc(String body) {
@@ -206,6 +248,9 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     // (bayat toggle closure'ı kalmasın).
     if (ref.read(activeFormFieldProvider) != null) {
       ref.read(activeFormFieldProvider.notifier).state = null;
+    }
+    if (ref.read(tableInserterProvider) == _insertTable) {
+      ref.read(tableInserterProvider.notifier).state = null;
     }
     _controller.dispose();
     _focus.dispose();

@@ -52,7 +52,9 @@ Tasarımdaki **tüm ekranlar** kodlandı ve çalışıyor:
   parmakla yakınlaştırma; en altta yukarı çekip bırakınca yeni sayfa. Metin
   **Quill Delta JSON** olarak `body`'de saklanır (`plainTextFromBody` ile düz
   metne çevrilip önizleme/arama/export'ta kullanılır). Paylaşılan controller:
-  `activeQuillControllerProvider` (araç çubuğu okur).
+  `activeQuillControllerProvider` (araç çubuğu okur). Yazı modunda **tablo
+  eklenebilir** (form bloğu; serbest not onay alınarak forma dönüşür — bkz.
+  "Büyükler" madde 4(a)).
 - **Çizim koordinatları genişliğe göre normalize** (`buildScaledPath`,
   `DrawingLayer._norm` — her iki eksen ÷ genişlik) → sayfa yüksekliği metinle
   büyüse bile çizimler kaymaz.
@@ -511,9 +513,9 @@ yüklemesinde versionCode artmalı** (+5, +6…). Ayarlar ekranındaki sürüm y
 
 ### ⚠️ Kapalı testteki sürüm ile dev APK ARASINDA FARK VAR
 
-`1.3.0+4` AAB'si **23 Tem 2026 12:57'de** derlendi; o günün ilerleyen saatlerinde
-**dört özellik daha** eklendi. Bunlar kapalı testteki sürümde **YOK**, yalnızca
-dev APK'da var ve bir sonraki Play yüklemesinde (versionCode **+5**) gidecek:
+`1.3.0+4` AAB'si **23 Tem 2026 12:57'de** derlendi; sonrasında **beş özellik daha**
+eklendi. Bunlar kapalı testteki sürümde **YOK**, yalnızca dev APK'da var ve bir
+sonraki Play yüklemesinde (versionCode **+5**) gidecek:
 
 | Yalnızca dev APK'da | Commit |
 |---|---|
@@ -521,6 +523,7 @@ dev APK'da var ve bir sonraki Play yüklemesinde (versionCode **+5**) gidecek:
 | Form alanlarında alan-bazlı biçim (B/I/U) | `6d8ea51` |
 | Şekiller (düz çizgi/dikdörtgen/elips) + dikdörtgen köşe düzeltmesi | `cd0d4a6`, `f5ec9c2` |
 | Lasso (kement) seçim / taşıma / silme | `f5ec9c2` |
+| Tablo ekleme + satır/sütun düzenleme (24 Tem 2026) | bu oturum |
 
 **Kapalı testteki 1.3.0+4'ün içeriği (aşağıdaki listenin ilk 9 maddesi):**
 
@@ -558,13 +561,14 @@ dev APK'da var ve bir sonraki Play yüklemesinde (versionCode **+5**) gidecek:
   notlarında kalem barına "Aa" düğmesi. Madde 4(c).
 - **Şekiller** (düz çizgi/dikdörtgen/elips) + dikdörtgen köşe düzeltmesi. Madde 4(b1).
 - **Lasso seçim** (seç/taşı/sil). Madde 4(b3).
+- **Tablo ekleme** (araç çubuğundan; satır/sütun düzenleme). Madde 4(a).
 
-**⭐ SONRAKİ ADIM (yeni session buradan devam):** "Büyükler" bloğunda kalan tek iş:
-**(a) tabloyu elle ekleme** (araç çubuğundan tablo + satır/sütun düzenleme).
-Kalem araçları bitti: (b1) şekiller + dikdörtgen köşe düzeltmesi, (b3) lasso
-seçim/taşıma/silme. **(b2) cetvel YAPILMAYACAK — kullanıcı kararı: "gerek yok".**
-(c) form alan biçimi ALAN BAZINDA bitti (kelime bazlı+boyut v2'ye ertelendi).
-Madde 1/2/3 tamamen bitti. Kullanıcı: "hepsini yap, kolaydan zora, sıra sende."
+**⭐ SONRAKİ ADIM (yeni session buradan devam):** "Büyükler" bloğunun **tamamı
+bitti** — (a) tablo ekleme, (b1) şekiller, (b3) lasso, (c) form alan biçimi
+(alan bazında). **(b2) cetvel YAPILMAYACAK — kullanıcı kararı: "gerek yok".**
+Madde 1/2/3 de bitti. Yani "Uygulama içi cila + özellikler" listesinde açık iş
+KALMADI; sıradaki adaylar "Bilinçli ertelenenler" (form biçim v2) ya da
+kullanıcının yeni isteği. Kullanıcı: "hepsini yap, kolaydan zora, sıra sende."
 Mail/auth ASKIDA (dokunma). Her adım: kullanıcıya ne yapacağını söyle → onay →
 yap → dev APK.
 
@@ -573,11 +577,9 @@ elle 36'ya sabitlendi (Flutter yükseltilmedi); ayrıntı "Önemli notlar"da.
 
 ### 📋 YARIM KALANLAR & KARARLAR — tek bakışta (yeni oturum önce burayı okusun)
 
-**Sıradaki iş (tek kaldı):**
-- **(a) Tabloyu elle ekleme** — araç çubuğundan tablo ekleme + satır/sütun
-  düzenleme. Şu an tablo/ızgara YALNIZ hazır şablonlarda var. `table_embed.dart`
-  (eski ndtable Quill embed'i) hâlâ kayıtlı ama şablonlar KULLANMIYOR; yeni tablo
-  işi ona dayanmamalı (embed yaklaşımı sahada başarısız oldu — bkz. 1.3 bölümü).
+**Sıradaki iş:** planlı liste BOŞ — "Uygulama içi cila + özellikler" maddelerinin
+hepsi uygulandı. Yeni iş kullanıcıdan gelecek; kendiliğinden başlanacak tek aday
+"Bilinçli ertelenenler" listesindeki **form biçim v2**.
 
 **Bilinçli ertelenenler (yapılacak, sırası gelmedi):**
 1. **Form biçim v2** — alan içi **kelime bazlı** biçim + **yazı boyutu**. İkisi de
@@ -670,9 +672,44 @@ elle 36'ya sabitlendi (Flutter yükseltilmedi); ayrıntı "Önemli notlar"da.
    toplam ~20 MP'yi aşarsa genişlik `sqrt` ile küçültülür. Kayıt
    `FilePicker.saveFile` ile (share_plus YOK → kullanıcı galeriden paylaşır).
    Üst bar paylaş menüsünde, yalnız notlarda.
-4. **Büyükler:** **tabloyu elle ekleme** (şu an tablo/ızgara yalnız şablonlardan;
-   araç çubuğuna ekleme + satır/sütun düzenleme) · **kalem araçları** (düz
-   çizgi/şekil ✓ · cetvel · lasso seçim).
+4. **Büyükler — HEPSİ UYGULANDI (dev APK):** tablo ekleme (a) · kalem araçları
+   (b1 şekiller ✓ · b2 cetvel YAPILMAYACAK · b3 lasso ✓) · form alan biçimi (c).
+   - **(a) Tablo — UYGULANDI (dev APK):** tablo bir **form bloğu**dur
+     (`TableBlock` — `form_model.dart`); eski `table_embed.dart` (ndtable Quill
+     embed'i) KULLANILMADI (sahada başarısız olmuştu, dosya eski notlar için
+     duruyor). Model: `rows` (dikdörtgen tutulan `List<List<String>>`) + `header`
+     (ilk satır başlık: `paper.faint` zemin + kalın). JSON `{'type':'table',
+     'r':[[…]], 'hd':0?}` → kaydetme/collab/.ntdl/yedek/şablon otomatik taşır.
+     **Ölçüm/sayfalama** (`form_layout`): `tableRowHeight` hücre metnini sarıp
+     satır yüksekliği verir; `tableCellInnerWidth` ekrandaki `Expanded`
+     bölüşümünün birebir aynısını hesaplar → ekran/PDF/sayfalama aynı sayıyı
+     görür. Tablo satırları **tek tek** sayfalanır (checklist deseni); **her
+     satır kendi üst çizgisini** çizer, son satır alt çizgiyi → sonraki sayfaya
+     taşan tablo yine kapalı görünür. Düzenlerken altta "Satır ekle" birimi
+     (`kFbTableAddH`). **Ekran** (`form_page._table`): hücreler gerçek
+     `TextField` (odak/klavye sorunsuz, B/I/U alan bazlı çalışır, anahtar
+     `'$i.t${r}_$c'`). **Satır/sütun menüsü araç çubuğundan** açılır —
+     hücrede uzun basma `TextField`'ın metin seçimine gittiği için hücre
+     long-press KULLANILMADI: `ActiveFormField.tableMenu` (odaklı hücre için
+     `_tableMenus[key]`, her build'de yenilenir) → pen bar'daki `Icons.border_all`
+     düğmesi → alt sayfa (üste/alta satır, sola/sağa sütun, başlık satırı
+     aç/kapa, satır/sütun/tablo sil + "Geri al"). Yapı değişince o bloğun alan
+     biçimleri temizlenir (`clearStylesForBlock`) ve hücre controller'ları
+     yeniden kurulur (index kayması); blok silinince biçim anahtarları
+     **yeniden numaralanır**. **Ekleme:** editör `tableInserterProvider`
+     (`editor_state`) kancasını kurar, araç çubuğundaki `Icons.grid_on` →
+     `showInsertTableDialog` (`forms/insert_table.dart`: satır/sütun stepper +
+     şematik önizleme). Tablo **notun sonuna** eklenir (araya girmek sonraki
+     blokların index'ini kaydırıp biçimleri bozardı) ve gerekiyorsa sayfa sayısı
+     büyütülür (`formNaturalPageCount`). **Serbest (Quill) notta** tablo eklemek
+     notu forma **dönüştürür** (kullanıcı kararı): diyalogda uyarı gösterilir,
+     mevcut yazı `AreaBlock`'a (çizgili alan) düz metin olarak taşınır, çizimler
+     aynen kalır. **PDF/PNG:** `_paintForm.tableRow` aynı metriklerle çizer.
+     Ayrıca yeni-not "Temel" sekmesine **Tablo** şablonu (başlık + 5×3) eklendi.
+     **Bilinen sınırlar:** dönüştürmede Quill biçimleri (kalın/italik/madde) düz
+     metne iner; hücre içinde yazı boyutu yok (form biçim v2 ile gelecek); satır
+     eklemek sayfayı otomatik büyütmez (form notlarında sayfa MANUEL — "Yeni
+     sayfa"), yalnız tablo eklenirken büyür.
    - **(b1) Şekiller — UYGULANDI (dev APK):** kalem/fosfor ile **düz çizgi,
      dikdörtgen, elips**. `ShapeMode` enum + `shapeModeProvider` (oturumluk,
      `drawing_state`). `buildShapePoints(mode,a,b)` başlangıç→güncelden nokta
@@ -752,7 +789,8 @@ olarak çizilir.**
   "satır ekle") · `num` (numaralı çipli satırlar) · `area` (çizgili çok
   satırlı alan) · `mood` (ruh hâli daireleri) · `hours` (saat çizelgesi) ·
   `week` (7 kolon gün kartları, hafta sonu faint) · `cornell` (2 kolon +
-  özet kutusu) · `sketch` (kesikli çerçeve + noktalı eskiz kutusu).
+  özet kutusu) · `sketch` (kesikli çerçeve + noktalı eskiz kutusu) · `table`
+  (elle eklenen tablo — bkz. "Büyükler" madde 4(a)).
 - **`features/forms/form_page.dart`:** blokların native Flutter karşılığı —
   gerçek TextField'lar (klavye/odak sorunsuz), kutucuk/mood dokunuşları,
   kâğıt rengine duyarlı (paper.line/muted/faint). `didUpdateWidget` uzak

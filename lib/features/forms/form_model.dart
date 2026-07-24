@@ -57,6 +57,12 @@ class FormDoc {
     }
   }
 
+  /// Bir bloğun tüm alan biçimlerini siler. Blok içinde satır/sütun eklenip
+  /// silinince index'ler kaydığından biçimlerin yanlış hücreye geçmemesi için
+  /// (tablo düzenlemesinde) çağrılır.
+  void clearStylesForBlock(int block) =>
+      styles.removeWhere((k, _) => k.startsWith('$block.'));
+
   static FormDoc? tryParse(String body) {
     try {
       final j = jsonDecode(body);
@@ -266,6 +272,14 @@ sealed class FormBlock {
         );
       case 'sketch':
         return SketchBlock((j['h'] as num?)?.toDouble() ?? 120);
+      case 'table':
+        return TableBlock(
+          rows: [
+            for (final r in (j['r'] as List? ?? const []))
+              [for (final c in (r as List? ?? const [])) (c as String?) ?? ''],
+          ],
+          header: j['hd'] != 0,
+        );
       default:
         return LabelBlock('');
     }
@@ -473,4 +487,77 @@ class SketchBlock extends FormBlock {
 
   @override
   Map<String, dynamic> toJson() => {'type': 'sketch', 'h': height};
+}
+
+/// Elle eklenen tablo: hücreli ızgara. [rows] dikdörtgen tutulur (tüm satırlar
+/// aynı sütun sayısında); [header] açıksa ilk satır başlık gibi çizilir.
+/// Satırlar sayfalamada tek tek bölünebildiği için her satır kendi çerçevesini
+/// çizer (bir sonraki sayfaya taşan tablo yine kapalı görünür).
+class TableBlock extends FormBlock {
+  TableBlock({required this.rows, this.header = true}) {
+    _normalize();
+  }
+
+  /// [r] satır × [c] sütunluk boş tablo.
+  factory TableBlock.empty({required int r, required int c}) => TableBlock(
+        rows: [for (var i = 0; i < r; i++) [for (var k = 0; k < c; k++) '']],
+      );
+
+  final List<List<String>> rows;
+  bool header;
+
+  int get cols => rows.isEmpty ? 0 : rows.first.length;
+
+  /// Bozuk/elle düzenlenmiş JSON'a karşı: en az 1×1, tüm satırlar eşit uzunlukta.
+  void _normalize() {
+    if (rows.isEmpty) rows.add(['']);
+    var n = 0;
+    for (final r in rows) {
+      if (r.length > n) n = r.length;
+    }
+    if (n == 0) n = 1;
+    for (final r in rows) {
+      while (r.length < n) {
+        r.add('');
+      }
+    }
+  }
+
+  // Index'ler dışarıdan (menü kancası) geldiği için hepsi sınırlanır.
+
+  void addRow([int? at]) => rows.insert((at ?? rows.length).clamp(0, rows.length),
+      [for (var i = 0; i < cols; i++) '']);
+
+  void removeRow(int r) {
+    if (rows.length > 1 && r >= 0 && r < rows.length) rows.removeAt(r);
+  }
+
+  void addColumn([int? at]) {
+    final i = (at ?? cols).clamp(0, cols);
+    for (final r in rows) {
+      r.insert(i, '');
+    }
+  }
+
+  void removeColumn(int c) {
+    if (cols <= 1 || c < 0 || c >= cols) return;
+    for (final r in rows) {
+      r.removeAt(c);
+    }
+  }
+
+  @override
+  Map<String, dynamic> toJson() => {
+        'type': 'table',
+        'r': rows,
+        if (!header) 'hd': 0,
+      };
+
+  @override
+  void collectText(StringBuffer sb) {
+    for (final r in rows) {
+      final line = r.where((c) => c.isNotEmpty).join(' ');
+      if (line.isNotEmpty) sb.writeln(line);
+    }
+  }
 }

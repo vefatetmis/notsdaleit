@@ -12,16 +12,33 @@ final activeQuillControllerProvider =
 /// okuyup alanın tamamına kalın/italik/altı çizili uygular. `FormPage` odak
 /// değiştikçe günceller, odak kaybında `null` yapar.
 class ActiveFormField {
-  const ActiveFormField({required this.flags, required this.toggle});
+  const ActiveFormField({
+    required this.flags,
+    required this.toggle,
+    this.tableMenu,
+  });
 
   /// Alanın mevcut biçim bayrakları ('b', 'i', 'u' — ör. 'bu').
   final String flags;
 
   /// Bir bayrağı açar/kapatır; `FormPage` uygular ve notu kaydeder.
   final void Function(String flag) toggle;
+
+  /// Odaklı alan bir **tablo hücresi**yse satır/sütun menüsünü açar; değilse
+  /// null. (Hücrede uzun basma metin seçimine gittiği için menü araç
+  /// çubuğundan açılır.)
+  final VoidCallback? tableMenu;
 }
 
 final activeFormFieldProvider = StateProvider<ActiveFormField?>((ref) => null);
+
+/// Açık editörün "tablo ekle" kancası. Tablo bir **form bloğu** olduğundan
+/// eklemeyi editör yapar (serbest/Quill not gerekiyorsa forma dönüştürülür).
+/// Araç çubuğu bu kanca doluysa tablo düğmesini gösterir; editör dispose
+/// olurken temizler.
+typedef TableInserter = void Function(int rows, int cols);
+
+final tableInserterProvider = StateProvider<TableInserter?>((ref) => null);
 
 /// Kağıt (sayfa) rengi seçenekleri. Metin rengi kağıda göre belirlenir; böylece
 /// yazı, uygulama teması açık/koyu olsa da her zaman okunur (siyah kağıt →

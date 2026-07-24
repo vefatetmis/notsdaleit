@@ -663,6 +663,7 @@ List<_PL> _previewLines(String body) {
         case 'hours':
         case 'week':
         case 'cornell':
+        case 'table':
           out.add(_PL.table);
         case 'sketch':
           out.add(_PL.table);

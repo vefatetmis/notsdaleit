@@ -1017,6 +1017,59 @@ void _paintForm(
     underline(x, maxWidth, rowTop + rowH);
   }
 
+  // Tablonun tek satırı: hücre metinleri + çerçeve. Her satır kendi üst
+  // çizgisini çizer (satırlar sayfalara bölünebildiği için), son satır ayrıca
+  // alt çizgiyi.
+  void tableRow(int bi, TableBlock b, int r) {
+    if (r >= b.rows.length) return; // "satır ekle" (PDF'te yok)
+    final rowTop = cy;
+    final rowH = tableRowHeight(b, r, maxWidth / scale) * scale;
+    final border = kFbTableBorder * scale;
+    final isHead = b.header && r == 0;
+    final stroke = Paint()
+      ..color = pal.line
+      ..strokeWidth = border;
+
+    if (isHead) {
+      canvas.drawRect(
+          Rect.fromLTWH(x, rowTop, maxWidth, rowH), Paint()..color = pal.faint);
+    }
+    // Üst çizgi + (son satırda) alt çizgi.
+    canvas.drawLine(
+        Offset(x, rowTop), Offset(x + maxWidth, rowTop), stroke);
+    if (r == b.rows.length - 1) {
+      canvas.drawLine(Offset(x, rowTop + rowH),
+          Offset(x + maxWidth, rowTop + rowH), stroke);
+    }
+    // Dikey çizgiler (dış çerçeve + sütun ayraçları) ve hücre yazıları.
+    final cellW = (maxWidth - 2 * border - (b.cols - 1) * border) / b.cols;
+    canvas.drawLine(
+        Offset(x, rowTop), Offset(x, rowTop + rowH), stroke);
+    var cx = x + border;
+    for (var c = 0; c < b.cols; c++) {
+      final tp = _formTp(
+        b.rows[r][c],
+        fmt(
+            '$bi.t${r}_$c',
+            ts(kFbTableFont, scale,
+                weight: isHead ? FontWeight.w700 : FontWeight.w400)),
+        cellW - 2 * kFbTableCellPadH * scale,
+      );
+      tp.paint(
+          canvas,
+          Offset(cx + kFbTableCellPadH * scale,
+              rowTop + border + kFbTableCellPadV * scale));
+      cx += cellW;
+      if (c < b.cols - 1) {
+        canvas.drawLine(
+            Offset(cx, rowTop), Offset(cx, rowTop + rowH), stroke);
+        cx += border;
+      }
+    }
+    canvas.drawLine(Offset(x + maxWidth, rowTop),
+        Offset(x + maxWidth, rowTop + rowH), stroke);
+  }
+
   for (final u in layout.units) {
     if (u.page != page) continue;
     final b = form.blocks[u.block];
@@ -1029,6 +1082,8 @@ void _paintForm(
           numRow(u.block, b, u.row);
         case HoursBlock():
           hourRow(u.block, b, u.row);
+        case TableBlock():
+          tableRow(u.block, b, u.row);
         default:
           break;
       }
@@ -1314,6 +1369,10 @@ void _paintForm(
           }
         }
         cy += h + 14 * scale;
+      case TableBlock():
+        // Tablo yalnızca satır birimleriyle çizilir (yukarıda) — bütün blok
+        // birimi üretilmez.
+        break;
     }
   }
 }

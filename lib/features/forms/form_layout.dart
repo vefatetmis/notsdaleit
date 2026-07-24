@@ -89,6 +89,45 @@ const double kFbLabelGap = 8; // label bloğunun altı
 const double kFbAreaLineH = 30; // area satır yüksekliği (14pt yazı)
 const double kFbCornellLineH = 27; // cornell satır yüksekliği (13pt yazı)
 
+// ── Tablo metrikleri (FormPage `_table` + PDF `tableRow` aynısını kullanır) ──
+
+const double kFbTableFont = 13;
+const double kFbTableCellPadV = 7; // hücre üst/alt iç boşluk
+const double kFbTableCellPadH = 8; // hücre sol/sağ iç boşluk
+const double kFbTableBorder = 1; // çizgi kalınlığı
+
+double get kFbTableLineH => fbLine(kFbTableFont);
+
+/// Bir hücrenin yazı için kullanılabilir genişliği. Dış çerçeve (2) ve sütun
+/// ayraçları (cols-1) düşülür → ekranda `Expanded` ile aynı bölüşüm.
+double tableCellInnerWidth(double w, int cols) {
+  if (cols <= 0) return w;
+  final inner = (w - 2 * kFbTableBorder - (cols - 1) * kFbTableBorder) / cols;
+  return inner - 2 * kFbTableCellPadH;
+}
+
+/// Tablonun [r] satırının yüksekliği (üst çizgi dâhil; son satırda alt çizgi de).
+/// Satır, hücrelerin en uzun sarılmış metnine göre büyür.
+double tableRowHeight(TableBlock b, int r, double w) {
+  final cellW = tableCellInnerWidth(w, b.cols);
+  final lineH = kFbTableLineH;
+  var lines = 1.0;
+  if (r < b.rows.length) {
+    for (final cell in b.rows[r]) {
+      final n = _wrapLines(cell, kFbTableFont, lineH, cellW);
+      if (n > lines) lines = n;
+    }
+  }
+  final last = r == b.rows.length - 1;
+  return lines * lineH +
+      2 * kFbTableCellPadV +
+      kFbTableBorder +
+      (last ? kFbTableBorder : 0);
+}
+
+/// Tablonun altındaki "satır ekle" düğmesinin yüksekliği (yalnız düzenlerken).
+double get kFbTableAddH => 20.0 + fbLine(13.5);
+
 double _wrapLines(String text, double fontSize, double lineH, double width) {
   if (text.isEmpty) return 1;
   final tp = TextPainter(
@@ -156,6 +195,13 @@ double measureFormBlock(FormBlock b, double w, {required bool editable}) {
       return box1 + 12 + box2;
     case SketchBlock():
       return b.height;
+    case TableBlock():
+      var h = 0.0;
+      for (var r = 0; r < b.rows.length; r++) {
+        h += tableRowHeight(b, r, w);
+      }
+      if (editable) h += kFbTableAddH;
+      return h;
   }
 }
 
@@ -230,6 +276,7 @@ FormLayoutResult paginateForm(
       ChecklistBlock() => kFbCheckRowH,
       NumberedBlock() => kFbNumRowH,
       HoursBlock() => kFbHourRowH,
+      final TableBlock t => tableRowHeight(t, 0, width),
       final b =>
         measureFormBlock(b, width, editable: editable).clamp(0.0, 40.0),
     };
@@ -276,6 +323,14 @@ FormLayoutResult paginateForm(
           final last = r == b.rows.length - 1;
           place(bi, r, kFbHourRowH, last ? kFbBlockGap : 0);
         }
+      case TableBlock():
+        // Tablo satırları da tek tek bölünür; taşan satır sonraki sayfada
+        // kendi üst çizgisiyle başlar (her satır kendi çerçevesini çizer).
+        for (var r = 0; r < b.rows.length; r++) {
+          final last = r == b.rows.length - 1 && !editable;
+          place(bi, r, tableRowHeight(b, r, width), last ? kFbBlockGap : 0);
+        }
+        if (editable) place(bi, b.rows.length, kFbTableAddH, kFbBlockGap);
       case LabelBlock():
         // Etiket kendinden sonraki ilk içerikle birlikte kalsın (öksüz kalmasın).
         place(bi, -1, measureFormBlock(b, width, editable: editable),
