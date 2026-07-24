@@ -38,11 +38,16 @@ class DrawingToolbar extends ConsumerWidget {
     final isQuillText = tool == PenTool.yazi && controller != null;
     final isFormText =
         tool == PenTool.yazi && controller == null && formField != null;
+    // Lasso ile bir şey seçildiyse seçim çubuğu (sil / bırak) gösterilir.
+    final selection = ref.watch(strokeSelectionProvider);
+    final isLassoSel = tool == PenTool.lasso && selection.isNotEmpty;
     final Widget child = isQuillText
         ? _TextBar(controller: controller)
         : isFormText
             ? _FormTextBar(field: formField)
-            : const _PenBar();
+            : isLassoSel
+                ? _LassoBar(selection: selection)
+                : const _PenBar();
 
     // Araç çubuğuna dokununca editörün odağı (klavye) kapanmasın; böylece
     // biçimlendirme ve font seçimi imleci koruyup sonraki yazıya da uygulanır.
@@ -73,8 +78,13 @@ class DrawingToolbar extends ConsumerWidget {
             transitionBuilder: (c, anim) =>
                 FadeTransition(opacity: anim, child: c),
             child: KeyedSubtree(
-              key: ValueKey(
-                  isQuillText ? 'text' : (isFormText ? 'form' : 'pen')),
+              key: ValueKey(isQuillText
+                  ? 'text'
+                  : isFormText
+                      ? 'form'
+                      : isLassoSel
+                          ? 'lasso'
+                          : 'pen'),
               child: child,
             ),
           ),
@@ -107,7 +117,14 @@ class _PenBar extends ConsumerWidget {
     final hasStrokes =
         (ref.watch(activeStrokesProvider).valueOrNull ?? const []).isNotEmpty;
 
-    void setTool(PenTool t) => ref.read(toolProvider.notifier).state = t;
+    void setTool(PenTool t) {
+      ref.read(toolProvider.notifier).state = t;
+      // Lasso'dan çıkınca seçim anlamını yitirir.
+      if (t != PenTool.lasso &&
+          ref.read(strokeSelectionProvider).isNotEmpty) {
+        ref.read(strokeSelectionProvider.notifier).state = <int>{};
+      }
+    }
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -144,6 +161,12 @@ class _PenBar extends ConsumerWidget {
           onTap: () => setTool(PenTool.silgi),
         ),
         const _ShapeButton(),
+        _ToolButton(
+          icon: Icons.highlight_alt_outlined,
+          active: tool == PenTool.lasso,
+          tooltip: 'Kement (seç ve taşı)',
+          onTap: () => setTool(PenTool.lasso),
+        ),
         _divider(nd.border),
         // 3 sabit renk (ayarlardan seçilir); son yuva "rengarenk" → paletten.
         for (var i = 0; i < palette.length; i++)
@@ -456,6 +479,65 @@ Widget _divider(Color color) => Container(
       margin: const EdgeInsets.symmetric(horizontal: 5),
       color: color,
     );
+
+/// Kement ile bir şey seçildiğinde görünen çubuk: kaç çizim seçili, sil, bırak.
+/// Taşıma çubuktan değil, seçim çerçevesini parmakla sürükleyerek yapılır.
+class _LassoBar extends ConsumerWidget {
+  const _LassoBar({required this.selection});
+
+  final Set<int> selection;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final nd = context.nd;
+    final docId = ref.watch(navProvider).activeDocId;
+
+    void clear() =>
+        ref.read(strokeSelectionProvider.notifier).state = <int>{};
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _ToolButton(
+          icon: Icons.edit_outlined,
+          active: false,
+          tooltip: 'Çizime dön',
+          onTap: () {
+            clear();
+            ref.read(toolProvider.notifier).state = PenTool.kalem;
+          },
+        ),
+        _divider(nd.border),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Text(
+            '${selection.length} seçili',
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          ),
+        ),
+        _ToolButton(
+          icon: Icons.delete_outline,
+          active: false,
+          tooltip: 'Seçili çizimleri sil',
+          onTap: docId == null
+              ? null
+              : () async {
+                  await ref
+                      .read(drawingRepositoryProvider)
+                      .deleteStrokes(selection);
+                  clear();
+                },
+        ),
+        _ToolButton(
+          icon: Icons.close,
+          active: false,
+          tooltip: 'Seçimi bırak',
+          onTap: clear,
+        ),
+      ],
+    );
+  }
+}
 
 /// Kalem/fosfor ile düz çizgi, dikdörtgen veya elips çizme modu seçici. Düğme
 /// mevcut şekli gösterir (bir şekil seçiliyse vurgulu); dokununca menü açılır.

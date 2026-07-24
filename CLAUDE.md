@@ -519,9 +519,10 @@ yüklemesinde versionCode artmalı** (+5, +6…). Ayarlar ekranındaki sürüm y
 - **Faz 1 auth KODU** (e-posta OTP + profil + onboarding turu) — **mail SMTP
   kurulumu ASKIDA** (kullanıcı Supabase panelinde yapacak; bkz. aşağı + SETUP-AUTH.md).
 
-**⭐ SONRAKİ ADIM (yeni session buradan devam):** "Büyükler" bloğunda kalan:
-**(b2) cetvel** + **(b3) lasso seçim** (kalem araçlarının kalanı), sonra
-**(a) tabloyu elle ekleme**. (b1) şekiller (düz çizgi/dikdörtgen/elips) bitti;
+**⭐ SONRAKİ ADIM (yeni session buradan devam):** "Büyükler" bloğunda kalan tek iş:
+**(a) tabloyu elle ekleme** (araç çubuğundan tablo + satır/sütun düzenleme).
+Kalem araçları bitti: (b1) şekiller + dikdörtgen köşe düzeltmesi, (b3) lasso
+seçim/taşıma/silme. **(b2) cetvel YAPILMAYACAK — kullanıcı kararı: "gerek yok".**
 (c) form alan biçimi ALAN BAZINDA bitti (kelime bazlı+boyut v2'ye ertelendi).
 Madde 1/2/3 tamamen bitti. Kullanıcı: "hepsini yap, kolaydan zora, sıra sende."
 Mail/auth ASKIDA (dokunma). Her adım: kullanıcıya ne yapacağını söyle → onay →
@@ -598,8 +599,27 @@ elle 36'ya sabitlendi (Flutter yükseltilmedi); ayrıntı "Önemli notlar"da.
      **Silgi her zaman serbest.** Aynı nokta dizisi olarak saklanır → şema/
      çizici/PDF/PNG değişmeden çalışır. Kalem barında `_ShapeButton` (menü:
      serbest/çizgi/dikdörtgen/elips; seçiliyse vurgulu). İki parmak pan/zoom
-     bozulmaz (şekil yalnız tek parmak). Dikdörtgen köşeleri bézier yumuşatma
-     yüzünden hafif yuvarlak (kabul edilebilir).
+     bozulmaz (şekil yalnız tek parmak).
+   - **Dikdörtgen köşe düzeltmesi (UYGULANDI):** çizici 3+ noktalı yolu bézier
+     ile yumuşattığı için yol SolÜst'te başlayıp bittiğinden **yalnız o köşe
+     keskin, diğer üçü yuvarlak** çıkıyordu (kullanıcı sahada gördü). Çözüm
+     `buildShapePoints` içinde: her köşenin iki yanına `eps = 0.005` (sayfa
+     genişliğinin ~%0,5'i, kenarın %35'iyle sınırlı) uzaklıkta ek nokta →
+     yumuşatma yarıçapı görünmez, kenarlar düz kalır. Çizici/şema değişmedi.
+   - **(b3) Lasso (kement) seçim — UYGULANDI (dev APK):** `PenTool.lasso`
+     (`isPen`'e dahil → katman tek parmağı yakalar, editör/PDF ek değişiklik
+     istemez). `strokeSelectionProvider` (oturumluk id kümesi) +
+     `pointInPolygon` (ray casting). `PenStroke.id` eklendi (fromRow'da dolar)
+     → seçim id bazlı. `DrawingLayer`: boşluğa sürükle = kement çiz, bırakınca
+     noktalarının **yarısından fazlası** içinde kalan çizimler seçilir; seçim
+     çerçevesine basıp sürükle = taşı (canlı önizleme `moveDelta`), bırakınca
+     `updateStrokePoints` ile kaydedilir. İki parmak kementi iptal eder.
+     `StrokePainter`: kement yolu + seçim çerçevesi + taşınan çizimleri
+     `canvas.translate` ile önizler (accent renk parametre). Repo:
+     `updateStrokePoints`, `deleteStrokes`. UI: kalem barında kement düğmesi;
+     seçim varken `_LassoBar` (adet + sil + bırak). Araç lasso'dan çıkınca
+     seçim temizlenir. **Bilinen sınır:** taşıma canlı paylaşımda karşı tarafa
+     GİTMEZ (collab yalnızca ekleme/silme taşır).
    - **(c) Form alanlarını zengin-metin — ALAN BAZINDA UYGULANDI (dev APK):**
      Form alanlarına **kalın/italik/altı çizili** (alanın tamamına; kelime bazlı
      DEĞİL). Model: `FormDoc.styles` (anahtar→bayrak 'biu'; anahtarlar FormPage

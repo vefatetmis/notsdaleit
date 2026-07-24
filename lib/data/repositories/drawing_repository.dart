@@ -47,6 +47,21 @@ class DrawingRepository {
         );
   }
 
+  /// Bir çizginin noktalarını değiştirir (lasso ile taşıma). NOT: canlı
+  /// paylaşımda taşıma sunucuya gönderilmez (collab yalnızca ekleme/silme
+  /// olaylarını taşır) — karşı tarafta çizgi eski yerinde kalır.
+  Future<void> updateStrokePoints(int id, String pointsJson) {
+    return (_db.update(_db.strokes)..where((t) => t.id.equals(id)))
+        .write(StrokesCompanion(points: Value(pointsJson)));
+  }
+
+  /// Seçili çizgileri siler (lasso seçimi).
+  Future<void> deleteStrokes(Set<int> ids) async {
+    for (final id in ids) {
+      await (_db.delete(_db.strokes)..where((t) => t.id.equals(id))).go();
+    }
+  }
+
   /// Yerel çizgiye sunucudaki uuid'sini yazar (canlı paylaşım).
   Future<void> setStrokeRemoteId(int id, String remoteId) {
     return (_db.update(_db.strokes)..where((t) => t.id.equals(id)))

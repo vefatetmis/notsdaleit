@@ -489,6 +489,7 @@ Future<ui.Image> _renderPageUiImage(
       case PenTool.kalem:
       case PenTool.el:
       case PenTool.yazi:
+      case PenTool.lasso:
         paint.color = s.color;
     }
     canvas.drawPath(s.buildScaledPath(Size(w, h)), paint);

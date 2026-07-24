@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/theme/nd_colors.dart';
 import '../../data/data_providers.dart';
 import '../../data/database/database.dart';
 import 'drawing_state.dart';
@@ -49,6 +50,67 @@ class _DrawingLayerState extends ConsumerState<DrawingLayer> {
   Offset? _shapeStart;
   ShapeMode _shapeMode = ShapeMode.serbest;
 
+  // ── Lasso (kement) seçimi ──
+  /// Çizilmekte olan kement yolu (normalize). null = kement çizilmiyor.
+  List<Offset>? _lasso;
+  /// Seçimi taşıma: başlangıç noktası + o anki fark (normalize).
+  Offset? _moveStart;
+  Offset _moveDelta = Offset.zero;
+  bool _movingSelection = false;
+
+  /// Seçili çizimleri saran normalize dikdörtgen (taşımaya basma alanı).
+  Rect? _selectionBounds(Set<int> ids) {
+    if (ids.isEmpty) return null;
+    double? minX, minY, maxX, maxY;
+    for (final s in _cachedPersisted) {
+      if (s.id == null || !ids.contains(s.id)) continue;
+      for (final p in s.points) {
+        if (minX == null || p.dx < minX) minX = p.dx;
+        if (minY == null || p.dy < minY) minY = p.dy;
+        if (maxX == null || p.dx > maxX) maxX = p.dx;
+        if (maxY == null || p.dy > maxY) maxY = p.dy;
+      }
+    }
+    if (minX == null) return null;
+    // Parmakla kolay yakalanması için biraz genişlet.
+    return Rect.fromLTRB(minX, minY!, maxX!, maxY!).inflate(0.03);
+  }
+
+  /// Kement kapanınca: noktalarının yarısından fazlası içinde kalan çizimleri
+  /// seçili yapar.
+  void _applyLassoSelection() {
+    final poly = _lasso;
+    _lasso = null;
+    if (poly == null || poly.length < 3) {
+      _repaint();
+      return;
+    }
+    final sel = <int>{};
+    for (final s in _cachedPersisted) {
+      if (s.id == null || s.points.isEmpty) continue;
+      var inside = 0;
+      for (final p in s.points) {
+        if (pointInPolygon(p, poly)) inside++;
+      }
+      if (inside * 2 > s.points.length) sel.add(s.id!);
+    }
+    ref.read(strokeSelectionProvider.notifier).state = sel;
+    _repaint();
+  }
+
+  /// Taşımayı veritabanına yazar (her seçili çizginin noktaları + fark).
+  Future<void> _commitMove() async {
+    final ids = ref.read(strokeSelectionProvider);
+    final d = _moveDelta;
+    if (ids.isEmpty || d == Offset.zero) return;
+    final repo = ref.read(drawingRepositoryProvider);
+    for (final s in _cachedPersisted) {
+      if (s.id == null || !ids.contains(s.id)) continue;
+      final moved = [for (final p in s.points) p + d];
+      await repo.updateStrokePoints(s.id!, PenStroke.encodePoints(moved));
+    }
+  }
+
   bool _twoFinger = false;
   double? _lastDist;
   Offset? _lastMid;
@@ -74,6 +136,27 @@ class _DrawingLayerState extends ConsumerState<DrawingLayer> {
     if (_pos.length == 1) {
       _twoFinger = false;
       _drawPointer = e.pointer;
+
+      // Lasso: seçimin içine basılırsa taşı, boşluğa basılırsa yeni kement.
+      if (ref.read(toolProvider) == PenTool.lasso) {
+        final p = _norm(e.localPosition, size);
+        final sel = ref.read(strokeSelectionProvider);
+        final box = _selectionBounds(sel);
+        if (box != null && box.contains(p)) {
+          _movingSelection = true;
+          _moveStart = p;
+          _moveDelta = Offset.zero;
+        } else {
+          _movingSelection = false;
+          _lasso = [p];
+          if (sel.isNotEmpty) {
+            ref.read(strokeSelectionProvider.notifier).state = <int>{};
+          }
+        }
+        _repaint();
+        return;
+      }
+
       final color = inkColorFor(
         ref.read(penPaletteProvider),
         ref.read(inkIndexProvider),
@@ -96,11 +179,14 @@ class _DrawingLayerState extends ConsumerState<DrawingLayer> {
       );
       _repaint();
     } else if (_pos.length == 2) {
-      // İkinci parmak → çizimi iptal edip iki-parmak kipine geç.
+      // İkinci parmak → çizimi/kementi iptal edip iki-parmak kipine geç.
       _twoFinger = true;
       _drawPointer = null;
-      if (_live != null) {
+      if (_live != null || _lasso != null || _movingSelection) {
         _live = null;
+        _lasso = null;
+        _movingSelection = false;
+        _moveDelta = Offset.zero;
         _repaint();
       }
       final pts = _pos.values.toList();
@@ -137,6 +223,18 @@ class _DrawingLayerState extends ConsumerState<DrawingLayer> {
       return;
     }
 
+    // Lasso: kement çiziliyor ya da seçim taşınıyor.
+    if (e.pointer == _drawPointer && (_lasso != null || _movingSelection)) {
+      final cur = _norm(e.localPosition, size);
+      if (_movingSelection && _moveStart != null) {
+        _moveDelta = cur - _moveStart!;
+      } else {
+        _lasso!.add(cur);
+      }
+      _repaint();
+      return;
+    }
+
     if (_live != null && e.pointer == _drawPointer) {
       final cur = _norm(e.localPosition, size);
       if (_shapeMode != ShapeMode.serbest && _shapeStart != null) {
@@ -152,6 +250,23 @@ class _DrawingLayerState extends ConsumerState<DrawingLayer> {
   }
 
   void _onUp(PointerEvent e) {
+    // Lasso: kementi kapatıp seçimi uygula, ya da taşımayı kaydet.
+    if (e.pointer == _drawPointer && (_lasso != null || _movingSelection)) {
+      if (_movingSelection) {
+        _movingSelection = false;
+        _moveStart = null;
+        _commitMove().then((_) {
+          if (mounted) setState(() => _moveDelta = Offset.zero);
+        });
+      } else {
+        _applyLassoSelection();
+      }
+      _drawPointer = null;
+      _pos.remove(e.pointer);
+      if (_pos.isEmpty) _twoFinger = false;
+      return;
+    }
+
     if (e.pointer == _drawPointer) {
       final live = _live;
       if (live != null) {
@@ -212,10 +327,18 @@ class _DrawingLayerState extends ConsumerState<DrawingLayer> {
 
     final combined = <PenStroke>[...persisted, ..._pending];
     final enabled = tool.isPen;
+    final selection = ref.watch(strokeSelectionProvider);
 
     final paint = CustomPaint(
       size: Size.infinite,
-      painter: StrokePainter(strokes: combined, live: _live),
+      painter: StrokePainter(
+        strokes: combined,
+        live: _live,
+        lasso: _lasso,
+        selectedIds: selection,
+        moveDelta: _moveDelta,
+        accent: context.nd.accent,
+      ),
     );
 
     if (!enabled) {

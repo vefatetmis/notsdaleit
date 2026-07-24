@@ -7,8 +7,9 @@ import '../../data/data_providers.dart';
 import '../../data/database/database.dart';
 import '../shell/shell_state.dart';
 
-/// Araçlar. `yazi` = metin yazma/biçimlendirme modu; diğerleri çizim.
-enum PenTool { el, yazi, kalem, fosfor, silgi }
+/// Araçlar. `yazi` = metin yazma/biçimlendirme modu; `lasso` = çizim seçme
+/// (kement); diğerleri çizim.
+enum PenTool { el, yazi, kalem, fosfor, silgi, lasso }
 
 /// Çizim şekli. `serbest` = normal elle çizim; diğerleri kalem/fosfor ile
 /// başlangıç→bitiş sürükleyerek düzgün şekil çizer. Silgi her zaman serbesttir.
@@ -17,6 +18,27 @@ enum ShapeMode { serbest, cizgi, dikdortgen, elips }
 
 /// Seçili çizim şekli (kalem barındaki şekil düğmesinden).
 final shapeModeProvider = StateProvider<ShapeMode>((ref) => ShapeMode.serbest);
+
+/// Lasso (kement) ile seçilmiş çizimlerin id'leri. Oturumluk; araç lasso'dan
+/// çıkınca ya da boşluğa kement atınca temizlenir.
+final strokeSelectionProvider = StateProvider<Set<int>>((ref) => <int>{});
+
+/// [p] noktası kapalı [poly] çokgeninin içinde mi? (ışın atma / ray casting).
+/// Lasso seçiminde bir çizginin noktalarını test etmek için kullanılır.
+bool pointInPolygon(Offset p, List<Offset> poly) {
+  if (poly.length < 3) return false;
+  var inside = false;
+  for (var i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    final pi = poly[i];
+    final pj = poly[j];
+    if ((pi.dy > p.dy) != (pj.dy > p.dy) &&
+        p.dx <
+            (pj.dx - pi.dx) * (p.dy - pi.dy) / (pj.dy - pi.dy) + pi.dx) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
 
 /// Şekil modunda başlangıç [a] ve güncel [b] noktasından (normalize) çizilecek
 /// nokta dizisini üretir. Çizgi = iki nokta; dikdörtgen = 4 köşe (kapalı);
@@ -27,12 +49,31 @@ List<Offset> buildShapePoints(ShapeMode mode, Offset a, Offset b) {
     case ShapeMode.cizgi:
       return [a, b];
     case ShapeMode.dikdortgen:
+      // Çizici 3+ noktalı yolları bézier ile yumuşattığı için köşeler yuvarlanır
+      // (yol SolÜst'te başlayıp bittiğinden yalnız o köşe keskin kalırdı).
+      // Çözüm: her köşenin hemen iki yanına çok yakın nokta koy → yumuşatmanın
+      // yuvarlama yarıçapı görünmeyecek kadar küçülür, kenarlar düz kalır.
+      final l = math.min(a.dx, b.dx);
+      final r = math.max(a.dx, b.dx);
+      final t = math.min(a.dy, b.dy);
+      final bo = math.max(a.dy, b.dy);
+      const eps = 0.005; // sayfa genişliğinin ~%0,5'i
+      final ex = math.min(eps, (r - l) * 0.35);
+      final ey = math.min(eps, (bo - t) * 0.35);
       return [
-        Offset(a.dx, a.dy),
-        Offset(b.dx, a.dy),
-        Offset(b.dx, b.dy),
-        Offset(a.dx, b.dy),
-        Offset(a.dx, a.dy),
+        Offset(l, t),
+        Offset(l + ex, t),
+        Offset(r - ex, t),
+        Offset(r, t),
+        Offset(r, t + ey),
+        Offset(r, bo - ey),
+        Offset(r, bo),
+        Offset(r - ex, bo),
+        Offset(l + ex, bo),
+        Offset(l, bo),
+        Offset(l, bo - ey),
+        Offset(l, t + ey),
+        Offset(l, t),
       ];
     case ShapeMode.elips:
       final cx = (a.dx + b.dx) / 2;
@@ -57,10 +98,17 @@ extension PenToolId on PenTool {
         PenTool.kalem => 'kalem',
         PenTool.fosfor => 'fosfor',
         PenTool.silgi => 'silgi',
+        PenTool.lasso => 'lasso',
       };
 
+  /// Çizim katmanı tek parmak dokunuşunu **yakalasın** mı? Kalem/fosfor/silgi
+  /// çizer, lasso seçer — hepsinde tek parmakla sayfa kaydırma devre dışıdır.
+  /// (Editör ve PDF görüntüleyici de bu bayrağa bakar.)
   bool get isPen =>
-      this == PenTool.kalem || this == PenTool.fosfor || this == PenTool.silgi;
+      this == PenTool.kalem ||
+      this == PenTool.fosfor ||
+      this == PenTool.silgi ||
+      this == PenTool.lasso;
 }
 
 /// Tasarımdaki kalınlık taban değerleri (ince / orta / kalın).
