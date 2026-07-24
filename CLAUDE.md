@@ -23,14 +23,19 @@ Tasarımdaki **tüm ekranlar** kodlandı ve çalışıyor:
 - **Kütüphane:** not + PDF kartları (responsive ızgara), "Tümü / Notlar / PDF'ler"
   filtreleri. Not kartlarında tasarıma uygun iskelet çubuk önizleme. **Toplu
   seçim:** karta uzun bas → seçim modu (`librarySelectionProvider`), tap ile
-  ekle/çıkar, üstte seçim çubuğu (adet + toplu sil `confirmDeleteDocuments`).
+  ekle/çıkar, üstte seçim çubuğu (adet + sabitle + etiketle + klasöre taşı +
+  çöpe at `trashDocuments`).
   Geri tuşu önce seçimi temizler. İçe aktar ikonu = ataş (`Icons.attach_file`).
 - **Klasörler:** açılır-kapanır klasörler + içindeki dosyalar; "Yeni klasör";
-  etiketler (statik).
+  **gerçek etiketler** (Tags tablosu — dokun→kütüphaneyi filtrele, uzun bas→
+  yeniden adlandır/sil).
+- **Son silinenler (çöp kutusu):** yumuşak silinen notlar; geri al / kalıcı sil /
+  çöpü boşalt (`AppScreen.copKutusu`).
 - **Arama:** başlık/klasör/içerik üzerinde canlı arama.
 - **Ayarlar:** tema (açık/koyu) · **dil (Türkçe/English)** · kalem renkleri
-  (çubuktaki 3 renk — dokunup paletten seçilir, kalıcı) + kalınlık ·
-  senkronizasyon (**temsilî** — yalnızca bilgi mesajı gösterir) · sürüm.
+  (çubuktaki 3 renk — dokunup paletten seçilir, kalıcı) + kalınlık · seri/rozet
+  anahtarı · **hesap** (e-posta girişi — mail ASKIDA) · **yedekleme** (dışa
+  aktar / geri yükle) · sürüm (elle eşitlenen sabit yazı).
 - **Onboarding:** ilk açılışta kısa 4 slaytlı tanıtım (`features/onboarding/`),
   `onboardingDoneProvider` (kalıcı) ile bir kez gösterilir; "Geç" ile atlanır.
 - **İki dil (TR/EN):** `core/i18n/i18n.dart` — `localeProvider` (kalıcı) +
@@ -86,8 +91,9 @@ Tasarımdaki **tüm ekranlar** kodlandı ve çalışıyor:
 - **Tema kalıcı** (`shared_preferences`), varsayılan **açık**.
 - **PDF görüntüleyici:** cihazdan içe aktarılan **gerçek PDF** sayfaları (`pdfx`
   ile render), yakınlaştırma, her sayfanın üstünde çizim katmanı.
-- **Çizim:** kalem · fosforlu · silgi · 4 renk · 3 kalınlık · geri al · temizle.
-  Çizimler veritabanında kalıcıdır (belge + sayfa bazında).
+- **Çizim:** kalem · fosforlu · silgi · 4 renk · 3 kalınlık · geri al · temizle ·
+  **şekil modu** (düz çizgi/dikdörtgen/elips) · **lasso (kement)** seçim →
+  taşıma/silme. Çizimler veritabanında kalıcıdır (belge + sayfa bazında).
 - **Tema:** Material 3 + tasarımın renk token'ları (açık/koyu), Instrument Sans
   fontu (çevrimdışı için `assets/fonts` içine gömülü).
 - Tüm veri cihazda kalıcı (SQLite), internetsiz çalışır.
@@ -348,7 +354,7 @@ Kullanımı: bayrak true + gradle applicationId'ye ".demo" eki + manifest label
   yedeklenmeli, kaybedilirse Play'de yükleme anahtarı sıfırlaması gerekir. (Play
   App Signing kullanılırsa uygulama imza anahtarını Google tutar.)
 
-## Sürüm 1.1 — UYGULANDI (yayın bekliyor, pubspec 1.1.0+3)
+## Sürüm 1.1 — UYGULANDI ✅ (1.3.0+4 içinde kapalı teste çıktı)
 
 Kod hazır ve derleniyor; kapalı test bitip üretim onayı gelince AAB yüklenecek
 (mağazada hâlâ 1.0). Şema **v8** (Routines.remindAt + Folders tablosu).
@@ -384,9 +390,10 @@ Yapılanlar:
    (SharedPreferences 'streaksEnabled', varsayılan açık; kapalıyken hiçbir
    seri/rozet öğesi gösterilmez).
 
-Sürüm yayını: pubspec `1.1.0+3`, AAB → önce kapalı test kanalına.
+*(Bu blok 1.1 için yazılmıştı; kod `1.3.0+4` ile kapalı teste çıktı — ayrı bir
+1.1 yayını yapılmadı, her şey tek AAB'de birleştirildi.)*
 
-## Sürüm 1.2 — UYGULANDI (dev APK'da test bekliyor)
+## Sürüm 1.2 — UYGULANDI ✅ (1.3.0+4 içinde kapalı teste çıktı)
 
 Yeni not pop-up'ı + şablon sistemi. Şema **v9** (Templates tablosu). Kod
 derleniyor, `flutter analyze` temiz, dev APK üretildi. Yapılanlar:
@@ -468,6 +475,17 @@ kalem olduğundan ızgara/2-kolon düzenler birebir çıkmaz. **Karar: pragmatik
 
 ## YOL HARİTASI — genel tablo (nerede olduğumuz)
 
+**AN İTİBARIYLA (24 Tem 2026 — devir notu):**
+- Git: dal **main**, her şey **pushlı** (`github.com/vefatetmis/notsdaleit`).
+  İmza anahtarı + şifreler `.gitignore`'da, repoda YOK.
+- Dev APK güncel ve kullanıcı **her adımı cihazda test etti** — bilinen çalışan
+  durum. ("Harika çalışıyor, sorun olunca söylüyorum.")
+- Kapalı testte **1.3.0+4** var; dev APK ondan **4 özellik daha ileride**
+  (aşağıdaki ⚠️ bloğu).
+- Çalışma düzeni: **kullanıcıya ne yapacağını söyle → onay → yap → dev APK ver.**
+  Kullanıcı kod yazmıyor; teknik kararları sen ver, Türkçe konuş, APK yolunu +
+  komutu her seferinde ver.
+
 **Sürüm durumları (üç kanal):**
 
 | Kanal | Sürüm | Durum |
@@ -491,7 +509,22 @@ pubspec **1.3.0+4** (23 Tem 2026'da 1.1.0+3'ten yükseltildi). **Her Play
 yüklemesinde versionCode artmalı** (+5, +6…). Ayarlar ekranındaki sürüm yazısı
 (`settings_screen.dart`) elle eşitlenir — package_info_plus eklenmedi.
 
-**Tamamlanan (dev'de, test bekliyor):**
+### ⚠️ Kapalı testteki sürüm ile dev APK ARASINDA FARK VAR
+
+`1.3.0+4` AAB'si **23 Tem 2026 12:57'de** derlendi; o günün ilerleyen saatlerinde
+**dört özellik daha** eklendi. Bunlar kapalı testteki sürümde **YOK**, yalnızca
+dev APK'da var ve bir sonraki Play yüklemesinde (versionCode **+5**) gidecek:
+
+| Yalnızca dev APK'da | Commit |
+|---|---|
+| PNG (görüntü) olarak dışa aktarma | `0a541a4` |
+| Form alanlarında alan-bazlı biçim (B/I/U) | `6d8ea51` |
+| Şekiller (düz çizgi/dikdörtgen/elips) + dikdörtgen köşe düzeltmesi | `cd0d4a6`, `f5ec9c2` |
+| Lasso (kement) seçim / taşıma / silme | `f5ec9c2` |
+
+**Kapalı testteki 1.3.0+4'ün içeriği (aşağıdaki listenin ilk 9 maddesi):**
+
+**Tamamlanan:**
 - 1.1 (varsayılan yazı modu, paylaşımı durdur, klasöre taşı, rutin bildirimi,
   seri/rozet).
 - 1.2 (yeni not pop-up, şablon sistemi, sayfa yönleri) + şablon yeniden tasarımı
@@ -513,11 +546,18 @@ yüklemesinde versionCode artmalı** (+5, +6…). Ayarlar ekranındaki sürüm y
 - **Yerel yedekleme/geri yükleme** (`.ntdlbak`): tüm veriyi (PDF dosyaları hariç)
   tek dosyaya dışa aktar + birleştirerek geri yükle. Ayarlar → "Yedekleme".
   Ayrıntı: "Uygulama içi cila" madde 2.
-- **PNG dışa aktarma**: notu görüntü olarak kaydet (çok sayfalı not tek uzun
-  görüntüde). Paylaş menüsünde. Ayrıntı: "Uygulama içi cila" madde 3.
 - **Google Play API 36 hedefi** (31 Ağu 2026 şartı) — compileSdk/targetSdk elle 36.
 - **Faz 1 auth KODU** (e-posta OTP + profil + onboarding turu) — **mail SMTP
   kurulumu ASKIDA** (kullanıcı Supabase panelinde yapacak; bkz. aşağı + SETUP-AUTH.md).
+
+*(Buradan sonrası kapalı testte YOK — yalnızca dev APK'da, bkz. yukarıdaki uyarı.)*
+
+- **PNG dışa aktarma** — notu görüntü olarak kaydet (çok sayfalı not tek uzun
+  görüntüde), paylaş menüsünde. Madde 3.
+- **Form alanlarında biçim** (alan bazlı kalın/italik/altı çizili) + form
+  notlarında kalem barına "Aa" düğmesi. Madde 4(c).
+- **Şekiller** (düz çizgi/dikdörtgen/elips) + dikdörtgen köşe düzeltmesi. Madde 4(b1).
+- **Lasso seçim** (seç/taşı/sil). Madde 4(b3).
 
 **⭐ SONRAKİ ADIM (yeni session buradan devam):** "Büyükler" bloğunda kalan tek iş:
 **(a) tabloyu elle ekleme** (araç çubuğundan tablo + satır/sütun düzenleme).
@@ -530,6 +570,49 @@ yap → dev APK.
 
 **Google Play API 36 (31 Ağu 2026 şartı) — ÇÖZÜLDÜ:** `compileSdk`+`targetSdk`
 elle 36'ya sabitlendi (Flutter yükseltilmedi); ayrıntı "Önemli notlar"da.
+
+### 📋 YARIM KALANLAR & KARARLAR — tek bakışta (yeni oturum önce burayı okusun)
+
+**Sıradaki iş (tek kaldı):**
+- **(a) Tabloyu elle ekleme** — araç çubuğundan tablo ekleme + satır/sütun
+  düzenleme. Şu an tablo/ızgara YALNIZ hazır şablonlarda var. `table_embed.dart`
+  (eski ndtable Quill embed'i) hâlâ kayıtlı ama şablonlar KULLANMIYOR; yeni tablo
+  işi ona dayanmamalı (embed yaklaşımı sahada başarısız oldu — bkz. 1.3 bölümü).
+
+**Bilinçli ertelenenler (yapılacak, sırası gelmedi):**
+1. **Form biçim v2** — alan içi **kelime bazlı** biçim + **yazı boyutu**. İkisi de
+   `form_layout` satır yüksekliklerinin sabit boyuta dayanmasını çözmeyi
+   gerektirir (ekran/PDF/sayfalama senkronu). Kullanıcı "tam yapılacak" dedi.
+2. **Gerçek bulut senkron** — HESAPLAR & SENKRON Faz 3. Mail askıdan çıkınca.
+3. **Şablon mağazası** (2.0) · **Yeni platformlar** (iOS/Win/macOS/Linux/Web).
+
+**ASKIDA (dokunma — kullanıcı halledecek):**
+- **Mail/SMTP kurulumu** → Faz 1 auth KODU hazır ve pushlı, ama e-posta
+  gönderimi kullanıcının Supabase panelinde SMTP kurmasını bekliyor
+  (`SETUP-AUTH.md`). Bu yüzden Faz 2/3/4 de beklemede.
+- Not: giriş **opsiyonel**, uygulama hesapsız tam çalışıyor (kodda doğrulandı:
+  `app.dart`'ta auth kapısı yok, onboarding'de "Geç"/"Şimdilik geç" var).
+  Ama giriş **düğmesi görünür** → testçi denerse kod gelmez, çıkmaz sokak.
+  Kullanıcı bunu biliyor; istenirse SMTP hazır olana kadar gizlenebilir.
+
+**Kullanıcı kararıyla YAPILMAYACAK (tekrar önerme):**
+- **Cetvel** (kalem araçları b2) — "gerek yok".
+- **Yeni not diyaloğu stili** — "dokunma, mevcut hâli iyi".
+- **Çöp kutusunda 30 gün otomatik temizleme** — kullanıcı elle boşaltır.
+- **PDF dosyalarını yedeğe gömme** — yedek notlar+düzen, PDF hariç.
+- **Play "hata ayıklama sembolleri" uyarısı** — çözülemez + zararsız, peşine düşme.
+
+**Bilinen sınırlar (kabul edildi, ileride düzeltilebilir):**
+- Lasso ile **taşıma canlı paylaşıma gitmez** (collab yalnız ekleme/silme taşır).
+- Quill (serbest) notlarda uzun metin **sayfa sınırını aşabilir** (satır-bazlı
+  Quill sayfalaması yapılmadı; form notlarında sayfalama VAR).
+- **Yedekten dönen görev/rutin hatırlatıcıları yeniden PLANLANMAZ** (veri gelir,
+  kullanıcı saati tekrar seçmeli).
+- **PNG "kaydet", "paylaş" değil** — `share_plus` projeden çıkarılmıştı (Kotlin
+  çakışması); `printing` yalnız PDF paylaşabiliyor. Kullanıcı galeriden paylaşır.
+- **Etiketleme yalnız kütüphane seçim çubuğundan** (editör içinden etiketleme
+  yok). Etiket **rengi** yok (düz `#ad`).
+- Kalan **Türkçe** ekranlar: klasörler/arama, bazı tooltip'ler, `date_format`.
 
 ## PLANLANAN — sonraki işler (sıralı)
 
@@ -652,7 +735,7 @@ bunlar birebir çıkmıyor. Tasarıma ulaşmanın **tek büyük kaldıracı = ta
 bloğu**. O gelince Haftalık (7-sütun), Cornell (2-kolon), Günlük plan (saat
 çizelgesi), Toplantı (alanlar) **gerçek** olur.
 
-**1.3 — FORM-NOT SAYFALARI — UYGULANDI (dev APK'da test bekliyor):**
+**1.3 — FORM-NOT SAYFALARI — UYGULANDI ✅ (1.3.0+4 ile kapalı teste çıktı):**
 
 İlk deneme (ndtable: Quill'e gömülü tablo embed'i) sahada BAŞARISIZ oldu —
 imleç embed hizasına giriyor, embed satırına yazılan harfler tablonun yanına
