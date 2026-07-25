@@ -125,9 +125,6 @@ double tableRowHeight(TableBlock b, int r, double w) {
       (last ? kFbTableBorder : 0);
 }
 
-/// Tablonun altındaki "satır ekle" düğmesinin yüksekliği (yalnız düzenlerken).
-double get kFbTableAddH => 20.0 + fbLine(13.5);
-
 /// Bir hücrenin okunabilir kalması için gereken en küçük iç genişlik (sanal).
 const double _kFbTableMinCellW = 44;
 
@@ -229,7 +226,6 @@ double measureFormBlock(FormBlock b, double w, {required bool editable}) {
       for (var r = 0; r < b.rows.length; r++) {
         h += tableRowHeight(b, r, w);
       }
-      if (editable) h += kFbTableAddH;
       return h;
   }
 }
@@ -356,10 +352,9 @@ FormLayoutResult paginateForm(
         // Tablo satırları da tek tek bölünür; taşan satır sonraki sayfada
         // kendi üst çizgisiyle başlar (her satır kendi çerçevesini çizer).
         for (var r = 0; r < b.rows.length; r++) {
-          final last = r == b.rows.length - 1 && !editable;
+          final last = r == b.rows.length - 1;
           place(bi, r, tableRowHeight(b, r, width), last ? kFbBlockGap : 0);
         }
-        if (editable) place(bi, b.rows.length, kFbTableAddH, kFbBlockGap);
       case LabelBlock():
         // Etiket kendinden sonraki ilk içerikle birlikte kalsın (öksüz kalmasın).
         place(bi, -1, measureFormBlock(b, width, editable: editable),

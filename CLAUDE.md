@@ -736,24 +736,51 @@ Saha testi iki kusur gösterdi:
    kaldırılır. Yazı/form içeriği son sayfaya taşıyorsa hâlâ engellenir —
    sayfa bir sonraki ölçümde zaten geri gelirdi.
 
-### ✅ SAYFA SİLME (25 Tem 2026)
+### ✅ SAYFA SİLME — HERHANGİ BİR SAYFA (25 Tem 2026, iki turda)
 
-Sayfa sayısı içerikle **büyüyor ama küçülmüyordu** → içerik silinince arkada
-kaldırılamayan boş kart kalıyordu. Sayfaların altındaki şerit artık iki düğme:
-**"Yeni sayfa"** + (birden fazla sayfa varsa) **"Sayfayı sil"**
-(`_PageActions` / `_PageActionButton`, eski `_AddPageButton`'ın yerine).
+Sayfa sayısı içerikle büyüyor ama küçülmüyordu. Önce yalnız **son** sayfayı
+silen bir düğme eklendi; kullanıcı "3 sayfalık notta 1. sayfayı silmek
+istiyorum" deyince akış genelleştirildi.
 
-- Silme **yalnız son sayfa boşsa** iş görür; doluysa sebebini snackbar'da
-  söyler ve hiçbir şey silmez (veri kaybı riski yok — bilinçli).
-- "Boş mu" iki kaynaktan: (a) `_naturalPages < pageCount` — içerik son sayfaya
-  ulaşmıyor, (b) `_lastPageHasInk` — son sayfada çizim yok. Çizim noktaları
-  sayfa genişliğine göre normalize ve tüm sayfalar tek düşey düzlemde olduğu
-  için son sayfanın üst sınırı `(pages-1) * (aspect + kPageGapRatio)`.
-- `_Sheet` artık **her çizimde** ölçtüğü doğal sayfa sayısını
-  `onPagesMeasured` ile editöre bildiriyor (eski `onNeedPages` bunun yerini
-  aldı): editör hem büyütmeyi (`_ensurePages`) hem silme düğmesini buradan
-  besliyor. Silmeden sonra `_requestedPages` sıfırlanır ki içerik yeniden
-  büyüyebilsin.
+Sayfaların altındaki şerit iki düğme: **"Yeni sayfa"** + (birden fazla sayfa
+varsa) **"Sayfayı sil"** (`_PageActions` / `_PageActionButton`).
+
+**Akış (`_deletePage`):** önce **hangi sayfa** sorulur (`SimpleDialog`, her
+satır "N. sayfa · M çizim") → sonra onay → sonra:
+- hedef sayfadaki çizimler silinir,
+- **sonraki sayfaların çizimleri bir sayfa yukarı kaydırılır**
+  (`updateStrokePoints`, `dy -= aspect + kPageGapRatio`),
+- `pageCount` bir azalır, `_requestedPages` sıfırlanır (içerik yeniden
+  büyüyebilsin).
+
+**Yazıya dokunulmaz** — metin akışkandır, sayfaya sabitlenmiş değildir; sayfa
+sayısı azalınca kendiliğinden yeniden dizilir. İçerik kalan sayfalara
+sığmıyorsa sayfa bir sonraki ölçümde geri gelir (doğru davranış — yazının bir
+kısmını silmek olmazdı). Onay metni bunu açıkça söyler.
+
+Bir çizim hangi sayfada? `_pageOfStroke` = noktaların **en küçük** y'si ÷ sayfa
+adımı → iki sayfaya taşan çizim **başladığı** sayfaya sayılır.
+
+`_Sheet` **her çizimde** ölçtüğü doğal sayfa sayısını `onPagesMeasured` ile
+editöre bildirir (eski `onNeedPages` bunun yerini aldı): editör hem büyütmeyi
+(`_ensurePages`) hem silme düğmesinin görünürlüğünü buradan besler.
+
+### ✅ TABLO SATIR/SÜTUN EKLEME ARAÇ ÇUBUĞUNA TAŞINDI (25 Tem 2026)
+
+Tablonun altındaki "Satır ekle / Sütun ekle" şeridi, tablo sayfanın son
+satırına dayandığında **kâğıdın dışında kalıyordu** (kullanıcı: "son sırada
+yazı sayfanın dışına taştığı için gözükmüyor"). Şerit tamamen kaldırıldı:
+
+- `form_page._table` artık ekleme düğmesi çizmiyor; `_tableAddButton` ve
+  `kFbTableAddH` silindi, `measureFormBlock`/`paginateForm` bu yüksekliği
+  hesaba katmıyor → **tablo ölçüsü sayfa sınırından bağımsız**.
+- Ekleme, araç çubuğundaki tablo menüsüne taşındı (hücreye dokun →
+  `Icons.border_all`): en üstte **"Sona satır ekle" / "Sona sütun ekle"**,
+  altında araya ekleme (üst/alt/sol/sağ) ve silme. Sınıra gelindiğinde ekleme
+  öğeleri gizlenir ve menüde sebebi yazar.
+- Tablo eklendiğinde çıkan snackbar artık nereye bakılacağını söylüyor (5 sn):
+  "satır/sütun için bir hücreye dokunup araç çubuğundaki tablo düğmesini
+  kullan".
 
 ### ✅ TABLO ZEMİNİ KÂĞIT RENGİNDE (25 Tem 2026)
 

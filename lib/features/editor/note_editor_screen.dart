@@ -9,6 +9,8 @@ import '../../core/i18n/i18n.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/nd_colors.dart';
 import '../../data/data_providers.dart';
+// Yalnız Stroke: drift'in `Document`'ı Quill'in `Document`'ıyla çakışıyor.
+import '../../data/database/database.dart' show Stroke;
 import '../collab/collab_service.dart';
 import '../drawing/drawing_layer.dart';
 import '../drawing/drawing_state.dart';
@@ -248,90 +250,136 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     _ensurePages(natural);
   }
 
-  /// Son sayfaya değen çizimlerin id'leri. Çizim noktaları sayfa genişliğine
+  /// Bir çizimin hangi sayfada olduğunu döndürür. Noktalar sayfa genişliğine
   /// göre normalize (0..1) ve tüm sayfalar tek bir düşey düzlemde dizili
-  /// olduğu için son sayfanın üst sınırı `(pages-1) * (aspect + boşluk)`.
-  Set<int> _strokesOnLastPage(int pages, String? pageSize) {
-    final strokes = ref.read(activeStrokesProvider).valueOrNull ?? const [];
-    final top = (pages - 1) * (aspectForPageSize(pageSize) + kPageGapRatio);
-    final ids = <int>{};
-    for (final s in strokes) {
-      for (final p in PenStroke.fromRow(s).points) {
-        if (p.dy >= top) {
-          ids.add(s.id);
-          break;
-        }
-      }
+  /// olduğu için sayfa yüksekliği `aspect + boşluk`. Çizim iki sayfaya
+  /// taşıyorsa **başladığı** sayfaya sayılır.
+  int _pageOfStroke(Stroke s, double step) {
+    var minY = double.infinity;
+    for (final p in PenStroke.fromRow(s).points) {
+      if (p.dy < minY) minY = p.dy;
     }
-    return ids;
+    if (!minY.isFinite) return 0;
+    final page = (minY / step).floor();
+    return page < 0 ? 0 : page;
   }
 
-  /// Son sayfayı kaldırır — yalnız o sayfa boşsa. (Sayfa sayısı içerikle
-  /// birlikte büyüyor ama kendiliğinden küçülmüyor; içerik silinince arkada
-  /// kalan boş kartı kullanıcı böyle temizler.)
-  Future<void> _removeLastPage() async {
+  /// Belirli bir sayfadaki çizimlerin sayısı.
+  int _inkCountOnPage(int page, String? pageSize) {
+    final strokes = ref.read(activeStrokesProvider).valueOrNull ?? const [];
+    final step = aspectForPageSize(pageSize) + kPageGapRatio;
+    return strokes.where((s) => _pageOfStroke(s, step) == page).length;
+  }
+
+  /// "Sayfayı sil": önce **hangi sayfa** sorulur (son sayfa olmak zorunda
+  /// değil — kullanıcı 3 sayfalık bir notta 1. sayfayı da silebilir), sonra
+  /// onay alınır. Seçilen sayfanın çizimleri silinir, **sonraki sayfaların
+  /// çizimleri bir sayfa yukarı kayar** ve sayfa sayısı azalır.
+  ///
+  /// Yazıya dokunulmaz: metin akışkandır, sayfalara sabitlenmiş değildir —
+  /// sayfa sayısı azalınca kendiliğinden yeniden dizilir. (İçerik kalan
+  /// sayfalara sığmıyorsa sayfa bir sonraki ölçümde geri gelir; bu doğru
+  /// davranış, yazının bir kısmını silmek olmazdı.)
+  Future<void> _deletePage() async {
     final id = _docId;
     final doc = ref.read(activeDocumentProvider);
     if (id == null || doc == null) return;
     final pages = doc.pageCount ?? 1;
-
-    void warn(String tr, String en) {
-      if (!mounted) return;
+    if (pages <= 1) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text(context.t(tr, en)),
+          content: Text(context.t(
+              'Tek sayfa silinemez', 'The only page cannot be deleted')),
         ));
-    }
-
-    if (pages <= 1) {
-      warn('Tek sayfa silinemez', 'The only page cannot be deleted');
-      return;
-    }
-    // Yazı/form içeriği son sayfaya taşıyorsa silmek anlamsız — sayfa bir
-    // sonraki ölçümde zaten geri gelir. Bunu silmek yerine söylüyoruz.
-    if (_naturalPages >= pages) {
-      warn('Son sayfada yazı var — önce onu silin',
-          'The last page still has text — delete that first');
       return;
     }
 
-    // Çizim varsa engellemek yerine ONAY isteriz (kullanıcı isteği: çizimli
-    // sayfa da silinebilmeli). Onaylanırsa o sayfaya değen çizimler silinir.
-    final inkIds = _strokesOnLastPage(pages, doc.pageSize);
-    if (inkIds.isNotEmpty) {
-      final ok = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: Text(ctx.t('Sayfa silinsin mi?', 'Delete page?')),
-          content: Text(ctx.t(
-            'Son sayfada ${inkIds.length} çizim var. Sayfayla birlikte '
-                'bunlar da silinecek.',
-            'The last page has ${inkIds.length} drawing(s). They will be '
-                'deleted along with the page.',
-          )),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: Text(ctx.t('Vazgeç', 'Cancel')),
+    // 1) Hangi sayfa?
+    final target = await showDialog<int>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: Text(ctx.t('Hangi sayfa silinsin?', 'Which page?')),
+        children: [
+          for (var i = 0; i < pages; i++)
+            SimpleDialogOption(
+              onPressed: () => Navigator.of(ctx).pop(i),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Text(_pageLabel(ctx, i, doc.pageSize)),
+              ),
             ),
-            FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: Text(ctx.t('Sil', 'Delete')),
-            ),
-          ],
+        ],
+      ),
+    );
+    if (target == null || !mounted) return;
+
+    // 2) Onay (ne kaybedileceğini açıkça söyle).
+    final ink = _inkCountOnPage(target, doc.pageSize);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(ctx.t('${target + 1}. sayfa silinsin mi?',
+            'Delete page ${target + 1}?')),
+        content: Text(
+          ink > 0
+              ? ctx.t(
+                  'Bu sayfadaki $ink çizim silinecek, sonraki sayfalar yukarı '
+                      'kayacak. Yazı silinmez — sayfalara yeniden dizilir.',
+                  '$ink drawing(s) on this page will be deleted and the pages '
+                      'after it move up. Text is not deleted — it reflows.')
+              : ctx.t(
+                  'Sayfa kaldırılacak, sonraki sayfalar yukarı kayacak.',
+                  'The page is removed and the pages after it move up.'),
         ),
-      );
-      if (ok != true) return;
-      await ref.read(drawingRepositoryProvider).deleteStrokes(inkIds);
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(ctx.t('Vazgeç', 'Cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(ctx.t('Sil', 'Delete')),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+
+    // 3) Çizimler: hedef sayfadakileri sil, sonrakileri bir sayfa yukarı taşı.
+    final step = aspectForPageSize(doc.pageSize) + kPageGapRatio;
+    final strokes = ref.read(activeStrokesProvider).valueOrNull ?? const [];
+    final drawing = ref.read(drawingRepositoryProvider);
+    final doomed = <int>{};
+    for (final s in strokes) {
+      final page = _pageOfStroke(s, step);
+      if (page == target) {
+        doomed.add(s.id);
+      } else if (page > target) {
+        final moved = [
+          for (final p in PenStroke.fromRow(s).points)
+            Offset(p.dx, p.dy - step),
+        ];
+        await drawing.updateStrokePoints(
+            s.id, PenStroke.encodePoints(moved));
+      }
     }
+    if (doomed.isNotEmpty) await drawing.deleteStrokes(doomed);
 
     // Yeniden büyümeye izin ver (aynı sayıyı tekrar yazabilsin).
     _requestedPages = 0;
     await ref
         .read(documentRepositoryProvider)
         .setPageCount(id: id, pageCount: pages - 1);
+  }
+
+  /// Sayfa seçme listesindeki satır metni ("1. sayfa · 3 çizim").
+  String _pageLabel(BuildContext ctx, int i, String? pageSize) {
+    final ink = _inkCountOnPage(i, pageSize);
+    final name = ctx.t('${i + 1}. sayfa', 'Page ${i + 1}');
+    if (ink == 0) return name;
+    return '$name · ${ctx.t('$ink çizim', '$ink drawing${ink == 1 ? '' : 's'}')}';
   }
 
   void _onPointerChange(int delta) {
@@ -459,7 +507,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                           const SizedBox(height: 16),
                           _PageActions(
                             onAdd: _addPage,
-                            onRemove: pageCount > 1 ? _removeLastPage : null,
+                            onRemove: pageCount > 1 ? _deletePage : null,
                           ),
                           const SizedBox(height: 60),
                         ],
@@ -749,8 +797,7 @@ class _PagesClipper extends CustomClipper<Path> {
 }
 
 /// Sayfaların altındaki eylemler: sayfa ekle ve (birden fazla sayfa varsa)
-/// son sayfayı sil. Silme yalnız son sayfa boşken iş görür — dolu olduğunda
-/// sebebini söyler (bkz. `_removeLastPage`).
+/// sayfa sil. Silmede önce hangi sayfa olduğu sorulur (bkz. `_deletePage`).
 class _PageActions extends StatelessWidget {
   const _PageActions({required this.onAdd, required this.onRemove});
 

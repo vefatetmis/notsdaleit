@@ -34,8 +34,12 @@ Future<void> showInsertTableDialog(BuildContext context, WidgetRef ref) async {
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(
         behavior: SnackBarBehavior.floating,
-        content: Text(context.t('Tablo notun sonuna eklendi',
-            'Table added at the end of the note')),
+        duration: const Duration(seconds: 5),
+        content: Text(context.t(
+            'Tablo eklendi — satır/sütun için bir hücreye dokunup araç '
+                'çubuğundaki tablo düğmesini kullan',
+            'Table added — tap a cell and use the table button in the toolbar '
+                'to add rows/columns')),
       ));
   }
 }
