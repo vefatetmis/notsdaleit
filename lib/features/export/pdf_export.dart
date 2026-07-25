@@ -1030,10 +1030,10 @@ void _paintForm(
       ..color = pal.line
       ..strokeWidth = border;
 
-    if (isHead) {
-      canvas.drawRect(
-          Rect.fromLTWH(x, rowTop, maxWidth, rowH), Paint()..color = pal.faint);
-    }
+    // Satır zemini doldurulur (ekrandaki `form_page._table` ile aynı): sayfa
+    // deseni çizgili/kareli kâğıtta tablonun içinden geçmesin.
+    canvas.drawRect(Rect.fromLTWH(x, rowTop, maxWidth, rowH),
+        Paint()..color = isHead ? pal.faint : pal.background);
     // Üst çizgi + (son satırda) alt çizgi.
     canvas.drawLine(
         Offset(x, rowTop), Offset(x + maxWidth, rowTop), stroke);

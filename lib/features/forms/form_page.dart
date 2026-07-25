@@ -1007,7 +1007,10 @@ class _FormPageState extends ConsumerState<FormPage> {
           if (_rowSpacer(i, r) > 0) SizedBox(height: _rowSpacer(i, r)),
           Container(
             decoration: BoxDecoration(
-              color: b.header && r == 0 ? paper.faint : null,
+              // Satır zemini kâğıt rengiyle DOLDURULUR: aksi hâlde çizgili/
+              // kareli kâğıtta sayfa deseni hücrelerin içinden geçip tablo
+              // çizgilerine karışıyor.
+              color: b.header && r == 0 ? paper.faint : paper.background,
               border: Border(
                 top: line,
                 left: line,

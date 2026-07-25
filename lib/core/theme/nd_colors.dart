@@ -3,11 +3,18 @@ import 'package:flutter/material.dart';
 /// Uygulamanın renk tokenları. Açık ve koyu için ayrı setler. Widget'lar
 /// `Theme.of(context).extension<NdColors>()!` ile erişir.
 ///
-/// **Palet: sıcak bej + koyu mavi.** İlk tasarım (notdaleit.dc.html) saf
+/// **Palet: sıcak bej + logo laciverti.** İlk tasarım (notdaleit.dc.html) saf
 /// beyaz yüzey + siyah vurgu kullanıyordu; kullanıcı geri bildirimi "çok
-/// parlak, çok soğuk" olduğu için zemin/kart sıcak bej-fildişine, vurgu da
-/// maviye çevrildi. Vurgu tonu kullanıcının verdiği `#295DB4` (ilk denenen
-/// `#3F6E9E` "soluk" bulundu). Not **kâğıdının** beyazı buraya dâhil DEĞİL — o
+/// parlak, çok soğuk" olduğu için zemin/kart sıcak bej-fildişine çevrildi.
+///
+/// Vurgu için önce iki parlak mavi denendi (`#3F6E9E` "soluk", `#295DB4` da
+/// tutmadı) — sebebi sonradan anlaşıldı: **uygulama ikonu parlak mavi değil,
+/// derin lacivert.** `playstore/icon-512.png` örneklenip renk merdiveni
+/// çıkarıldı (`#04183D` gövde · `#193769` ikinci baskın · `#27467F` ·
+/// `#5B7AB3` parlama) ve vurgu logonun kendi tonuna (`#193769`) sabitlendi.
+/// Koyu tema tonu aynı merdivenin üst basamağından (`#7B97CE`).
+///
+/// Not **kâğıdının** beyazı buraya dâhil DEĞİL — o
 /// `editor_state.kPaperStyles`'ta ve olduğu gibi kalmalı (PDF çıktısıyla
 /// uyuşması için). Kalem renkleri ([inks]) de ayrı kalır.
 @immutable
@@ -55,9 +62,9 @@ class NdColors extends ThemeExtension<NdColors> {
     bar: Color(0xFFCFC6B5),
     bar2: Color(0xFFE6DFD2),
     hover: Color(0xFFEDE6D8),
-    accent: Color(0xFF295DB4),
+    accent: Color(0xFF193769),
     accentFg: Color(0xFFFFFFFF),
-    accentSoft: Color(0xFFDFE8F7),
+    accentSoft: Color(0xFFE2E7F1),
     inks: [
       Color(0xFF262626),
       Color(0xFF4A6CF7),
@@ -77,9 +84,9 @@ class NdColors extends ThemeExtension<NdColors> {
     bar: Color(0xFF4A453A),
     bar2: Color(0xFF2A261E),
     hover: Color(0xFF232019),
-    accent: Color(0xFF6E9FE8),
-    accentFg: Color(0xFF0B162B),
-    accentSoft: Color(0xFF1B2740),
+    accent: Color(0xFF7B97CE),
+    accentFg: Color(0xFF0A1526),
+    accentSoft: Color(0xFF1C2740),
     inks: [
       Color(0xFFECECEA),
       Color(0xFF4A6CF7),

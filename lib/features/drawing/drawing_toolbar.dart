@@ -134,6 +134,41 @@ class _PenBar extends ConsumerWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
+        // Geri/ileri al EN BAŞTA: araç çubuğu yatay kaydırılabiliyor ve
+        // sağdayken telefonda ekran dışında kalıyordu (kullanıcı bulamadı).
+        _ToolButton(
+          icon: Icons.undo,
+          active: false,
+          tooltip: context.t('Geri al', 'Undo'),
+          opacity: hasStrokes ? 1 : 0.35,
+          onTap: docId == null || !hasStrokes
+              ? null
+              : () async {
+                  final removed = await ref
+                      .read(drawingRepositoryProvider)
+                      .undoLastForDoc(docId);
+                  if (removed == null) return;
+                  ref.read(strokeRedoProvider.notifier).state = [
+                    ...ref.read(strokeRedoProvider),
+                    removed,
+                  ];
+                },
+        ),
+        _ToolButton(
+          icon: Icons.redo,
+          active: false,
+          tooltip: context.t('İleri al', 'Redo'),
+          opacity: canRedo ? 1 : 0.35,
+          onTap: !canRedo
+              ? null
+              : () {
+                  final stack = [...ref.read(strokeRedoProvider)];
+                  final s = stack.removeLast();
+                  ref.read(strokeRedoProvider.notifier).state = stack;
+                  ref.read(drawingRepositoryProvider).restoreStroke(s);
+                },
+        ),
+        _divider(nd.border),
         _ToolButton(
           icon: Icons.pan_tool_alt_outlined,
           active: tool == PenTool.el,
@@ -194,38 +229,6 @@ class _PenBar extends ConsumerWidget {
           _PaperButton(docId: docId),
         ],
         _divider(nd.border),
-        _ToolButton(
-          icon: Icons.undo,
-          active: false,
-          tooltip: context.t('Geri al', 'Undo'),
-          opacity: hasStrokes ? 1 : 0.35,
-          onTap: docId == null || !hasStrokes
-              ? null
-              : () async {
-                  final removed = await ref
-                      .read(drawingRepositoryProvider)
-                      .undoLastForDoc(docId);
-                  if (removed == null) return;
-                  ref.read(strokeRedoProvider.notifier).state = [
-                    ...ref.read(strokeRedoProvider),
-                    removed,
-                  ];
-                },
-        ),
-        _ToolButton(
-          icon: Icons.redo,
-          active: false,
-          tooltip: context.t('İleri al', 'Redo'),
-          opacity: canRedo ? 1 : 0.35,
-          onTap: !canRedo
-              ? null
-              : () {
-                  final stack = [...ref.read(strokeRedoProvider)];
-                  final s = stack.removeLast();
-                  ref.read(strokeRedoProvider.notifier).state = stack;
-                  ref.read(drawingRepositoryProvider).restoreStroke(s);
-                },
-        ),
         _ToolButton(
           icon: Icons.delete_outline,
           active: false,

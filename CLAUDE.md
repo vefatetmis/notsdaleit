@@ -650,12 +650,17 @@ için ekran ekran dolaşmak gerekmedi) + `app_theme` seed rengi:
 | border / borderStrong | `#E7E0D3` / `#DBD2C1` | `#2C2820` / `#3A3529` |
 | text / text2 | `#2B2723` / `#8B8175` | `#ECE7DE` / `#9A9184` |
 | bar / bar2 / hover | `#CFC6B5` / `#E6DFD2` / `#EDE6D8` | `#4A453A` / `#2A261E` / `#232019` |
-| **accent** | **`#295DB4`** (kullanıcının verdiği kod) | **`#6E9FE8`** |
-| accentFg | `#FFFFFF` | `#0B162B` |
-| **accentSoft** (YENİ) | `#DFE8F7` | `#1B2740` |
+| **accent** | **`#193769`** (logo laciverti) | **`#7B97CE`** |
+| accentFg | `#FFFFFF` | `#0A1526` |
+| **accentSoft** (YENİ) | `#E2E7F1` | `#1C2740` |
 
-> İlk denenen vurgu `#3F6E9E` idi; kullanıcı "soluk olmuş, koyulaştıralım"
-> deyip `#295DB4`'ü verdi. Koyu tema tonu ondan türetildi.
+> **Vurgu rengi üç turda oturdu.** `#3F6E9E` "soluk" bulundu → kullanıcı
+> `#295DB4` verdi → o da tutmadı ("bir türlü beğenemedim"). Sebep:
+> **uygulama ikonu parlak mavi değil, derin lacivert.** `playstore/icon-512.png`
+> piksel piksel örneklenip renk merdiveni çıkarıldı — `#04183D` (gövde) ·
+> **`#193769`** (ikinci baskın) · `#27467F` · `#5B7AB3` (parlama) — ve vurgu
+> logonun kendi tonuna sabitlendi. Koyu tema tonu aynı merdivenin üstünden.
+> **Yeni renk denemesi gerekirse logodan başla.**
 
 - **`accentSoft` yeni token:** vurgunun soluk zemini (seçili öğe/çip). copyWith
   + lerp'e eklendi.
@@ -688,9 +693,7 @@ yok, controller'lar düzgün dispose ediliyor. Çıkan iş listesi (sıralı):
 **A — kullanıcıyı doğrudan etkileyen**
 1. ~~Giriş düğmesi çıkmaz sokak~~ → **YAPILDI** (`kAuthEnabled`, yukarı bkz.).
 2. ~~Renk paleti~~ → **YAPILDI** (yukarı bkz.).
-3. **Sayfa silme yok.** Sayfa artık otomatik büyüdüğü için, içerik silinince
-   fazladan boş kart kalıyor ve kaldırılamıyor. "Yeni sayfa" düğmesinin yanına
-   son sayfayı silen bir eylem (yalnız son sayfa boşsa) gerekiyor.
+3. ~~Sayfa silme yok~~ → **YAPILDI** (aşağı bkz.).
 4. **Serbest (Quill) notlarda uzun yazı sayfa sınırını aşıyor.** Form
    notlarında satır-bazlı sayfalama var, Quill'de yok → yazı sayfa kartının
    dışına taşabiliyor. En zor madde.
@@ -716,6 +719,33 @@ yazıldı: saf fonksiyon `formatRelativeIn(dateTime, {required bool en})`
 kısayolu. **Çağrı yeri imzası değişti** — dört ekran güncellendi (folders,
 library, search, trash). `test/widget_test.dart` iki dili de kapsıyor (8 test,
 hepsi geçiyor).
+
+### ✅ SAYFA SİLME (25 Tem 2026)
+
+Sayfa sayısı içerikle **büyüyor ama küçülmüyordu** → içerik silinince arkada
+kaldırılamayan boş kart kalıyordu. Sayfaların altındaki şerit artık iki düğme:
+**"Yeni sayfa"** + (birden fazla sayfa varsa) **"Sayfayı sil"**
+(`_PageActions` / `_PageActionButton`, eski `_AddPageButton`'ın yerine).
+
+- Silme **yalnız son sayfa boşsa** iş görür; doluysa sebebini snackbar'da
+  söyler ve hiçbir şey silmez (veri kaybı riski yok — bilinçli).
+- "Boş mu" iki kaynaktan: (a) `_naturalPages < pageCount` — içerik son sayfaya
+  ulaşmıyor, (b) `_lastPageHasInk` — son sayfada çizim yok. Çizim noktaları
+  sayfa genişliğine göre normalize ve tüm sayfalar tek düşey düzlemde olduğu
+  için son sayfanın üst sınırı `(pages-1) * (aspect + kPageGapRatio)`.
+- `_Sheet` artık **her çizimde** ölçtüğü doğal sayfa sayısını
+  `onPagesMeasured` ile editöre bildiriyor (eski `onNeedPages` bunun yerini
+  aldı): editör hem büyütmeyi (`_ensurePages`) hem silme düğmesini buradan
+  besliyor. Silmeden sonra `_requestedPages` sıfırlanır ki içerik yeniden
+  büyüyebilsin.
+
+### ✅ TABLO ZEMİNİ KÂĞIT RENGİNDE (25 Tem 2026)
+
+Çizgili/kareli kâğıtta sayfa deseni tablo hücrelerinin içinden geçip tablo
+çizgilerine karışıyordu. Tablo satırlarının zemini artık `paper.background`
+ile dolduruluyor (başlık satırı `paper.faint` kalır) — hem ekranda
+(`form_page._table`) hem PDF/PNG çıktısında (`pdf_export.tableRow`, eskiden
+yalnız başlık satırını dolduruyordu).
 
 ### ✅ GERİ AL / İLERİ AL (24 Tem 2026)
 

@@ -12,6 +12,7 @@ import '../../data/data_providers.dart';
 import '../collab/collab_service.dart';
 import '../drawing/drawing_layer.dart';
 import '../drawing/drawing_state.dart';
+import '../drawing/stroke_painter.dart';
 import '../forms/form_layout.dart';
 import '../forms/form_model.dart';
 import '../forms/form_page.dart';
@@ -43,6 +44,10 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   Timer? _saveTimer;
   int? _docId;
   int _requestedPages = 0;
+
+  /// İçeriğin gerçekte kaç sayfa tuttuğu (`_Sheet` ölçer). Sayfa silme
+  /// düğmesi buna bakar: içerik son sayfaya ulaşıyorsa silinemez.
+  int _naturalPages = 1;
   bool _loaded = false;
   bool _addingPage = false;
 
@@ -234,6 +239,65 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     _addingPage = false;
   }
 
+  /// `_Sheet` her çiziminde içeriğin kaç sayfa tuttuğunu bildirir. Büyütme
+  /// buradan tetiklenir; "Sayfayı sil" de bu sayıya bakar.
+  void _onPagesMeasured(int natural) {
+    if (natural != _naturalPages && mounted) {
+      setState(() => _naturalPages = natural);
+    }
+    _ensurePages(natural);
+  }
+
+  /// Son sayfada çizim var mı? Çizim noktaları sayfa genişliğine göre
+  /// normalize (0..1) ve tüm sayfalar tek bir düşey düzlemde dizili olduğu
+  /// için, son sayfanın üst sınırını geçen bir nokta varsa sayfa doludur.
+  bool _lastPageHasInk(int pages, String? pageSize) {
+    final strokes = ref.read(activeStrokesProvider).valueOrNull ?? const [];
+    if (strokes.isEmpty) return false;
+    final top = (pages - 1) * (aspectForPageSize(pageSize) + kPageGapRatio);
+    for (final s in strokes) {
+      for (final p in PenStroke.fromRow(s).points) {
+        if (p.dy >= top) return true;
+      }
+    }
+    return false;
+  }
+
+  /// Son sayfayı kaldırır — yalnız o sayfa boşsa. (Sayfa sayısı içerikle
+  /// birlikte büyüyor ama kendiliğinden küçülmüyor; içerik silinince arkada
+  /// kalan boş kartı kullanıcı böyle temizler.)
+  Future<void> _removeLastPage() async {
+    final id = _docId;
+    final doc = ref.read(activeDocumentProvider);
+    if (id == null || doc == null) return;
+    final pages = doc.pageCount ?? 1;
+
+    void warn(String tr, String en) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text(context.t(tr, en)),
+        ));
+    }
+
+    if (pages <= 1) {
+      warn('Tek sayfa silinemez', 'The only page cannot be deleted');
+      return;
+    }
+    if (_naturalPages >= pages || _lastPageHasInk(pages, doc.pageSize)) {
+      warn('Son sayfa boş değil — önce içeriğini silin',
+          'The last page is not empty — clear its content first');
+      return;
+    }
+    // Yeniden büyümeye izin ver (aynı sayıyı tekrar yazabilsin).
+    _requestedPages = 0;
+    await ref
+        .read(documentRepositoryProvider)
+        .setPageCount(id: id, pageCount: pages - 1);
+  }
+
   void _onPointerChange(int delta) {
     final next = (_pointers + delta).clamp(0, 10);
     if (next != _pointers) setState(() => _pointers = next);
@@ -354,10 +418,13 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                             form: _form,
                             formEditable: textMode,
                             onFormChanged: _scheduleSave,
-                            onNeedPages: _ensurePages,
+                            onPagesMeasured: _onPagesMeasured,
                           ),
                           const SizedBox(height: 16),
-                          _AddPageButton(onTap: _addPage),
+                          _PageActions(
+                            onAdd: _addPage,
+                            onRemove: pageCount > 1 ? _removeLastPage : null,
+                          ),
                           const SizedBox(height: 60),
                         ],
                       ),
@@ -417,7 +484,7 @@ class _Sheet extends ConsumerStatefulWidget {
     required this.form,
     required this.formEditable,
     required this.onFormChanged,
-    required this.onNeedPages,
+    required this.onPagesMeasured,
   });
 
   final int? docId;
@@ -434,8 +501,8 @@ class _Sheet extends ConsumerStatefulWidget {
   final bool formEditable;
   final VoidCallback onFormChanged;
 
-  /// Form içeriği mevcut sayfalara sığmıyorsa çağrılır (gereken sayfa sayısı).
-  final ValueChanged<int> onNeedPages;
+  /// İçeriğin kaç sayfa tuttuğu — her çizimde bildirilir (büyütme + silme).
+  final ValueChanged<int> onPagesMeasured;
 
   @override
   ConsumerState<_Sheet> createState() => _SheetState();
@@ -452,6 +519,14 @@ class _SheetState extends ConsumerState<_Sheet> {
   void _formChanged() {
     widget.onFormChanged();
     if (mounted) setState(() {});
+  }
+
+  /// Ölçülen sayfa sayısını editöre bildirir (kare bitiminde — build sırasında
+  /// üst widget'ın state'ini değiştirmemek için).
+  void _reportPages(int n) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) widget.onPagesMeasured(n);
+    });
   }
 
   /// Quill içeriğinin çizilen yüksekliğini kare sonrası ölçer (sayfa sayısı
@@ -489,16 +564,12 @@ class _SheetState extends ConsumerState<_Sheet> {
       contentPad = 22 * (w / m.virtualPageW);
       layout = paginateForm(widget.form!, m.virtualW, m.contentH, m.pageSkip,
           editable: widget.formEditable, maxPages: pages);
-      final needed = formNaturalPageCount(widget.form!, widget.pageSize);
-      if (needed > pages) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) widget.onNeedPages(needed);
-        });
-      }
+      _reportPages(formNaturalPageCount(widget.form!, widget.pageSize));
     } else {
       _scheduleQuillMeasure();
       if (_quillH > 0) {
         final needed = ((_quillH + 44 + gap) / (pageH + gap)).ceil();
+        _reportPages(needed);
         if (needed > pages) pages = needed;
       }
     }
@@ -607,10 +678,47 @@ class _SheetState extends ConsumerState<_Sheet> {
   }
 }
 
-/// Sayfa altındaki "yeni sayfa ekle" düğmesi.
-class _AddPageButton extends StatelessWidget {
-  const _AddPageButton({required this.onTap});
+/// Sayfaların altındaki eylemler: sayfa ekle ve (birden fazla sayfa varsa)
+/// son sayfayı sil. Silme yalnız son sayfa boşken iş görür — dolu olduğunda
+/// sebebini söyler (bkz. `_removeLastPage`).
+class _PageActions extends StatelessWidget {
+  const _PageActions({required this.onAdd, required this.onRemove});
 
+  final VoidCallback onAdd;
+  final VoidCallback? onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _PageActionButton(
+          icon: Icons.add,
+          label: context.t('Yeni sayfa', 'New page'),
+          onTap: onAdd,
+        ),
+        if (onRemove != null) ...[
+          const SizedBox(width: 10),
+          _PageActionButton(
+            icon: Icons.delete_outline,
+            label: context.t('Sayfayı sil', 'Delete page'),
+            onTap: onRemove!,
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _PageActionButton extends StatelessWidget {
+  const _PageActionButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
   final VoidCallback onTap;
 
   @override
@@ -624,6 +732,7 @@ class _AddPageButton extends StatelessWidget {
         onTap: onTap,
         child: Container(
           height: 46,
+          padding: const EdgeInsets.symmetric(horizontal: 18),
           alignment: Alignment.center,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
@@ -632,9 +741,9 @@ class _AddPageButton extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.add, size: 18, color: nd.text2),
+              Icon(icon, size: 18, color: nd.text2),
               const SizedBox(width: 7),
-              Text(context.t('Yeni sayfa', 'New page'),
+              Text(label,
                   style: TextStyle(
                       fontSize: 13.5,
                       fontWeight: FontWeight.w600,
