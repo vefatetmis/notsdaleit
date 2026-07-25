@@ -273,7 +273,7 @@ class SettingsScreen extends ConsumerWidget {
                           style: const TextStyle(fontSize: 14))),
                   // pubspec `version` ile elle eşitlenir (package_info_plus
                   // bağımlılığı eklemekten kaçınmak için sabit).
-                  Text('1.3.0',
+                  Text('1.3.1',
                       style: TextStyle(fontSize: 13, color: nd.text2)),
                 ],
               ),

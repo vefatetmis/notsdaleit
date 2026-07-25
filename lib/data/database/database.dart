@@ -162,51 +162,91 @@ class AppDatabase extends _$AppDatabase {
   @override
   int get schemaVersion => 13;
 
+  /// Bir tablo veritabanında var mı?
+  Future<bool> _hasTable(String name) async {
+    final rows = await customSelect(
+      "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?1",
+      variables: [Variable<String>(name)],
+    ).get();
+    return rows.isNotEmpty;
+  }
+
+  /// Bir tabloda kolon var mı?
+  Future<bool> _hasColumn(String table, String column) async {
+    final rows = await customSelect('PRAGMA table_info("$table")').get();
+    return rows.any((r) => r.read<String?>('name') == column);
+  }
+
+  /// Tabloyu **yoksa** oluşturur.
+  Future<void> _createIfMissing(Migrator m, TableInfo table) async {
+    if (await _hasTable(table.actualTableName)) return;
+    await m.createTable(table);
+  }
+
+  /// Kolonu **yoksa** ekler.
+  Future<void> _addColumnIfMissing(
+      Migrator m, TableInfo table, GeneratedColumn column) async {
+    if (await _hasColumn(table.actualTableName, column.name)) return;
+    await m.addColumn(table, column);
+  }
+
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) => m.createAll(),
+        // ── Geçişler NEDEN "varsa atla" ile yazılıyor ────────────────────
+        //
+        // `createTable` tabloyu **bugünkü** tanımıyla oluşturur. Yani eski bir
+        // sürümden gelen kullanıcıda `from < 9` adımı `templates` tablosunu
+        // `page_background` kolonu DÂHİL kuruyor, ardından `from < 10` adımı
+        // aynı kolonu eklemeye çalışıp "duplicate column name" ile patlıyordu
+        // (aynı tuzak `routines.remind_at` için de vardı). Sahada bu, eski
+        // sürümden güncelleyen test kullanıcılarının uygulamayı hiç
+        // açamamasına yol açtı.
+        //
+        // Bu yüzden her adım idempotent: tablo/kolon zaten varsa atlanır.
+        // **Yeni geçiş yazarken de bu yardımcıları kullan.**
         onUpgrade: (m, from, to) async {
           if (from < 2) {
-            await m.addColumn(documents, documents.pageSize);
+            await _addColumnIfMissing(m, documents, documents.pageSize);
           }
           if (from < 3) {
-            await m.createTable(tasks);
+            await _createIfMissing(m, tasks);
           }
           if (from < 4) {
-            await m.createTable(dayNotes);
+            await _createIfMissing(m, dayNotes);
           }
           if (from < 5) {
-            await m.addColumn(documents, documents.pageColor);
+            await _addColumnIfMissing(m, documents, documents.pageColor);
           }
           if (from < 6) {
-            await m.createTable(routines);
-            await m.createTable(routineChecks);
+            await _createIfMissing(m, routines);
+            await _createIfMissing(m, routineChecks);
           }
           if (from < 7) {
-            await m.addColumn(documents, documents.sharedId);
-            await m.addColumn(documents, documents.shareCode);
-            await m.addColumn(strokes, strokes.remoteId);
+            await _addColumnIfMissing(m, documents, documents.sharedId);
+            await _addColumnIfMissing(m, documents, documents.shareCode);
+            await _addColumnIfMissing(m, strokes, strokes.remoteId);
           }
           if (from < 8) {
-            await m.addColumn(routines, routines.remindAt);
-            await m.createTable(folders);
+            await _addColumnIfMissing(m, routines, routines.remindAt);
+            await _createIfMissing(m, folders);
           }
           if (from < 9) {
-            await m.createTable(templates);
+            await _createIfMissing(m, templates);
           }
           if (from < 10) {
-            await m.addColumn(documents, documents.pageBackground);
-            await m.addColumn(templates, templates.pageBackground);
+            await _addColumnIfMissing(m, documents, documents.pageBackground);
+            await _addColumnIfMissing(m, templates, templates.pageBackground);
           }
           if (from < 11) {
-            await m.addColumn(documents, documents.pinned);
+            await _addColumnIfMissing(m, documents, documents.pinned);
           }
           if (from < 12) {
-            await m.createTable(tags);
-            await m.createTable(documentTags);
+            await _createIfMissing(m, tags);
+            await _createIfMissing(m, documentTags);
           }
           if (from < 13) {
-            await m.addColumn(documents, documents.deletedAt);
+            await _addColumnIfMissing(m, documents, documents.deletedAt);
           }
         },
         beforeOpen: (details) async {

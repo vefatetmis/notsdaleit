@@ -496,7 +496,7 @@ kalem olduğundan ızgara/2-kolon düzenler birebir çıkmaz. **Karar: pragmatik
 | Kanal | Sürüm | Durum |
 |-------|-------|-------|
 | Play üretim | — | **ETKİN DEĞİL** — uygulama hiç üretime çıkmadı (eski notlardaki "1.0 mağazada yayında" YANLIŞTI, 23 Tem 2026'da konsoldan doğrulandı) |
-| Play kapalı test (Alpha) | **1.3.0+4** (vc 4) | ✅ Yayında — 23 Tem 2026 16:35, testçilere sunuldu |
+| Play kapalı test (Alpha) | **1.3.0+4** (vc 4) | ⚠️ Yayında ama **BOZUK** — eski sürümden güncelleyende migration hatası (bkz. "KRİTİK HATA"); yerine 1.3.1+5 yüklenmeli |
 | Play dahili test | 1.0.0 (vc 2) | Etkin (16 Tem 2026) |
 | Dev / paralel APK | 1.3.0+4 (aynı kod) | **Aktif geliştirme burada** |
 
@@ -510,7 +510,8 @@ bu sayacı SIFIRLAMIYOR (1.3.0+4 yüklendiği gün sayaç 6'da kaldı). Sayaç
 **Strateji (kullanıcı kararı):** tüm geliştirme dev APK üzerinden; biriken her
 şey (1.1 + 1.2 + 1.3 + kütüphane + güvenlik ağı) **tek AAB** olarak önce kapalı
 teste çıkar, orada sorun yoksa üretime yükseltilir. Prod'a ara sürüm çıkılmaz.
-pubspec **1.3.0+4** (23 Tem 2026'da 1.1.0+3'ten yükseltildi). **Her Play
+pubspec **1.3.1+5** (25 Tem 2026'da migration düzeltmesiyle 1.3.0+4'ten
+yükseltildi). **Her Play
 yüklemesinde versionCode artmalı** (+5, +6…). Ayarlar ekranındaki sürüm yazısı
 (`settings_screen.dart`) elle eşitlenir — package_info_plus eklenmedi.
 
@@ -631,6 +632,40 @@ listesi = aşağıdaki **"YENİ YOL HARİTASI (24 Tem 2026 denetimi)"** bölüm�
 Kullanıcı: "hepsini yap, kolaydan zora, sıra sende."
 Mail/auth ASKIDA (dokunma). Her adım: kullanıcıya ne yapacağını söyle → onay →
 yap → dev APK.
+
+### 🔥 KRİTİK HATA DÜZELTİLDİ — migration çifte kolon (25 Tem 2026)
+
+**Saha raporu (kapalı test kullanıcısı):** uygulama açılınca kütüphane boş
+geliyor ve şu hata yazıyor:
+`SqliteException(1): duplicate column name: page_background — ALTER TABLE
+"templates" ADD COLUMN "page_background"`. Yani **eski sürümden güncelleyen
+kullanıcı uygulamayı hiç kullanamıyordu.**
+
+**Sebep (klasik drift tuzağı):** `m.createTable(x)` tabloyu **bugünkü**
+tanımıyla kurar. Eski sürümden gelen kullanıcıda:
+- `from < 9` → `createTable(templates)` → tablo `page_background` **dâhil**
+  oluşur,
+- `from < 10` → `addColumn(templates.pageBackground)` → **duplicate column**.
+
+Aynı tuzak `routines` için de vardı (`from < 6` createTable → `from < 8`
+`addColumn(remindAt)`), yani v5 ve öncesinden gelenler de patlıyordu.
+
+**Çözüm:** tüm geçiş adımları **idempotent** yapıldı. `database.dart`'a
+`_hasTable`/`_hasColumn` (sqlite_master + `PRAGMA table_info`) ve
+`_createIfMissing`/`_addColumnIfMissing` eklendi; her `createTable`/`addColumn`
+bunlardan geçiyor. Yarım kalmış bir migration'ın tekrar çalışması da artık
+zararsız.
+
+> **YENİ GEÇİŞ YAZARKEN:** doğrudan `m.createTable`/`m.addColumn` KULLANMA —
+> `_createIfMissing`/`_addColumnIfMissing` kullan.
+
+**Test:** `test/migration_test.dart` (4 test) — v8'den (templates yok) ve
+v5'ten (routines yok) yükseltme, yarım kalmış migration'ın tekrarı, sıfırdan
+kurulum. Düzeltme geri alındığında bu testlerin **3'ü düşüyor** (doğrulandı),
+yani regresyonu gerçekten yakalıyorlar.
+
+**Sürüm:** pubspec `1.3.0+4` → **`1.3.1+5`** (Ayarlar'daki sürüm yazısı da
+elle güncellendi). Kapalı teste **acil** yüklenmesi gereken sürüm budur.
 
 ### 🎨 RENK PALETİ DEĞİŞTİ — sıcak bej + denim mavi (24 Tem 2026)
 
