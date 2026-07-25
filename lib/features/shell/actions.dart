@@ -13,6 +13,8 @@ import '../../core/utils/note_text.dart';
 import '../../data/data_providers.dart';
 import '../../data/database/database.dart';
 import '../drawing/drawing_state.dart';
+import '../drawing/stroke_painter.dart';
+import '../editor/editor_state.dart';
 import '../forms/form_layout.dart';
 import '../forms/form_model.dart';
 import '../library/new_note_dialog.dart';
@@ -168,6 +170,121 @@ Future<void> trashDocument(
         onPressed: () => repo.restore(d.id),
       ),
     ));
+}
+
+// ── Sayfa işlemleri (üst bar menüsü) ────────────────────────────────────
+//
+// İkisi de **bakılan sayfaya** göre çalışır (`currentPageProvider`) — kullanıcı
+// hangi sayfadaysa işlem orada olur, "hangi sayfa?" diye sorulmaz.
+
+/// Bir çizimin hangi sayfada olduğu. Noktalar sayfa genişliğine göre normalize
+/// (0..1) ve sayfalar tek bir düşey düzlemde dizili olduğu için sayfa adımı
+/// `aspect + kPageGapRatio`. İki sayfaya taşan çizim **başladığı** sayfaya
+/// sayılır (en küçük y).
+int _pageOfStroke(Stroke s, double step) {
+  var minY = double.infinity;
+  for (final p in PenStroke.fromRow(s).points) {
+    if (p.dy < minY) minY = p.dy;
+  }
+  if (!minY.isFinite) return 0;
+  final page = (minY / step).floor();
+  return page < 0 ? 0 : page;
+}
+
+/// Bakılan sayfanın **altına** boş bir sayfa ekler; sonraki sayfaların
+/// çizimleri bir sayfa aşağı kayar.
+Future<void> addPageAfterCurrent(WidgetRef ref) async {
+  final doc = ref.read(activeDocumentProvider);
+  if (doc == null || doc.type != 'not') return;
+  final pages = doc.pageCount ?? 1;
+  final current = ref.read(currentPageProvider).clamp(0, pages - 1);
+  final step = aspectForPageSize(doc.pageSize) + kPageGapRatio;
+
+  final drawing = ref.read(drawingRepositoryProvider);
+  for (final s in await drawing.getStrokes(doc.id)) {
+    if (_pageOfStroke(s, step) <= current) continue;
+    final moved = [
+      for (final p in PenStroke.fromRow(s).points) Offset(p.dx, p.dy + step),
+    ];
+    await drawing.updateStrokePoints(s.id, PenStroke.encodePoints(moved));
+  }
+  await ref
+      .read(documentRepositoryProvider)
+      .setPageCount(id: doc.id, pageCount: pages + 1);
+}
+
+/// Bakılan sayfayı siler: o sayfanın çizimleri gider, sonraki sayfaların
+/// çizimleri bir sayfa yukarı kayar. Çizim varsa önce onay ister (geri
+/// alınamaz); yazıya dokunulmaz — metin akışkandır, yeniden dizilir.
+Future<void> deleteCurrentPage(BuildContext context, WidgetRef ref) async {
+  final doc = ref.read(activeDocumentProvider);
+  if (doc == null || doc.type != 'not') return;
+  final pages = doc.pageCount ?? 1;
+  if (pages <= 1) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        behavior: SnackBarBehavior.floating,
+        content: Text(context.t(
+            'Tek sayfa silinemez', 'The only page cannot be deleted')),
+      ));
+    return;
+  }
+
+  final target = ref.read(currentPageProvider).clamp(0, pages - 1);
+  final step = aspectForPageSize(doc.pageSize) + kPageGapRatio;
+  final drawing = ref.read(drawingRepositoryProvider);
+  final strokes = await drawing.getStrokes(doc.id);
+  final doomed = <int>{
+    for (final s in strokes)
+      if (_pageOfStroke(s, step) == target) s.id,
+  };
+
+  if (doomed.isNotEmpty) {
+    if (!context.mounted) return;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(ctx.t('${target + 1}. sayfa silinsin mi?',
+            'Delete page ${target + 1}?')),
+        content: Text(ctx.t(
+            'Bu sayfadaki ${doomed.length} çizim de silinecek. Yazı silinmez — '
+                'sayfalara yeniden dizilir.',
+            '${doomed.length} drawing(s) on this page will be deleted too. '
+                'Text is not deleted — it reflows.')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(ctx.t('Vazgeç', 'Cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(ctx.t('Sil', 'Delete')),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await drawing.deleteStrokes(doomed);
+  }
+
+  // Sonraki sayfaların çizimleri bir sayfa yukarı.
+  for (final s in strokes) {
+    if (doomed.contains(s.id) || _pageOfStroke(s, step) <= target) continue;
+    final moved = [
+      for (final p in PenStroke.fromRow(s).points) Offset(p.dx, p.dy - step),
+    ];
+    await drawing.updateStrokePoints(s.id, PenStroke.encodePoints(moved));
+  }
+
+  await ref
+      .read(documentRepositoryProvider)
+      .setPageCount(id: doc.id, pageCount: pages - 1);
+  // Silinen son sayfaysa görünen sayfa dışarı taşmasın.
+  final next = ref.read(currentPageProvider);
+  if (next > pages - 2) {
+    ref.read(currentPageProvider.notifier).state = pages - 2;
+  }
 }
 
 /// Bir notu (yazı + sayfa ayarları + çizimler + etiketler) kopyalar.

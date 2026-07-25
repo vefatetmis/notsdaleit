@@ -40,6 +40,12 @@ typedef TableInserter = void Function(int rows, int cols);
 
 final tableInserterProvider = StateProvider<TableInserter?>((ref) => null);
 
+/// Editörde **şu an bakılan sayfa** (0 tabanlı). Görünümün ortasının hangi
+/// sayfa kartına denk geldiğinden hesaplanır (`NoteEditorScreen._onTransform`).
+/// Üst bar menüsündeki "sayfa ekle / sayfayı sil" bunu kullanır — böylece
+/// kullanıcıya hangi sayfa olduğu sorulmaz.
+final currentPageProvider = StateProvider<int>((ref) => 0);
+
 /// Kağıt (sayfa) rengi seçenekleri. Metin rengi kağıda göre belirlenir; böylece
 /// yazı, uygulama teması açık/koyu olsa da her zaman okunur (siyah kağıt →
 /// beyaz yazı).

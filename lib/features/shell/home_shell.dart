@@ -5,9 +5,11 @@ import '../../core/collab/collab_config.dart';
 import '../../core/i18n/i18n.dart';
 import '../../core/theme/nd_colors.dart';
 import '../../data/data_providers.dart';
+import '../../data/database/database.dart';
 import '../calendar/calendar_screen.dart';
 import '../collab/collab_ui.dart';
 import '../drawing/drawing_toolbar.dart';
+import '../editor/editor_state.dart';
 import '../editor/note_editor_screen.dart';
 import '../export/pdf_export.dart';
 import '../folders/folders_screen.dart';
@@ -536,62 +538,10 @@ class _TopBar extends ConsumerWidget {
           ),
           if (nav.isDetail && activeDoc != null) ...[
             if (activeDoc.sharedId != null) const CollabStatusChip(),
-            PopupMenuButton<String>(
-              tooltip: context.t('Paylaş', 'Share'),
-              color: nd.card,
-              icon: Icon(Icons.ios_share, size: 18, color: nd.text2),
-              onSelected: (v) {
-                if (v == 'pdf') sharePdfWithPaperPrompt(context, ref, activeDoc);
-                if (v == 'png') sharePngWithPaperPrompt(context, ref, activeDoc);
-                if (v == 'ntdl') exportNtdl(ref, activeDoc);
-                if (v == 'savetpl') saveNoteAsTemplate(context, ref, activeDoc);
-                if (v == 'copytext') copyNoteText(context, ref, activeDoc);
-                if (v == 'duplicate') duplicateDocument(context, ref, activeDoc);
-                if (v == 'live') shareLive(context, ref, activeDoc);
-                if (v == 'unshare') stopLive(context, ref, activeDoc);
-              },
-              itemBuilder: (context) => [
-                if (CollabConfig.enabled && activeDoc.type == 'not')
-                  PopupMenuItem(
-                      value: 'live',
-                      child: Text(activeDoc.sharedId == null
-                          ? context.t('Canlı paylaş', 'Share live')
-                          : context.t('Paylaşım kodu', 'Share code'))),
-                if (CollabConfig.enabled && activeDoc.sharedId != null)
-                  PopupMenuItem(
-                      value: 'unshare',
-                      child: Text(context.t(
-                          'Canlı paylaşımı durdur', 'Stop live sharing'))),
-                if (activeDoc.type == 'not')
-                  PopupMenuItem(
-                      value: 'copytext',
-                      child: Text(context.t(
-                          'Metni kopyala', 'Copy text'))),
-                if (activeDoc.type == 'not')
-                  PopupMenuItem(
-                      value: 'duplicate',
-                      child:
-                          Text(context.t('Notu çoğalt', 'Duplicate note'))),
-                PopupMenuItem(
-                    value: 'pdf',
-                    child: Text(context.t('PDF olarak paylaş', 'Share as PDF'))),
-                if (activeDoc.type == 'not')
-                  PopupMenuItem(
-                      value: 'png',
-                      child: Text(context.t(
-                          'Görüntü (PNG) olarak kaydet', 'Save as image (PNG)'))),
-                if (activeDoc.type == 'not')
-                  PopupMenuItem(
-                      value: 'savetpl',
-                      child: Text(context.t(
-                          'Şablon olarak kaydet', 'Save as template'))),
-                if (activeDoc.type == 'not')
-                  PopupMenuItem(
-                      value: 'ntdl',
-                      child: Text(context.t(
-                          'Şablon (.ntdl) paylaş', 'Share template (.ntdl)'))),
-              ],
-            ),
+            // Belge menüsü: sayfa işlemleri + paylaşma/dışa aktarma tek yerde.
+            // (Sayfa ekle/sil eskiden sayfaların altındaki şeritteydi; oradan
+            // kaldırıldı, sıkışıklık yapıyordu.) Yeni özellikler de buraya.
+            _DocMenuButton(doc: activeDoc),
           ],
           if (nav.screen == AppScreen.kutuphane) ...[
             PopupMenuButton<String>(
@@ -667,6 +617,114 @@ class _IconBtn extends StatelessWidget {
           child: Icon(icon, size: 18, color: nd.text2),
         ),
       ),
+    );
+  }
+}
+
+/// Üst bardaki belge menüsü (üç nokta). Sayfa ekleme/silme ve paylaşma/dışa
+/// aktarma burada toplanır — eskiden paylaş ikonuydu ve sayfa işlemleri
+/// sayfaların altında ayrı bir şeritteydi. Yeni belge özellikleri de buraya
+/// eklenmeli.
+///
+/// Sayfa işlemleri **bakılan sayfaya** uygulanır (`currentPageProvider`);
+/// kullanıcıya hangi sayfa olduğu sorulmaz, menü öğesi sayfa numarasını yazar.
+class _DocMenuButton extends ConsumerWidget {
+  const _DocMenuButton({required this.doc});
+
+  final Document doc;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final nd = context.nd;
+    final isNote = doc.type == 'not';
+    final pages = doc.pageCount ?? 1;
+    final current = ref.watch(currentPageProvider).clamp(0, pages - 1);
+
+    return PopupMenuButton<String>(
+      tooltip: context.t('Belge menüsü', 'Document menu'),
+      color: nd.card,
+      icon: Icon(Icons.more_vert, size: 20, color: nd.text2),
+      onSelected: (v) {
+        switch (v) {
+          case 'addpage':
+            addPageAfterCurrent(ref);
+          case 'delpage':
+            deleteCurrentPage(context, ref);
+          case 'pdf':
+            sharePdfWithPaperPrompt(context, ref, doc);
+          case 'png':
+            sharePngWithPaperPrompt(context, ref, doc);
+          case 'ntdl':
+            exportNtdl(ref, doc);
+          case 'savetpl':
+            saveNoteAsTemplate(context, ref, doc);
+          case 'copytext':
+            copyNoteText(context, ref, doc);
+          case 'duplicate':
+            duplicateDocument(context, ref, doc);
+          case 'live':
+            shareLive(context, ref, doc);
+          case 'unshare':
+            stopLive(context, ref, doc);
+        }
+      },
+      itemBuilder: (context) => [
+        // ── Sayfa ──
+        if (isNote) ...[
+          PopupMenuItem(
+            value: 'addpage',
+            child: Text(context.t('Sayfa ekle (${current + 1}. sayfadan sonra)',
+                'Add page (after page ${current + 1})')),
+          ),
+          if (pages > 1)
+            PopupMenuItem(
+              value: 'delpage',
+              child: Text(context.t(
+                  '${current + 1}. sayfayı sil', 'Delete page ${current + 1}')),
+            ),
+          const PopupMenuDivider(),
+        ],
+        // ── Not işlemleri ──
+        if (CollabConfig.enabled && isNote)
+          PopupMenuItem(
+              value: 'live',
+              child: Text(doc.sharedId == null
+                  ? context.t('Canlı paylaş', 'Share live')
+                  : context.t('Paylaşım kodu', 'Share code'))),
+        if (CollabConfig.enabled && doc.sharedId != null)
+          PopupMenuItem(
+              value: 'unshare',
+              child: Text(
+                  context.t('Canlı paylaşımı durdur', 'Stop live sharing'))),
+        if (isNote)
+          PopupMenuItem(
+              value: 'copytext',
+              child: Text(context.t('Metni kopyala', 'Copy text'))),
+        if (isNote)
+          PopupMenuItem(
+              value: 'duplicate',
+              child: Text(context.t('Notu çoğalt', 'Duplicate note'))),
+        if (isNote) const PopupMenuDivider(),
+        // ── Dışa aktarma ──
+        PopupMenuItem(
+            value: 'pdf',
+            child: Text(context.t('PDF olarak paylaş', 'Share as PDF'))),
+        if (isNote)
+          PopupMenuItem(
+              value: 'png',
+              child: Text(context.t(
+                  'Görüntü (PNG) olarak kaydet', 'Save as image (PNG)'))),
+        if (isNote)
+          PopupMenuItem(
+              value: 'savetpl',
+              child: Text(
+                  context.t('Şablon olarak kaydet', 'Save as template'))),
+        if (isNote)
+          PopupMenuItem(
+              value: 'ntdl',
+              child: Text(context.t(
+                  'Şablon (.ntdl) paylaş', 'Share template (.ntdl)'))),
+      ],
     );
   }
 }

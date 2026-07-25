@@ -9,12 +9,9 @@ import '../../core/i18n/i18n.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/nd_colors.dart';
 import '../../data/data_providers.dart';
-// Yalnız Stroke: drift'in `Document`'ı Quill'in `Document`'ıyla çakışıyor.
-import '../../data/database/database.dart' show Stroke;
 import '../collab/collab_service.dart';
 import '../drawing/drawing_layer.dart';
 import '../drawing/drawing_state.dart';
-import '../drawing/stroke_painter.dart';
 import '../forms/form_layout.dart';
 import '../forms/form_model.dart';
 import '../forms/form_page.dart';
@@ -46,12 +43,14 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   Timer? _saveTimer;
   int? _docId;
   int _requestedPages = 0;
-
-  /// İçeriğin gerçekte kaç sayfa tuttuğu (`_Sheet` ölçer). Sayfa silme
-  /// düğmesi buna bakar: içerik son sayfaya ulaşıyorsa silinemez.
-  int _naturalPages = 1;
   bool _loaded = false;
-  bool _addingPage = false;
+
+  // Görünen sayfayı hesaplamak için son çizim ölçüleri (build'de güncellenir,
+  // `_onTransform` okur).
+  double _pageH = 0;
+  double _gap = 0;
+  double _viewportH = 0;
+  int _pages = 1;
 
   // Ekrandaki aktif parmak sayısı (kalem modunda iki parmakla kaydırmayı
   // ayırt etmek için: 1 parmak çizer, 2 parmak InteractiveViewer'a bırakılır).
@@ -82,12 +81,15 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     _loaded = doc != null;
     if (!_loaded) _load();
     _controller.addListener(_scheduleSave);
+    _tc.addListener(_onTransform);
 
     // Boş not + yazı modunda açılıyorsa klavye direkt gelsin (yeni not akışı).
     final emptyOnOpen = _loaded && _form == null && body.trim().isEmpty;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      // Not baştan açılır → görünen sayfa 1.
+      ref.read(currentPageProvider.notifier).state = 0;
       if (_form == null) {
         ref.read(activeQuillControllerProvider.notifier).state = _controller;
       }
@@ -228,159 +230,28 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         .updateNote(id: id, title: _titleController.text.trim(), body: body);
   }
 
-  Future<void> _addPage() async {
-    if (_addingPage) return;
-    final id = _docId;
-    final doc = ref.read(activeDocumentProvider);
-    if (id == null || doc == null) return;
-    _addingPage = true;
-    final next = (doc.pageCount ?? 1) + 1;
-    await ref
-        .read(documentRepositoryProvider)
-        .setPageCount(id: id, pageCount: next);
-    _addingPage = false;
-  }
+  /// `_Sheet` her çiziminde içeriğin kaç sayfa tuttuğunu bildirir → gerekiyorsa
+  /// sayfa sayısı büyür.
+  void _onPagesMeasured(int natural) => _ensurePages(natural);
 
-  /// `_Sheet` her çiziminde içeriğin kaç sayfa tuttuğunu bildirir. Büyütme
-  /// buradan tetiklenir; "Sayfayı sil" de bu sayıya bakar.
-  void _onPagesMeasured(int natural) {
-    if (natural != _naturalPages && mounted) {
-      setState(() => _naturalPages = natural);
+  /// Görünümün ortası hangi sayfa kartına denk geliyor? Üst bardaki "sayfa
+  /// ekle / sayfayı sil" bunu kullanır (kullanıcıya hangi sayfa olduğu
+  /// sorulmaz — baktığı sayfa neyse odur).
+  void _onTransform() {
+    if (!mounted || _pageH <= 0) return;
+    final m = _tc.value;
+    final scale = m.getMaxScaleOnAxis();
+    if (scale <= 0) return;
+    final top = -m.getTranslation().y / scale;
+    final center = top + _viewportH / (2 * scale);
+    final step = _pageH + _gap;
+    if (step <= 0) return;
+    final page = ((center - 12) / step).floor().clamp(0, _pages - 1);
+    if (page != ref.read(currentPageProvider)) {
+      ref.read(currentPageProvider.notifier).state = page;
     }
-    _ensurePages(natural);
   }
 
-  /// Bir çizimin hangi sayfada olduğunu döndürür. Noktalar sayfa genişliğine
-  /// göre normalize (0..1) ve tüm sayfalar tek bir düşey düzlemde dizili
-  /// olduğu için sayfa yüksekliği `aspect + boşluk`. Çizim iki sayfaya
-  /// taşıyorsa **başladığı** sayfaya sayılır.
-  int _pageOfStroke(Stroke s, double step) {
-    var minY = double.infinity;
-    for (final p in PenStroke.fromRow(s).points) {
-      if (p.dy < minY) minY = p.dy;
-    }
-    if (!minY.isFinite) return 0;
-    final page = (minY / step).floor();
-    return page < 0 ? 0 : page;
-  }
-
-  /// Belirli bir sayfadaki çizimlerin sayısı.
-  int _inkCountOnPage(int page, String? pageSize) {
-    final strokes = ref.read(activeStrokesProvider).valueOrNull ?? const [];
-    final step = aspectForPageSize(pageSize) + kPageGapRatio;
-    return strokes.where((s) => _pageOfStroke(s, step) == page).length;
-  }
-
-  /// "Sayfayı sil": önce **hangi sayfa** sorulur (son sayfa olmak zorunda
-  /// değil — kullanıcı 3 sayfalık bir notta 1. sayfayı da silebilir), sonra
-  /// onay alınır. Seçilen sayfanın çizimleri silinir, **sonraki sayfaların
-  /// çizimleri bir sayfa yukarı kayar** ve sayfa sayısı azalır.
-  ///
-  /// Yazıya dokunulmaz: metin akışkandır, sayfalara sabitlenmiş değildir —
-  /// sayfa sayısı azalınca kendiliğinden yeniden dizilir. (İçerik kalan
-  /// sayfalara sığmıyorsa sayfa bir sonraki ölçümde geri gelir; bu doğru
-  /// davranış, yazının bir kısmını silmek olmazdı.)
-  Future<void> _deletePage() async {
-    final id = _docId;
-    final doc = ref.read(activeDocumentProvider);
-    if (id == null || doc == null) return;
-    final pages = doc.pageCount ?? 1;
-    if (pages <= 1) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(
-          behavior: SnackBarBehavior.floating,
-          content: Text(context.t(
-              'Tek sayfa silinemez', 'The only page cannot be deleted')),
-        ));
-      return;
-    }
-
-    // 1) Hangi sayfa?
-    final target = await showDialog<int>(
-      context: context,
-      builder: (ctx) => SimpleDialog(
-        title: Text(ctx.t('Hangi sayfa silinsin?', 'Which page?')),
-        children: [
-          for (var i = 0; i < pages; i++)
-            SimpleDialogOption(
-              onPressed: () => Navigator.of(ctx).pop(i),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Text(_pageLabel(ctx, i, doc.pageSize)),
-              ),
-            ),
-        ],
-      ),
-    );
-    if (target == null || !mounted) return;
-
-    // 2) Onay (ne kaybedileceğini açıkça söyle).
-    final ink = _inkCountOnPage(target, doc.pageSize);
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(ctx.t('${target + 1}. sayfa silinsin mi?',
-            'Delete page ${target + 1}?')),
-        content: Text(
-          ink > 0
-              ? ctx.t(
-                  'Bu sayfadaki $ink çizim silinecek, sonraki sayfalar yukarı '
-                      'kayacak. Yazı silinmez — sayfalara yeniden dizilir.',
-                  '$ink drawing(s) on this page will be deleted and the pages '
-                      'after it move up. Text is not deleted — it reflows.')
-              : ctx.t(
-                  'Sayfa kaldırılacak, sonraki sayfalar yukarı kayacak.',
-                  'The page is removed and the pages after it move up.'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(ctx.t('Vazgeç', 'Cancel')),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(ctx.t('Sil', 'Delete')),
-          ),
-        ],
-      ),
-    );
-    if (ok != true) return;
-
-    // 3) Çizimler: hedef sayfadakileri sil, sonrakileri bir sayfa yukarı taşı.
-    final step = aspectForPageSize(doc.pageSize) + kPageGapRatio;
-    final strokes = ref.read(activeStrokesProvider).valueOrNull ?? const [];
-    final drawing = ref.read(drawingRepositoryProvider);
-    final doomed = <int>{};
-    for (final s in strokes) {
-      final page = _pageOfStroke(s, step);
-      if (page == target) {
-        doomed.add(s.id);
-      } else if (page > target) {
-        final moved = [
-          for (final p in PenStroke.fromRow(s).points)
-            Offset(p.dx, p.dy - step),
-        ];
-        await drawing.updateStrokePoints(
-            s.id, PenStroke.encodePoints(moved));
-      }
-    }
-    if (doomed.isNotEmpty) await drawing.deleteStrokes(doomed);
-
-    // Yeniden büyümeye izin ver (aynı sayıyı tekrar yazabilsin).
-    _requestedPages = 0;
-    await ref
-        .read(documentRepositoryProvider)
-        .setPageCount(id: id, pageCount: pages - 1);
-  }
-
-  /// Sayfa seçme listesindeki satır metni ("1. sayfa · 3 çizim").
-  String _pageLabel(BuildContext ctx, int i, String? pageSize) {
-    final ink = _inkCountOnPage(i, pageSize);
-    final name = ctx.t('${i + 1}. sayfa', 'Page ${i + 1}');
-    if (ink == 0) return name;
-    return '$name · ${ctx.t('$ink çizim', '$ink drawing${ink == 1 ? '' : 's'}')}';
-  }
 
   void _onPointerChange(int delta) {
     final next = (_pointers + delta).clamp(0, 10);
@@ -460,6 +331,11 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
             builder: (context, c) {
               final baseW = (c.maxWidth - 32).clamp(120.0, 680.0);
               final pageHBase = baseW * aspect;
+              // `_onTransform` bu ölçülerle görünen sayfayı bulur.
+              _pageH = pageHBase;
+              _gap = baseW * kPageGapRatio;
+              _viewportH = c.maxHeight;
+              _pages = pageCount;
 
               return Listener(
                 onPointerDown: (_) => _onPointerChange(1),
@@ -504,12 +380,9 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                             onFormChanged: _scheduleSave,
                             onPagesMeasured: _onPagesMeasured,
                           ),
-                          const SizedBox(height: 16),
-                          _PageActions(
-                            onAdd: _addPage,
-                            onRemove: pageCount > 1 ? _deletePage : null,
-                          ),
-                          const SizedBox(height: 60),
+                          // Sayfa ekle/sil artık üst bar menüsünde (sayfa
+                          // altındaki şerit kaldırıldı — sıkışıklık yapıyordu).
+                          const SizedBox(height: 70),
                         ],
                       ),
                     ),
@@ -794,83 +667,6 @@ class _PagesClipper extends CustomClipper<Path> {
   @override
   bool shouldReclip(_PagesClipper old) =>
       old.pages != pages || old.pageH != pageH || old.gap != gap;
-}
-
-/// Sayfaların altındaki eylemler: sayfa ekle ve (birden fazla sayfa varsa)
-/// sayfa sil. Silmede önce hangi sayfa olduğu sorulur (bkz. `_deletePage`).
-class _PageActions extends StatelessWidget {
-  const _PageActions({required this.onAdd, required this.onRemove});
-
-  final VoidCallback onAdd;
-  final VoidCallback? onRemove;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        _PageActionButton(
-          icon: Icons.add,
-          label: context.t('Yeni sayfa', 'New page'),
-          onTap: onAdd,
-        ),
-        if (onRemove != null) ...[
-          const SizedBox(width: 10),
-          _PageActionButton(
-            icon: Icons.delete_outline,
-            label: context.t('Sayfayı sil', 'Delete page'),
-            onTap: onRemove!,
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-class _PageActionButton extends StatelessWidget {
-  const _PageActionButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final nd = context.nd;
-    return Material(
-      color: nd.card,
-      borderRadius: BorderRadius.circular(12),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          height: 46,
-          padding: const EdgeInsets.symmetric(horizontal: 18),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: nd.border),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 18, color: nd.text2),
-              const SizedBox(width: 7),
-              Text(label,
-                  style: TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w600,
-                      color: nd.text2)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 /// Sayfa arka planı (kâğıt deseni) — metin ve çizimlerin arkasında.

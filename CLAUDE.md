@@ -736,34 +736,47 @@ Saha testi iki kusur gösterdi:
    kaldırılır. Yazı/form içeriği son sayfaya taşıyorsa hâlâ engellenir —
    sayfa bir sonraki ölçümde zaten geri gelirdi.
 
-### ✅ SAYFA SİLME — HERHANGİ BİR SAYFA (25 Tem 2026, iki turda)
+### ✅ SAYFA EKLE/SİL → ÜST BAR MENÜSÜ, "BAKILAN SAYFA" (25 Tem 2026, üç turda)
 
-Sayfa sayısı içerikle büyüyor ama küçülmüyordu. Önce yalnız **son** sayfayı
-silen bir düğme eklendi; kullanıcı "3 sayfalık notta 1. sayfayı silmek
-istiyorum" deyince akış genelleştirildi.
+Sayfa sayısı içerikle büyüyor ama küçülmüyordu. Tur 1: yalnız **son** sayfayı
+silen düğme. Tur 2: kullanıcı "3 sayfalık notta 1. sayfayı silmek istiyorum"
+dedi → sayfa seçme diyaloğu. Tur 3 (nihai): kullanıcı **"hangi sayfanın
+silineceğini sormasın, hangi sayfadaysak onu silsin"** + "sayfa ekle deyince
+bulunduğum sayfanın altına eklesin" + "sayfa altındaki şerit sıkışıklık
+yapıyor, üst bara taşı" dedi.
 
-Sayfaların altındaki şerit iki düğme: **"Yeni sayfa"** + (birden fazla sayfa
-varsa) **"Sayfayı sil"** (`_PageActions` / `_PageActionButton`).
+**Bugünkü hâli:**
+- Sayfaların altındaki `_PageActions` şeridi **KALDIRILDI**.
+- Üst bardaki paylaş ikonu (`Icons.ios_share`) → **`Icons.more_vert` belge
+  menüsü** (`home_shell._DocMenuButton`). İçinde sırayla: **sayfa ekle /
+  sayfayı sil** · ayraç · canlı paylaş, metni kopyala, notu çoğalt · ayraç ·
+  PDF, PNG, şablon kaydet, .ntdl. **Yeni belge özellikleri buraya eklenecek.**
+- Menü öğeleri sayfa numarasını yazar ("Sayfa ekle (2. sayfadan sonra)",
+  "2. sayfayı sil") — soru sorulmaz.
 
-**Akış (`_deletePage`):** önce **hangi sayfa** sorulur (`SimpleDialog`, her
-satır "N. sayfa · M çizim") → sonra onay → sonra:
-- hedef sayfadaki çizimler silinir,
-- **sonraki sayfaların çizimleri bir sayfa yukarı kaydırılır**
-  (`updateStrokePoints`, `dy -= aspect + kPageGapRatio`),
-- `pageCount` bir azalır, `_requestedPages` sıfırlanır (içerik yeniden
-  büyüyebilsin).
+**"Bakılan sayfa" nasıl bulunur:** `currentPageProvider` (editor_state).
+`NoteEditorScreen._onTransform`, `InteractiveViewer`'ın
+`TransformationController`'ını dinler; görünümün **ortasının** hangi sayfa
+kartına düştüğünü hesaplar (`(merkez - 12) / (pageH + gap)`). Ölçüler build'de
+`_pageH/_gap/_viewportH/_pages` alanlarına yazılır. Sayfa değişmedikçe state
+güncellenmez (gereksiz rebuild yok).
+
+**Eylemler `shell/actions.dart`'ta** (üst bar editöre erişemez):
+- `addPageAfterCurrent(ref)` — bakılan sayfanın altına boş sayfa; **sonraki
+  sayfaların çizimleri bir sayfa aşağı kaydırılır** (`dy += step`).
+- `deleteCurrentPage(context, ref)` — bakılan sayfanın çizimleri silinir
+  (varsa önce onay: "N çizim de silinecek"), **sonrakiler yukarı kaydırılır**
+  (`dy -= step`), `pageCount` azalır. Tek sayfa kaldıysa uyarır.
+- `_pageOfStroke` = noktaların **en küçük** y'si ÷ sayfa adımı → iki sayfaya
+  taşan çizim **başladığı** sayfaya sayılır.
 
 **Yazıya dokunulmaz** — metin akışkandır, sayfaya sabitlenmiş değildir; sayfa
-sayısı azalınca kendiliğinden yeniden dizilir. İçerik kalan sayfalara
+sayısı değişince kendiliğinden yeniden dizilir. İçerik kalan sayfalara
 sığmıyorsa sayfa bir sonraki ölçümde geri gelir (doğru davranış — yazının bir
 kısmını silmek olmazdı). Onay metni bunu açıkça söyler.
 
-Bir çizim hangi sayfada? `_pageOfStroke` = noktaların **en küçük** y'si ÷ sayfa
-adımı → iki sayfaya taşan çizim **başladığı** sayfaya sayılır.
-
 `_Sheet` **her çizimde** ölçtüğü doğal sayfa sayısını `onPagesMeasured` ile
-editöre bildirir (eski `onNeedPages` bunun yerini aldı): editör hem büyütmeyi
-(`_ensurePages`) hem silme düğmesinin görünürlüğünü buradan besler.
+editöre bildirir → `_ensurePages` gerekiyorsa sayfa sayısını büyütür.
 
 ### ✅ TABLO SATIR/SÜTUN EKLEME ARAÇ ÇUBUĞUNA TAŞINDI (25 Tem 2026)
 
