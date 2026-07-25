@@ -720,6 +720,22 @@ kısayolu. **Çağrı yeri imzası değişti** — dört ekran güncellendi (fol
 library, search, trash). `test/widget_test.dart` iki dili de kapsıyor (8 test,
 hepsi geçiyor).
 
+### ✅ ÇİZİM SAYFALARA KIRPILDI + ÇİZİMLİ SAYFA SİLİNEBİLİR (25 Tem 2026)
+
+Saha testi iki kusur gösterdi:
+
+1. **Sayfalar arası boşluğa çizilebiliyordu.** `DrawingLayer` `Positioned.fill`
+   ile tüm `_Sheet` alanını kaplıyordu, kartlar arası boşluk dâhil — yani
+   kâğıdın dışına çizim yapılabiliyordu. Katman artık `_PagesClipper`
+   (`note_editor_screen`) ile sayfa dikdörtgenlerine kırpılıyor. `ClipPath`
+   **dokunuşu da kırptığı** için boşlukta çizim hiç başlamıyor; parmak
+   `InteractiveViewer`'a gidip sayfayı kaydırıyor.
+2. **Çizim olan sayfa silinemiyordu** (ilk sürümde bilinçli engeldi). Artık
+   engel yerine **onay**: son sayfaya değen çizim varsa "N çizim silinecek"
+   diyaloğu çıkar, onaylanırsa `deleteStrokes` ile o çizimler silinip sayfa
+   kaldırılır. Yazı/form içeriği son sayfaya taşıyorsa hâlâ engellenir —
+   sayfa bir sonraki ölçümde zaten geri gelirdi.
+
 ### ✅ SAYFA SİLME (25 Tem 2026)
 
 Sayfa sayısı içerikle **büyüyor ama küçülmüyordu** → içerik silinince arkada
@@ -764,6 +780,48 @@ Kullanıcı isteği: "notlara geri alma ileri alma butonları ekleyelim."
   geçmiş yığını yok. (Sistem klavyesinin kendi geri alması çalışır.) Gerekirse
   `FormDoc` anlık görüntüleriyle ayrı bir yığın kurulmalı.
 
+### ✅ YENİ ÖZELLİKLER (25 Tem 2026) — çoğalt · metin kopyala · otomatik yedek
+
+Kullanıcı "bir not uygulamasında daha ne olmalı" diye sordu; çıkan 6 maddelik
+listenin ilk üçü uygulandı (kalanlar aşağıda "SIRADAKİ BÜYÜK ÜÇLÜ").
+
+- **Notu çoğalt** (`actions.duplicateDocument`): yazı + sayfa ayarları +
+  çizimler + etiketler kopyalanır, ad "… (kopya)". Kopya **açılmaz**,
+  kütüphanede belirir. `remoteId` taşınmaz (kopya paylaşıma bağlı değil).
+  PDF'ler çoğaltılmaz (dosyanın ikinci kopyası yer israfı).
+- **Metni kopyala** (`actions.copyNoteText`): başlık + `plainTextFromBody`
+  panoya. **Neden "paylaş" değil:** `share_plus` projeden çıkarılmıştı (Kotlin
+  2.2 stdlib'i Kotlin 1.9.25 ile çakışıyordu), `printing` yalnız PDF
+  paylaşabiliyor. Kullanıcı panodan yapıştırır.
+- İkisi de **üst bar paylaş menüsünde** (yalnız notlarda).
+- **Otomatik yedekleme** (`features/backup/auto_backup.dart`): günde bir kez
+  (`_kMinInterval` 24 sa) sessizce cihazın uygulama klasörüne `.ntdlbak` yazar,
+  **son 3 kopyayı** tutar. `AutoBackupRunner` (app.dart, HomeShell'i sarar) ilk
+  kareden sonra tetikler; hata olursa **sessizce** vazgeçer. Ayarlar →
+  Yedekleme kartında anahtar (`autoBackupEnabledProvider`, kalıcı, varsayılan
+  AÇIK) + "Son otomatik yedek: …" + "Bundan geri yükle"
+  (`backup_service.restoreBackupFile`) — dosya seçici uygulama klasörünü
+  göstermediği için geri yükleme düğmesi orada olmak zorunda.
+  **Bilinçli sınır:** yedek cihazda durur → yanlışlıkla silmeyi kurtarır,
+  **telefon kaybını kurtarmaz** (onun için "Dışa aktar"). Kart metninde bu
+  açıkça yazıyor.
+- `backup_service.exportBackup` içindeki veri toplama `collectBackupData(ref)`
+  olarak ayrıldı (dışa aktarma + otomatik yedek aynı veriyi üretir).
+
+### 📌 SIRADAKİ BÜYÜK ÜÇLÜ (kullanıcı onayladı: "hepsi harika özellikler")
+
+Denetimde önerilen 6 maddenin kalan 3'ü — **sıradaki iş bunlar**:
+
+1. **Nota fotoğraf/görsel ekleme** — en büyük eksik. `image_picker` + görseli
+   uygulama klasörüne kopyalama + editörde gösterim + PDF/PNG export + yedek/
+   collab taşıma. **Mimari öneri:** tablo gibi bir **form bloğu** (`ImageBlock`)
+   olarak yapılmalı (serbest not forma dönüşür) — `flutter_quill_extensions`
+   eklemek yeni bağımlılık ve sürüm riski demek.
+2. **Not kilidi** — biyometrik yerine önce **PIN** (paketsiz, SharedPreferences'ta
+   hash) yapılmalı; `local_auth` Dart 3.7.2 uyumu ayrıca doğrulanmalı.
+3. **Sesli not** — ses kaydı + oynatıcı (`record` benzeri paket), dosya yönetimi
+   yedeklemeye de girmeli. En büyük iş.
+
 **C — fazlalıklar**
 9. **`features/editor/table_embed.dart`** (318 satır) — başarısız ndtable
    denemesinden kalma. Yeni tablo bunu KULLANMIYOR; yalnız eski test notları
@@ -777,11 +835,14 @@ elle 36'ya sabitlendi (Flutter yükseltilmedi); ayrıntı "Önemli notlar"da.
 
 ### 📋 YARIM KALANLAR & KARARLAR — tek bakışta (yeni oturum önce burayı okusun)
 
-**Sıradaki iş:** yukarıdaki **"YENİ YOL HARİTASI (24 Tem 2026 kod denetimi)"**
-bölümü. Kapananlar: A1 (giriş düğmesi), A2 (renk paleti), B6 (çeviriler), +
-geri/ileri al. **Sırada: A3 sayfa silme → A4 Quill sayfa taşması → A5 yedek
-hatırlatıcıları → B7 editörden etiketleme → B8 lasso collab → C9 table_embed
-temizliği.** Eski "Uygulama içi cila + özellikler" listesinin tamamı uygulandı.
+**Sıradaki iş:** **"SIRADAKİ BÜYÜK ÜÇLÜ"** (fotoğraf ekleme → not kilidi →
+sesli not; ayrıntı yukarıda). Sonra yol haritasının kalanı: A4 (Quill sayfa
+taşması), A5 (yedekten dönen hatırlatıcılar), B7 (editörden etiketleme),
+B8 (lasso collab), C9 (table_embed temizliği).
+
+Kapananlar (24–25 Tem): A1 giriş düğmesi · A2 renk paleti · A3 sayfa silme ·
+B6 çeviriler · geri/ileri al · tablo sınırları + sayfa büyütme · çizim
+kırpma · notu çoğalt · metni kopyala · otomatik yedekleme.
 
 **Bilinçli ertelenenler (yapılacak, sırası gelmedi):**
 1. **Form biçim v2** — alan içi **kelime bazlı** biçim + **yazı boyutu**. İkisi de

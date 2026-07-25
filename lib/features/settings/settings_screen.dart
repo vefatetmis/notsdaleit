@@ -1,11 +1,15 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/collab/collab_config.dart';
 import '../../core/i18n/i18n.dart';
+import '../../core/utils/date_format.dart';
 import '../../core/theme/nd_colors.dart';
 import '../auth/auth_service.dart';
 import '../auth/auth_ui.dart';
+import '../backup/auto_backup.dart';
 import '../backup/backup_service.dart';
 import '../drawing/color_picker.dart';
 import '../drawing/drawing_state.dart';
@@ -255,6 +259,8 @@ class SettingsScreen extends ConsumerWidget {
                       ),
                     ],
                   ),
+                  const Divider(height: 26),
+                  _AutoBackupRow(),
                 ],
               ),
             ),
@@ -460,6 +466,103 @@ class _Segmented extends StatelessWidget {
           seg(right, rightActive, onRight),
         ],
       ),
+    );
+  }
+}
+
+/// Yedekleme kartının alt satırı: otomatik yedekleme anahtarı + son yedeğin
+/// zamanı + o yedekten geri yükleme. Otomatik yedekler cihazın uygulama
+/// klasöründe durur, dosya seçicide görünmezler — bu yüzden geri yükleme
+/// düğmesi burada.
+class _AutoBackupRow extends ConsumerStatefulWidget {
+  @override
+  ConsumerState<_AutoBackupRow> createState() => _AutoBackupRowState();
+}
+
+class _AutoBackupRowState extends ConsumerState<_AutoBackupRow> {
+  List<File> _files = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final f = await autoBackupFiles();
+    if (mounted) setState(() => _files = f);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final nd = context.nd;
+    final on = ref.watch(autoBackupEnabledProvider);
+    final latest = _files.isEmpty ? null : _files.first;
+    DateTime? when;
+    if (latest != null) {
+      try {
+        when = latest.statSync().modified;
+      } catch (_) {
+        when = null;
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(context.t('Otomatik yedekleme', 'Automatic backup'),
+                      style: const TextStyle(fontSize: 14)),
+                  const SizedBox(height: 2),
+                  Text(
+                    context.t(
+                        'Günde bir kez cihaza sessizce yedek alır (son 3 kopya). '
+                            'Telefon kaybolursa işe yaramaz — onun için "Dışa aktar".',
+                        'Backs up quietly to this device once a day (last 3 '
+                            'copies). It will not help if the phone is lost — '
+                            'use "Export" for that.'),
+                    style: TextStyle(fontSize: 11.5, height: 1.4, color: nd.text2),
+                  ),
+                ],
+              ),
+            ),
+            Switch(
+              value: on,
+              activeColor: nd.accent,
+              onChanged: (v) {
+                ref.read(autoBackupEnabledProvider.notifier).set(v);
+                if (v) runAutoBackupIfDue(ref).then((_) => _load());
+              },
+            ),
+          ],
+        ),
+        if (when != null) ...[
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  context.t('Son otomatik yedek: ${formatRelative(context, when)}',
+                      'Last automatic backup: ${formatRelative(context, when)}'),
+                  style: TextStyle(fontSize: 12, color: nd.text2),
+                ),
+              ),
+              TextButton(
+                onPressed: () async {
+                  await restoreBackupFile(context, ref, latest!);
+                  await _load();
+                },
+                child: Text(context.t('Bundan geri yükle', 'Restore this')),
+              ),
+            ],
+          ),
+        ],
+      ],
     );
   }
 }

@@ -3,11 +3,13 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdfx/pdfx.dart';
 
 import '../../core/i18n/i18n.dart';
+import '../../core/utils/note_text.dart';
 import '../../data/data_providers.dart';
 import '../../data/database/database.dart';
 import '../drawing/drawing_state.dart';
@@ -166,6 +168,98 @@ Future<void> trashDocument(
         onPressed: () => repo.restore(d.id),
       ),
     ));
+}
+
+/// Bir notu (yazı + sayfa ayarları + çizimler + etiketler) kopyalar.
+/// PDF'ler çoğaltılmaz — dosyanın ikinci kopyasını üretmek yer israfı olurdu.
+/// Kopya **açılmaz**; kütüphanede "… (kopya)" adıyla belirir.
+Future<void> duplicateDocument(
+  BuildContext context,
+  WidgetRef ref,
+  Document doc,
+) async {
+  if (doc.type != 'not') return;
+  final repo = ref.read(documentRepositoryProvider);
+  final title = doc.title.trim().isEmpty
+      ? context.t('Adsız not', 'Untitled note')
+      : doc.title;
+
+  final newId = await repo.insertNote(
+    title: '$title ${context.t('(kopya)', '(copy)')}',
+    body: doc.body,
+    folder: doc.folder,
+    pageSize: doc.pageSize,
+    pageColor: doc.pageColor,
+    pageBackground: doc.pageBackground,
+    pageCount: doc.pageCount,
+  );
+
+  // Çizimler (sayfa/araç/renk/kalınlık/noktalar aynen; remoteId taşınmaz —
+  // kopya kendi başına bir not, paylaşıma bağlı değil).
+  final drawing = ref.read(drawingRepositoryProvider);
+  for (final s in await drawing.getStrokes(doc.id)) {
+    await drawing.addStroke(
+      docId: newId,
+      page: s.page,
+      tool: s.tool,
+      color: s.color,
+      width: s.width,
+      pointsJson: s.points,
+    );
+  }
+
+  // Etiketler.
+  final tags = ref.read(tagRepositoryProvider);
+  final links = ref.read(documentTagLinksProvider).valueOrNull ?? const [];
+  for (final l in links.where((l) => l.docId == doc.id)) {
+    await tags.addLink(newId, l.tagId);
+  }
+
+  if (context.mounted) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        behavior: SnackBarBehavior.floating,
+        content: Text(context.t('Notun kopyası oluşturuldu',
+            'A copy of the note was created')),
+      ));
+  }
+}
+
+/// Notun düz metnini panoya kopyalar (başka uygulamaya yapıştırmak için).
+/// `share_plus` projede olmadığı için (Kotlin sürüm çakışması, bkz. paket
+/// notları) doğrudan "paylaş" yerine pano kullanılıyor.
+Future<void> copyNoteText(
+  BuildContext context,
+  WidgetRef ref,
+  Document doc,
+) async {
+  final title = doc.title.trim();
+  final body = plainTextFromBody(doc.body).trim();
+  final text = [if (title.isNotEmpty) title, if (body.isNotEmpty) body]
+      .join('\n\n');
+  if (text.isEmpty) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text(context.t('Notta kopyalanacak yazı yok',
+              'This note has no text to copy')),
+        ));
+    }
+    return;
+  }
+  await Clipboard.setData(ClipboardData(text: text));
+  if (context.mounted) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        behavior: SnackBarBehavior.floating,
+        content: Text(context.t('Not metni panoya kopyalandı',
+            'Note text copied to clipboard')),
+      ));
+  }
 }
 
 /// Seçili belgeleri sabitler; hepsi zaten sabitse sabitlemeyi kaldırır.

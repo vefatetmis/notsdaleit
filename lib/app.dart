@@ -11,6 +11,7 @@ import 'core/theme/app_theme.dart';
 import 'features/ntdl/ntdl_service.dart';
 import 'features/onboarding/onboarding_screen.dart';
 import 'features/shell/actions.dart';
+import 'features/backup/auto_backup.dart';
 import 'features/shell/home_shell.dart';
 import 'features/shell/shell_state.dart';
 
@@ -95,5 +96,7 @@ class _IncomingPdfHandlerState extends ConsumerState<_IncomingPdfHandler> {
   }
 
   @override
-  Widget build(BuildContext context) => const HomeShell();
+  Widget build(BuildContext context) =>
+      // Günlük otomatik yedek buradan tetiklenir (ilk kareden sonra, sessiz).
+      const AutoBackupRunner(child: HomeShell());
 }

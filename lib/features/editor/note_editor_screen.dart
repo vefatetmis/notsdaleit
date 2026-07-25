@@ -248,19 +248,22 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     _ensurePages(natural);
   }
 
-  /// Son sayfada çizim var mı? Çizim noktaları sayfa genişliğine göre
-  /// normalize (0..1) ve tüm sayfalar tek bir düşey düzlemde dizili olduğu
-  /// için, son sayfanın üst sınırını geçen bir nokta varsa sayfa doludur.
-  bool _lastPageHasInk(int pages, String? pageSize) {
+  /// Son sayfaya değen çizimlerin id'leri. Çizim noktaları sayfa genişliğine
+  /// göre normalize (0..1) ve tüm sayfalar tek bir düşey düzlemde dizili
+  /// olduğu için son sayfanın üst sınırı `(pages-1) * (aspect + boşluk)`.
+  Set<int> _strokesOnLastPage(int pages, String? pageSize) {
     final strokes = ref.read(activeStrokesProvider).valueOrNull ?? const [];
-    if (strokes.isEmpty) return false;
     final top = (pages - 1) * (aspectForPageSize(pageSize) + kPageGapRatio);
+    final ids = <int>{};
     for (final s in strokes) {
       for (final p in PenStroke.fromRow(s).points) {
-        if (p.dy >= top) return true;
+        if (p.dy >= top) {
+          ids.add(s.id);
+          break;
+        }
       }
     }
-    return false;
+    return ids;
   }
 
   /// Son sayfayı kaldırır — yalnız o sayfa boşsa. (Sayfa sayısı içerikle
@@ -286,11 +289,44 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       warn('Tek sayfa silinemez', 'The only page cannot be deleted');
       return;
     }
-    if (_naturalPages >= pages || _lastPageHasInk(pages, doc.pageSize)) {
-      warn('Son sayfa boş değil — önce içeriğini silin',
-          'The last page is not empty — clear its content first');
+    // Yazı/form içeriği son sayfaya taşıyorsa silmek anlamsız — sayfa bir
+    // sonraki ölçümde zaten geri gelir. Bunu silmek yerine söylüyoruz.
+    if (_naturalPages >= pages) {
+      warn('Son sayfada yazı var — önce onu silin',
+          'The last page still has text — delete that first');
       return;
     }
+
+    // Çizim varsa engellemek yerine ONAY isteriz (kullanıcı isteği: çizimli
+    // sayfa da silinebilmeli). Onaylanırsa o sayfaya değen çizimler silinir.
+    final inkIds = _strokesOnLastPage(pages, doc.pageSize);
+    if (inkIds.isNotEmpty) {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(ctx.t('Sayfa silinsin mi?', 'Delete page?')),
+          content: Text(ctx.t(
+            'Son sayfada ${inkIds.length} çizim var. Sayfayla birlikte '
+                'bunlar da silinecek.',
+            'The last page has ${inkIds.length} drawing(s). They will be '
+                'deleted along with the page.',
+          )),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(ctx.t('Vazgeç', 'Cancel')),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(ctx.t('Sil', 'Delete')),
+            ),
+          ],
+        ),
+      );
+      if (ok != true) return;
+      await ref.read(drawingRepositoryProvider).deleteStrokes(inkIds);
+    }
+
     // Yeniden büyümeye izin ver (aynı sayıyı tekrar yazabilsin).
     _requestedPages = 0;
     await ref
@@ -668,14 +704,48 @@ class _SheetState extends ConsumerState<_Sheet> {
             ),
           ),
           // Çizim katmanı (yazı modunda dokunuşu editöre bırakır).
+          // **Sayfa kartlarına kırpılır:** aksi hâlde katman sayfalar arası
+          // boşluğu da kapladığı için oraya da çizilebiliyordu (kâğıdın dışı).
+          // ClipPath dokunuşu da kırpar → boşlukta çizim hiç başlamaz, parmak
+          // InteractiveViewer'a gider (kaydırma).
           if (widget.docId != null)
             Positioned.fill(
-              child: DrawingLayer(docId: widget.docId!, page: 0),
+              child: ClipPath(
+                clipper: _PagesClipper(pages: pages, pageH: pageH, gap: gap),
+                child: DrawingLayer(docId: widget.docId!, page: 0),
+              ),
             ),
         ],
       ),
     );
   }
+}
+
+/// Çizim katmanını sayfa kartlarıyla sınırlar: sayfalar arası boşluk kâğıdın
+/// dışıdır, oraya çizilmemeli.
+class _PagesClipper extends CustomClipper<Path> {
+  const _PagesClipper({
+    required this.pages,
+    required this.pageH,
+    required this.gap,
+  });
+
+  final int pages;
+  final double pageH;
+  final double gap;
+
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    for (var i = 0; i < pages; i++) {
+      path.addRect(Rect.fromLTWH(0, i * (pageH + gap), size.width, pageH));
+    }
+    return path;
+  }
+
+  @override
+  bool shouldReclip(_PagesClipper old) =>
+      old.pages != pages || old.pageH != pageH || old.gap != gap;
 }
 
 /// Sayfaların altındaki eylemler: sayfa ekle ve (birden fazla sayfa varsa)

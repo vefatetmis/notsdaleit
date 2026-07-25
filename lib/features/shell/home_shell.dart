@@ -545,6 +545,8 @@ class _TopBar extends ConsumerWidget {
                 if (v == 'png') sharePngWithPaperPrompt(context, ref, activeDoc);
                 if (v == 'ntdl') exportNtdl(ref, activeDoc);
                 if (v == 'savetpl') saveNoteAsTemplate(context, ref, activeDoc);
+                if (v == 'copytext') copyNoteText(context, ref, activeDoc);
+                if (v == 'duplicate') duplicateDocument(context, ref, activeDoc);
                 if (v == 'live') shareLive(context, ref, activeDoc);
                 if (v == 'unshare') stopLive(context, ref, activeDoc);
               },
@@ -560,6 +562,16 @@ class _TopBar extends ConsumerWidget {
                       value: 'unshare',
                       child: Text(context.t(
                           'Canlı paylaşımı durdur', 'Stop live sharing'))),
+                if (activeDoc.type == 'not')
+                  PopupMenuItem(
+                      value: 'copytext',
+                      child: Text(context.t(
+                          'Metni kopyala', 'Copy text'))),
+                if (activeDoc.type == 'not')
+                  PopupMenuItem(
+                      value: 'duplicate',
+                      child:
+                          Text(context.t('Notu çoğalt', 'Duplicate note'))),
                 PopupMenuItem(
                     value: 'pdf',
                     child: Text(context.t('PDF olarak paylaş', 'Share as PDF'))),

@@ -32,6 +32,27 @@ Future<void> exportBackup(BuildContext context, WidgetRef ref) async {
   final failMsg = context.t('Yedek kaydedilemedi', 'Backup could not be saved');
   final saveTitle = context.t('Yedeği kaydet', 'Save backup');
 
+  final data = await collectBackupData(ref);
+  try {
+    final stamp = DateTime.now();
+    final fileName =
+        'notsdaleit-yedek-${stamp.year}${_pad2(stamp.month)}${_pad2(stamp.day)}.ntdlbak';
+    final bytes = Uint8List.fromList(utf8.encode(jsonEncode(data)));
+    final path = await FilePicker.saveFile(
+      dialogTitle: saveTitle,
+      fileName: fileName,
+      bytes: bytes,
+    );
+    messenger.showSnackBar(
+        SnackBar(content: Text(path == null ? failMsg : okMsg)));
+  } catch (_) {
+    messenger.showSnackBar(SnackBar(content: Text(failMsg)));
+  }
+}
+
+/// Yedeklenecek her şeyi tek bir JSON haritasında toplar (dışa aktarma ve
+/// otomatik yedekleme aynı veriyi kullanır).
+Future<Map<String, dynamic>> collectBackupData(WidgetRef ref) async {
   final db = ref.read(databaseProvider);
 
   // Notlar (çöp kutusundakiler ve PDF'ler hariç). deletedAt filtresini Dart'ta
@@ -139,22 +160,7 @@ Future<void> exportBackup(BuildContext context, WidgetRef ref) async {
         },
     ],
   };
-
-  try {
-    final stamp = DateTime.now();
-    final fileName =
-        'notsdaleit-yedek-${stamp.year}${_pad2(stamp.month)}${_pad2(stamp.day)}.ntdlbak';
-    final bytes = Uint8List.fromList(utf8.encode(jsonEncode(data)));
-    final path = await FilePicker.saveFile(
-      dialogTitle: saveTitle,
-      fileName: fileName,
-      bytes: bytes,
-    );
-    messenger.showSnackBar(
-        SnackBar(content: Text(path == null ? failMsg : okMsg)));
-  } catch (_) {
-    messenger.showSnackBar(SnackBar(content: Text(failMsg)));
-  }
+  return data;
 }
 
 String _pad2(int n) => n.toString().padLeft(2, '0');
@@ -220,6 +226,58 @@ Future<void> importBackup(BuildContext context, WidgetRef ref) async {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(context.t('$restored not geri yüklendi',
           '$restored notes restored')),
+    ));
+  }
+}
+
+/// Belirli bir yedek dosyasından geri yükler (otomatik yedekler için — dosya
+/// seçici uygulama klasörünü göstermediğinden oradan seçilemez). Onay ister.
+Future<void> restoreBackupFile(
+  BuildContext context,
+  WidgetRef ref,
+  File file,
+) async {
+  Map<String, dynamic> data;
+  try {
+    data = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+  } catch (_) {
+    if (context.mounted) _invalidToast(context);
+    return;
+  }
+  if (data['format'] != _kBackupFormat) {
+    if (context.mounted) _invalidToast(context);
+    return;
+  }
+  final noteCount = (data['notes'] as List?)?.length ?? 0;
+  if (!context.mounted) return;
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(ctx.t('Geri yüklensin mi?', 'Restore backup?')),
+      content: Text(ctx.t(
+          'Yedekteki $noteCount not mevcut verilere EKLENECEK — üzerine '
+              'yazılmaz. Aynı notlar duruyorsa kopyaları oluşur.',
+          '$noteCount notes from the backup will be ADDED to your current '
+              'data — nothing is overwritten. Notes you still have will be '
+              'duplicated.')),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(false),
+          child: Text(ctx.t('Vazgeç', 'Cancel')),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(ctx).pop(true),
+          child: Text(ctx.t('Geri yükle', 'Restore')),
+        ),
+      ],
+    ),
+  );
+  if (ok != true) return;
+  final restored = await _restore(ref, data);
+  if (context.mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(
+          context.t('$restored not geri yüklendi', '$restored notes restored')),
     ));
   }
 }
