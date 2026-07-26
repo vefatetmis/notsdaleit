@@ -885,7 +885,36 @@ listenin ilk üçü uygulandı (kalanlar aşağıda "SIRADAKİ BÜYÜK ÜÇLÜ")
 - `backup_service.exportBackup` içindeki veri toplama `collectBackupData(ref)`
   olarak ayrıldı (dışa aktarma + otomatik yedek aynı veriyi üretir).
 
-### ✅ NOTA GÖRSEL EKLEME (25 Tem 2026) — büyük üçlünün ilki
+### 🔁 GÖRSEL YENİDEN YAZILDI — serbest konumlu katman (25 Tem 2026)
+
+**Saha geri bildirimi:** "fotoğraf çok kötü olmuş… yeniden boyutlandırılabilmeli
+ve istediğim yere ekleyebilmeliyim… **notu da form yapmasın** lütfen." Ayrıca:
+"obje/resim/çizim ekleyebileceğimiz tek yer **sayfa alanları** olmalı, kenardaki
+boşluklarda bir şey yapılamamalı."
+
+**Form bloğu yaklaşımı (aşağıdaki eski bölüm) TERK EDİLDİ.** Görsel artık
+**çizimlerle aynı türden bir katman**: şema **v15** `NoteImages` tablosu
+(`docId, file, x, y, w, aspect`). Koordinatlar stroke'larla **aynı uzayda** —
+sayfa genişliğine normalize, tüm sayfalar tek düşey düzlem.
+
+- **Not forma DÖNÜŞMEZ** → Quill yazısı olduğu gibi kalır, görsel üstüne konur.
+- **`features/editor/image_layer.dart`:** `Positioned` görseller; dokun → seç,
+  sürükle → taşı, **sağ-alt tutamak** → boyutlandır, **sağ-üst ✕** → sil
+  (onaylı). Sürükleme sırasında canlı önizleme, veritabanına yazma parmak
+  kalkınca (her karede yazmak gereksiz).
+- **Sayfa dışına çıkamaz:** katman `_PagesClipper` içinde — kenar boşluğuna
+  taşan görsel görünmez; taşıma `x`'i `[0, 1-w]` aralığına sıkıştırır.
+- **Kalem modunda katman pasif** (`interactive: !tool.isPen`) → görselin
+  **üzerine çizilebilir**; görseller çizimlerin ALTINDA çizilir.
+- **PDF/PNG:** `_loadPlacedImages` + `_paintPlacedImages`, çizimlerle aynı
+  `strokeOffsetY` kaydırmasıyla → ekranda neredeyse çıktıda da orada.
+- **Dosya temizliği:** `pruneUnusedImages(bodies, stillPlaced: …)` artık hem
+  eski form bloklarını hem `NoteImages` kayıtlarını korur.
+
+**Eski `ImageBlock` (form bloğu) kodu duruyor** — o yolla eklenmiş notlar
+bozulmasın diye okuma/çizme tarafı korundu; **yeni ekleme oraya gitmiyor**.
+
+### ✅ NOTA GÖRSEL EKLEME (25 Tem 2026) — ilk deneme (form bloğu, TERK EDİLDİ)
 
 Tablo deseninin aynısı: görsel bir **form bloğu** (`ImageBlock`). Böylece
 kaydetme, canlı paylaşım (LWW gövde), .ntdl, yedek ve şablon taşıma

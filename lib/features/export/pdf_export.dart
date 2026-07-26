@@ -242,6 +242,8 @@ Future<void> exportDocumentAsPdf(
   // durur; PDF'te her sayfa kendi dilimini kaydırılmış çizimle alır.
   final allStrokes = [for (final s in rows) PenStroke.fromRow(s)];
   final formImages = await _loadFormImages(form);
+  final placed = await ref.read(noteImageRepositoryProvider).getAll(doc.id);
+  final placedLoaded = await _loadPlacedImages(placed);
 
   final pdf = pw.Document();
   for (var i = 0; i < pageCount; i++) {
@@ -260,6 +262,8 @@ Future<void> exportDocumentAsPdf(
       formScale: formScale,
       strokeOffsetY: i * (aspect + kPageGapRatio) * w,
       formImages: formImages,
+      placedImages: placed,
+      placedLoaded: placedLoaded,
     );
     final memImage = pw.MemoryImage(imageBytes);
     pdf.addPage(
@@ -274,6 +278,9 @@ Future<void> exportDocumentAsPdf(
   }
 
   for (final img in formImages.values) {
+    img.dispose();
+  }
+  for (final img in placedLoaded.values) {
     img.dispose();
   }
   await Printing.sharePdf(bytes: await pdf.save(), filename: filename);
@@ -347,6 +354,8 @@ Future<void> exportDocumentAsPng(
 
   final allStrokes = [for (final s in rows) PenStroke.fromRow(s)];
   final formImages = await _loadFormImages(form);
+  final placed = await ref.read(noteImageRepositoryProvider).getAll(doc.id);
+  final placedLoaded = await _loadPlacedImages(placed);
 
   // Her sayfayı ayrı çiz, sonra tek uzun görüntüde birleştir.
   final images = <ui.Image>[];
@@ -366,6 +375,8 @@ Future<void> exportDocumentAsPng(
       // aralığı (kPageGapRatio) ile kaydırılır, görüntünün ayracıyla değil.
       strokeOffsetY: i * (aspect + kPageGapRatio) * w,
       formImages: formImages,
+      placedImages: placed,
+      placedLoaded: placedLoaded,
     ));
   }
 
@@ -382,6 +393,9 @@ Future<void> exportDocumentAsPng(
     img.dispose();
   }
   for (final img in formImages.values) {
+    img.dispose();
+  }
+  for (final img in placedLoaded.values) {
     img.dispose();
   }
   final data = await composite.toByteData(format: ui.ImageByteFormat.png);
@@ -418,6 +432,8 @@ Future<Uint8List> _renderPageImage(
   double formScale = 1,
   double strokeOffsetY = 0,
   Map<String, ui.Image> formImages = const {},
+  List<NoteImage> placedImages = const [],
+  Map<String, ui.Image> placedLoaded = const {},
 }) async {
   final image = await _renderPageUiImage(
     w,
@@ -431,6 +447,8 @@ Future<Uint8List> _renderPageImage(
     formPage: formPage,
     formScale: formScale,
     formImages: formImages,
+    placedImages: placedImages,
+    placedLoaded: placedLoaded,
     strokeOffsetY: strokeOffsetY,
   );
   final data = await image.toByteData(format: ui.ImageByteFormat.png);
@@ -467,6 +485,60 @@ Future<Map<String, ui.Image>> _loadFormImages(FormDoc? form) async {
   return out;
 }
 
+/// Sayfaya yerleştirilmiş görselleri (NoteImages) çıktı için yükler.
+/// Dönenler çağıran tarafından `dispose` edilmelidir.
+Future<Map<String, ui.Image>> _loadPlacedImages(List<NoteImage> placed) async {
+  if (placed.isEmpty) return const {};
+  final out = <String, ui.Image>{};
+  Directory dir;
+  try {
+    dir = await imagesDir();
+  } catch (_) {
+    return out;
+  }
+  for (final p in placed) {
+    if (out.containsKey(p.file)) continue;
+    try {
+      final f = imageFileFor(dir.path, p.file);
+      if (!f.existsSync()) continue;
+      final codec = await ui.instantiateImageCodec(await f.readAsBytes());
+      out[p.file] = (await codec.getNextFrame()).image;
+    } catch (_) {
+      // Okunamayan görsel çıktıda atlanır.
+    }
+  }
+  return out;
+}
+
+/// Sayfaya yerleştirilmiş görselleri çizer. Koordinatlar çizimlerle aynı
+/// uzayda (sayfa genişliğine normalize, tüm sayfalar tek düzlem), bu yüzden
+/// aynı [offsetY] kaydırmasıyla doğru sayfaya düşerler.
+void _paintPlacedImages(
+  Canvas canvas,
+  List<NoteImage> placed,
+  Map<String, ui.Image> loaded,
+  double w,
+  double offsetY,
+) {
+  for (final p in placed) {
+    final img = loaded[p.file];
+    if (img == null) continue;
+    final dst = Rect.fromLTWH(
+      p.x * w,
+      p.y * w - offsetY,
+      p.w * w,
+      p.w * w * p.aspect,
+    );
+    final src = Rect.fromLTWH(
+        0, 0, img.width.toDouble(), img.height.toDouble());
+    canvas.save();
+    canvas.clipRRect(
+        RRect.fromRectAndRadius(dst, Radius.circular(w * 0.008)));
+    canvas.drawImageRect(img, src, dst, Paint());
+    canvas.restore();
+  }
+}
+
 Future<ui.Image> _renderPageUiImage(
   double w,
   double h,
@@ -480,6 +552,8 @@ Future<ui.Image> _renderPageUiImage(
   double formScale = 1,
   double strokeOffsetY = 0,
   Map<String, ui.Image> formImages = const {},
+  List<NoteImage> placedImages = const [],
+  Map<String, ui.Image> placedLoaded = const {},
 }) async {
   final recorder = ui.PictureRecorder();
   final canvas = Canvas(recorder);
@@ -511,6 +585,10 @@ Future<ui.Image> _renderPageUiImage(
       pal,
     );
   }
+
+  // Yerleştirilmiş görseller: yazının üstünde, çizimlerin ALTINDA (ekranla
+  // aynı sıra — kalemle görselin üzerine çizilebiliyor).
+  _paintPlacedImages(canvas, placedImages, placedLoaded, w, strokeOffsetY);
 
   canvas.save();
   canvas.translate(0, -strokeOffsetY);

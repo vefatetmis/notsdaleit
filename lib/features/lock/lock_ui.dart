@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -144,10 +146,22 @@ class _PinDialog extends ConsumerStatefulWidget {
   ConsumerState<_PinDialog> createState() => _PinDialogState();
 }
 
-class _PinDialogState extends ConsumerState<_PinDialog> {
+class _PinDialogState extends ConsumerState<_PinDialog>
+    with SingleTickerProviderStateMixin {
   final _c = TextEditingController();
   final _focus = FocusNode();
   String? _error;
+
+  /// Yanlış PIN'de kutucukları sağa-sola sarsan animasyon. Hata metnini
+  /// okumadan da "olmadı" hissi verir (kullanıcı isteği: titresin + kırmızı).
+  late final AnimationController _shake = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 380),
+  );
+
+  /// Alanı temizlerken listener'ın hatayı silmesini engeller — yanlış PIN
+  /// rengi aksi hâlde bir kare bile görünmeden kayboluyordu.
+  bool _clearing = false;
 
   @override
   void initState() {
@@ -159,18 +173,22 @@ class _PinDialogState extends ConsumerState<_PinDialog> {
   @override
   void dispose() {
     _c.removeListener(_onChanged);
+    _shake.dispose();
     _c.dispose();
     _focus.dispose();
     super.dispose();
   }
 
   void _onChanged() {
-    setState(() => _error = null);
+    if (_clearing) return;
+    if (_error != null) setState(() => _error = null);
     if (_c.text.length == kPinLength) {
       // Kullanıcı son rakamı görsün diye bir kare bekle.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _submit();
       });
+    } else {
+      setState(() {});
     }
   }
 
@@ -183,11 +201,23 @@ class _PinDialogState extends ConsumerState<_PinDialog> {
     }
     if (ref.read(pinSetProvider.notifier).verify(pin)) {
       Navigator.of(context).pop(true);
-    } else {
-      setState(() => _error = context.t('PIN yanlış', 'Wrong PIN'));
-      _c.clear();
-      _focus.requestFocus();
+      return;
     }
+    // Yanlış: titret + kırmızıya çevir + alanı temizle.
+    HapticFeedback.heavyImpact();
+    _clearing = true;
+    _c.clear();
+    _clearing = false;
+    setState(() => _error = context.t('PIN yanlış', 'Wrong PIN'));
+    _shake.forward(from: 0);
+    _focus.requestFocus();
+  }
+
+  /// Sönümlenen sarsıntı: sağa-sola azalarak.
+  double get _shakeOffset {
+    final t = _shake.value;
+    if (t == 0 || t == 1) return 0;
+    return math.sin(t * math.pi * 6) * 10 * (1 - t);
   }
 
   @override
@@ -201,7 +231,13 @@ class _PinDialogState extends ConsumerState<_PinDialog> {
         mainAxisSize: MainAxisSize.min,
         children: [
           // Kutucuklar + üstlerinde tuşları toplayan görünmez alan.
-          Stack(
+          AnimatedBuilder(
+            animation: _shake,
+            builder: (context, child) => Transform.translate(
+              offset: Offset(_shakeOffset, 0),
+              child: child,
+            ),
+            child: Stack(
             alignment: Alignment.center,
             children: [
               Row(
@@ -241,6 +277,7 @@ class _PinDialogState extends ConsumerState<_PinDialog> {
                 ),
               ),
             ],
+          ),
           ),
           const SizedBox(height: 10),
           Text(

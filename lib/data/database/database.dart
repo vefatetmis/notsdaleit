@@ -60,6 +60,26 @@ class Strokes extends Table {
   DateTimeColumn get createdAt => dateTime()();
 }
 
+/// Notun **üzerine serbestçe yerleştirilen görseller**. Çizimlerle (Strokes)
+/// aynı koordinat uzayını kullanır: [x]/[y]/[w] sayfa genişliğine göre
+/// normalize edilmiştir ve tüm sayfalar tek bir düşey düzlemde dizilidir.
+/// Böylece görsel de çizim gibi istenen sayfaya/konuma konur, taşınır,
+/// boyutlandırılır — ve **notu form notuna dönüştürmez**.
+///
+/// Dosyanın kendisi `<appDocs>/images/` altında; burada yalnız adı durur.
+class NoteImages extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get docId =>
+      integer().references(Documents, #id, onDelete: KeyAction.cascade)();
+  TextColumn get file => text()();
+  RealColumn get x => real().withDefault(const Constant(0.1))();
+  RealColumn get y => real().withDefault(const Constant(0.1))();
+  // Genişlik (0..1, sayfa genişliğine oranlı). Yükseklik = w * aspect.
+  RealColumn get w => real().withDefault(const Constant(0.5))();
+  RealColumn get aspect => real().withDefault(const Constant(0.75))();
+  DateTimeColumn get createdAt => dateTime()();
+}
+
 /// Yapılacaklar / takvim görevleri. [dueDate] verilirse o güne düşer;
 /// [remindAt] ileride bildirim için kullanılacaktır.
 class Tasks extends Table {
@@ -150,6 +170,7 @@ class RoutineChecks extends Table {
 @DriftDatabase(tables: [
   Documents,
   Strokes,
+  NoteImages,
   Tasks,
   DayNotes,
   Routines,
@@ -165,7 +186,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => 15;
 
   /// Bir tablo veritabanında var mı?
   Future<bool> _hasTable(String name) async {
@@ -255,6 +276,9 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 14) {
             await _addColumnIfMissing(m, documents, documents.locked);
+          }
+          if (from < 15) {
+            await _createIfMissing(m, noteImages);
           }
         },
         beforeOpen: (details) async {

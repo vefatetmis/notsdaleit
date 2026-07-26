@@ -1491,6 +1491,481 @@ class StrokesCompanion extends UpdateCompanion<Stroke> {
   }
 }
 
+class $NoteImagesTable extends NoteImages
+    with TableInfo<$NoteImagesTable, NoteImage> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $NoteImagesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _docIdMeta = const VerificationMeta('docId');
+  @override
+  late final GeneratedColumn<int> docId = GeneratedColumn<int>(
+    'doc_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES documents (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _fileMeta = const VerificationMeta('file');
+  @override
+  late final GeneratedColumn<String> file = GeneratedColumn<String>(
+    'file',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _xMeta = const VerificationMeta('x');
+  @override
+  late final GeneratedColumn<double> x = GeneratedColumn<double>(
+    'x',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.1),
+  );
+  static const VerificationMeta _yMeta = const VerificationMeta('y');
+  @override
+  late final GeneratedColumn<double> y = GeneratedColumn<double>(
+    'y',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.1),
+  );
+  static const VerificationMeta _wMeta = const VerificationMeta('w');
+  @override
+  late final GeneratedColumn<double> w = GeneratedColumn<double>(
+    'w',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.5),
+  );
+  static const VerificationMeta _aspectMeta = const VerificationMeta('aspect');
+  @override
+  late final GeneratedColumn<double> aspect = GeneratedColumn<double>(
+    'aspect',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.75),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    docId,
+    file,
+    x,
+    y,
+    w,
+    aspect,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'note_images';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<NoteImage> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('doc_id')) {
+      context.handle(
+        _docIdMeta,
+        docId.isAcceptableOrUnknown(data['doc_id']!, _docIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_docIdMeta);
+    }
+    if (data.containsKey('file')) {
+      context.handle(
+        _fileMeta,
+        file.isAcceptableOrUnknown(data['file']!, _fileMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_fileMeta);
+    }
+    if (data.containsKey('x')) {
+      context.handle(_xMeta, x.isAcceptableOrUnknown(data['x']!, _xMeta));
+    }
+    if (data.containsKey('y')) {
+      context.handle(_yMeta, y.isAcceptableOrUnknown(data['y']!, _yMeta));
+    }
+    if (data.containsKey('w')) {
+      context.handle(_wMeta, w.isAcceptableOrUnknown(data['w']!, _wMeta));
+    }
+    if (data.containsKey('aspect')) {
+      context.handle(
+        _aspectMeta,
+        aspect.isAcceptableOrUnknown(data['aspect']!, _aspectMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  NoteImage map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return NoteImage(
+      id:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.int,
+            data['${effectivePrefix}id'],
+          )!,
+      docId:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.int,
+            data['${effectivePrefix}doc_id'],
+          )!,
+      file:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}file'],
+          )!,
+      x:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.double,
+            data['${effectivePrefix}x'],
+          )!,
+      y:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.double,
+            data['${effectivePrefix}y'],
+          )!,
+      w:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.double,
+            data['${effectivePrefix}w'],
+          )!,
+      aspect:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.double,
+            data['${effectivePrefix}aspect'],
+          )!,
+      createdAt:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.dateTime,
+            data['${effectivePrefix}created_at'],
+          )!,
+    );
+  }
+
+  @override
+  $NoteImagesTable createAlias(String alias) {
+    return $NoteImagesTable(attachedDatabase, alias);
+  }
+}
+
+class NoteImage extends DataClass implements Insertable<NoteImage> {
+  final int id;
+  final int docId;
+  final String file;
+  final double x;
+  final double y;
+  final double w;
+  final double aspect;
+  final DateTime createdAt;
+  const NoteImage({
+    required this.id,
+    required this.docId,
+    required this.file,
+    required this.x,
+    required this.y,
+    required this.w,
+    required this.aspect,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['doc_id'] = Variable<int>(docId);
+    map['file'] = Variable<String>(file);
+    map['x'] = Variable<double>(x);
+    map['y'] = Variable<double>(y);
+    map['w'] = Variable<double>(w);
+    map['aspect'] = Variable<double>(aspect);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  NoteImagesCompanion toCompanion(bool nullToAbsent) {
+    return NoteImagesCompanion(
+      id: Value(id),
+      docId: Value(docId),
+      file: Value(file),
+      x: Value(x),
+      y: Value(y),
+      w: Value(w),
+      aspect: Value(aspect),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory NoteImage.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return NoteImage(
+      id: serializer.fromJson<int>(json['id']),
+      docId: serializer.fromJson<int>(json['docId']),
+      file: serializer.fromJson<String>(json['file']),
+      x: serializer.fromJson<double>(json['x']),
+      y: serializer.fromJson<double>(json['y']),
+      w: serializer.fromJson<double>(json['w']),
+      aspect: serializer.fromJson<double>(json['aspect']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'docId': serializer.toJson<int>(docId),
+      'file': serializer.toJson<String>(file),
+      'x': serializer.toJson<double>(x),
+      'y': serializer.toJson<double>(y),
+      'w': serializer.toJson<double>(w),
+      'aspect': serializer.toJson<double>(aspect),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  NoteImage copyWith({
+    int? id,
+    int? docId,
+    String? file,
+    double? x,
+    double? y,
+    double? w,
+    double? aspect,
+    DateTime? createdAt,
+  }) => NoteImage(
+    id: id ?? this.id,
+    docId: docId ?? this.docId,
+    file: file ?? this.file,
+    x: x ?? this.x,
+    y: y ?? this.y,
+    w: w ?? this.w,
+    aspect: aspect ?? this.aspect,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  NoteImage copyWithCompanion(NoteImagesCompanion data) {
+    return NoteImage(
+      id: data.id.present ? data.id.value : this.id,
+      docId: data.docId.present ? data.docId.value : this.docId,
+      file: data.file.present ? data.file.value : this.file,
+      x: data.x.present ? data.x.value : this.x,
+      y: data.y.present ? data.y.value : this.y,
+      w: data.w.present ? data.w.value : this.w,
+      aspect: data.aspect.present ? data.aspect.value : this.aspect,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('NoteImage(')
+          ..write('id: $id, ')
+          ..write('docId: $docId, ')
+          ..write('file: $file, ')
+          ..write('x: $x, ')
+          ..write('y: $y, ')
+          ..write('w: $w, ')
+          ..write('aspect: $aspect, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, docId, file, x, y, w, aspect, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is NoteImage &&
+          other.id == this.id &&
+          other.docId == this.docId &&
+          other.file == this.file &&
+          other.x == this.x &&
+          other.y == this.y &&
+          other.w == this.w &&
+          other.aspect == this.aspect &&
+          other.createdAt == this.createdAt);
+}
+
+class NoteImagesCompanion extends UpdateCompanion<NoteImage> {
+  final Value<int> id;
+  final Value<int> docId;
+  final Value<String> file;
+  final Value<double> x;
+  final Value<double> y;
+  final Value<double> w;
+  final Value<double> aspect;
+  final Value<DateTime> createdAt;
+  const NoteImagesCompanion({
+    this.id = const Value.absent(),
+    this.docId = const Value.absent(),
+    this.file = const Value.absent(),
+    this.x = const Value.absent(),
+    this.y = const Value.absent(),
+    this.w = const Value.absent(),
+    this.aspect = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  NoteImagesCompanion.insert({
+    this.id = const Value.absent(),
+    required int docId,
+    required String file,
+    this.x = const Value.absent(),
+    this.y = const Value.absent(),
+    this.w = const Value.absent(),
+    this.aspect = const Value.absent(),
+    required DateTime createdAt,
+  }) : docId = Value(docId),
+       file = Value(file),
+       createdAt = Value(createdAt);
+  static Insertable<NoteImage> custom({
+    Expression<int>? id,
+    Expression<int>? docId,
+    Expression<String>? file,
+    Expression<double>? x,
+    Expression<double>? y,
+    Expression<double>? w,
+    Expression<double>? aspect,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (docId != null) 'doc_id': docId,
+      if (file != null) 'file': file,
+      if (x != null) 'x': x,
+      if (y != null) 'y': y,
+      if (w != null) 'w': w,
+      if (aspect != null) 'aspect': aspect,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  NoteImagesCompanion copyWith({
+    Value<int>? id,
+    Value<int>? docId,
+    Value<String>? file,
+    Value<double>? x,
+    Value<double>? y,
+    Value<double>? w,
+    Value<double>? aspect,
+    Value<DateTime>? createdAt,
+  }) {
+    return NoteImagesCompanion(
+      id: id ?? this.id,
+      docId: docId ?? this.docId,
+      file: file ?? this.file,
+      x: x ?? this.x,
+      y: y ?? this.y,
+      w: w ?? this.w,
+      aspect: aspect ?? this.aspect,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (docId.present) {
+      map['doc_id'] = Variable<int>(docId.value);
+    }
+    if (file.present) {
+      map['file'] = Variable<String>(file.value);
+    }
+    if (x.present) {
+      map['x'] = Variable<double>(x.value);
+    }
+    if (y.present) {
+      map['y'] = Variable<double>(y.value);
+    }
+    if (w.present) {
+      map['w'] = Variable<double>(w.value);
+    }
+    if (aspect.present) {
+      map['aspect'] = Variable<double>(aspect.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('NoteImagesCompanion(')
+          ..write('id: $id, ')
+          ..write('docId: $docId, ')
+          ..write('file: $file, ')
+          ..write('x: $x, ')
+          ..write('y: $y, ')
+          ..write('w: $w, ')
+          ..write('aspect: $aspect, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -4057,6 +4532,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $DocumentsTable documents = $DocumentsTable(this);
   late final $StrokesTable strokes = $StrokesTable(this);
+  late final $NoteImagesTable noteImages = $NoteImagesTable(this);
   late final $TasksTable tasks = $TasksTable(this);
   late final $DayNotesTable dayNotes = $DayNotesTable(this);
   late final $RoutinesTable routines = $RoutinesTable(this);
@@ -4072,6 +4548,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     documents,
     strokes,
+    noteImages,
     tasks,
     dayNotes,
     routines,
@@ -4089,6 +4566,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('strokes', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'documents',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('note_images', kind: UpdateKind.delete)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -4173,6 +4657,24 @@ final class $$DocumentsTableReferences
     ).filter((f) => f.docId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_strokesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$NoteImagesTable, List<NoteImage>>
+  _noteImagesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.noteImages,
+    aliasName: $_aliasNameGenerator(db.documents.id, db.noteImages.docId),
+  );
+
+  $$NoteImagesTableProcessedTableManager get noteImagesRefs {
+    final manager = $$NoteImagesTableTableManager(
+      $_db,
+      $_db.noteImages,
+    ).filter((f) => f.docId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_noteImagesRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -4307,6 +4809,31 @@ class $$DocumentsTableFilterComposer
           }) => $$StrokesTableFilterComposer(
             $db: $db,
             $table: $db.strokes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> noteImagesRefs(
+    Expression<bool> Function($$NoteImagesTableFilterComposer f) f,
+  ) {
+    final $$NoteImagesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.noteImages,
+      getReferencedColumn: (t) => t.docId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$NoteImagesTableFilterComposer(
+            $db: $db,
+            $table: $db.noteImages,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -4524,6 +5051,31 @@ class $$DocumentsTableAnnotationComposer
     return f(composer);
   }
 
+  Expression<T> noteImagesRefs<T extends Object>(
+    Expression<T> Function($$NoteImagesTableAnnotationComposer a) f,
+  ) {
+    final $$NoteImagesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.noteImages,
+      getReferencedColumn: (t) => t.docId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$NoteImagesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.noteImages,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
   Expression<T> documentTagsRefs<T extends Object>(
     Expression<T> Function($$DocumentTagsTableAnnotationComposer a) f,
   ) {
@@ -4563,7 +5115,11 @@ class $$DocumentsTableTableManager
           $$DocumentsTableUpdateCompanionBuilder,
           (Document, $$DocumentsTableReferences),
           Document,
-          PrefetchHooks Function({bool strokesRefs, bool documentTagsRefs})
+          PrefetchHooks Function({
+            bool strokesRefs,
+            bool noteImagesRefs,
+            bool documentTagsRefs,
+          })
         > {
   $$DocumentsTableTableManager(_$AppDatabase db, $DocumentsTable table)
     : super(
@@ -4664,12 +5220,14 @@ class $$DocumentsTableTableManager
                       .toList(),
           prefetchHooksCallback: ({
             strokesRefs = false,
+            noteImagesRefs = false,
             documentTagsRefs = false,
           }) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [
                 if (strokesRefs) db.strokes,
+                if (noteImagesRefs) db.noteImages,
                 if (documentTagsRefs) db.documentTags,
               ],
               addJoins: null,
@@ -4691,6 +5249,27 @@ class $$DocumentsTableTableManager
                                 table,
                                 p0,
                               ).strokesRefs,
+                      referencedItemsForCurrentItem:
+                          (item, referencedItems) =>
+                              referencedItems.where((e) => e.docId == item.id),
+                      typedResults: items,
+                    ),
+                  if (noteImagesRefs)
+                    await $_getPrefetchedData<
+                      Document,
+                      $DocumentsTable,
+                      NoteImage
+                    >(
+                      currentTable: table,
+                      referencedTable: $$DocumentsTableReferences
+                          ._noteImagesRefsTable(db),
+                      managerFromTypedResult:
+                          (p0) =>
+                              $$DocumentsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).noteImagesRefs,
                       referencedItemsForCurrentItem:
                           (item, referencedItems) =>
                               referencedItems.where((e) => e.docId == item.id),
@@ -4737,7 +5316,11 @@ typedef $$DocumentsTableProcessedTableManager =
       $$DocumentsTableUpdateCompanionBuilder,
       (Document, $$DocumentsTableReferences),
       Document,
-      PrefetchHooks Function({bool strokesRefs, bool documentTagsRefs})
+      PrefetchHooks Function({
+        bool strokesRefs,
+        bool noteImagesRefs,
+        bool documentTagsRefs,
+      })
     >;
 typedef $$StrokesTableCreateCompanionBuilder =
     StrokesCompanion Function({
@@ -5124,6 +5707,374 @@ typedef $$StrokesTableProcessedTableManager =
       $$StrokesTableUpdateCompanionBuilder,
       (Stroke, $$StrokesTableReferences),
       Stroke,
+      PrefetchHooks Function({bool docId})
+    >;
+typedef $$NoteImagesTableCreateCompanionBuilder =
+    NoteImagesCompanion Function({
+      Value<int> id,
+      required int docId,
+      required String file,
+      Value<double> x,
+      Value<double> y,
+      Value<double> w,
+      Value<double> aspect,
+      required DateTime createdAt,
+    });
+typedef $$NoteImagesTableUpdateCompanionBuilder =
+    NoteImagesCompanion Function({
+      Value<int> id,
+      Value<int> docId,
+      Value<String> file,
+      Value<double> x,
+      Value<double> y,
+      Value<double> w,
+      Value<double> aspect,
+      Value<DateTime> createdAt,
+    });
+
+final class $$NoteImagesTableReferences
+    extends BaseReferences<_$AppDatabase, $NoteImagesTable, NoteImage> {
+  $$NoteImagesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $DocumentsTable _docIdTable(_$AppDatabase db) => db.documents
+      .createAlias($_aliasNameGenerator(db.noteImages.docId, db.documents.id));
+
+  $$DocumentsTableProcessedTableManager get docId {
+    final $_column = $_itemColumn<int>('doc_id')!;
+
+    final manager = $$DocumentsTableTableManager(
+      $_db,
+      $_db.documents,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_docIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$NoteImagesTableFilterComposer
+    extends Composer<_$AppDatabase, $NoteImagesTable> {
+  $$NoteImagesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get file => $composableBuilder(
+    column: $table.file,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get x => $composableBuilder(
+    column: $table.x,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get y => $composableBuilder(
+    column: $table.y,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get w => $composableBuilder(
+    column: $table.w,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get aspect => $composableBuilder(
+    column: $table.aspect,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$DocumentsTableFilterComposer get docId {
+    final $$DocumentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.docId,
+      referencedTable: $db.documents,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DocumentsTableFilterComposer(
+            $db: $db,
+            $table: $db.documents,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$NoteImagesTableOrderingComposer
+    extends Composer<_$AppDatabase, $NoteImagesTable> {
+  $$NoteImagesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get file => $composableBuilder(
+    column: $table.file,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get x => $composableBuilder(
+    column: $table.x,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get y => $composableBuilder(
+    column: $table.y,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get w => $composableBuilder(
+    column: $table.w,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get aspect => $composableBuilder(
+    column: $table.aspect,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$DocumentsTableOrderingComposer get docId {
+    final $$DocumentsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.docId,
+      referencedTable: $db.documents,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DocumentsTableOrderingComposer(
+            $db: $db,
+            $table: $db.documents,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$NoteImagesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $NoteImagesTable> {
+  $$NoteImagesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get file =>
+      $composableBuilder(column: $table.file, builder: (column) => column);
+
+  GeneratedColumn<double> get x =>
+      $composableBuilder(column: $table.x, builder: (column) => column);
+
+  GeneratedColumn<double> get y =>
+      $composableBuilder(column: $table.y, builder: (column) => column);
+
+  GeneratedColumn<double> get w =>
+      $composableBuilder(column: $table.w, builder: (column) => column);
+
+  GeneratedColumn<double> get aspect =>
+      $composableBuilder(column: $table.aspect, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  $$DocumentsTableAnnotationComposer get docId {
+    final $$DocumentsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.docId,
+      referencedTable: $db.documents,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DocumentsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.documents,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$NoteImagesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $NoteImagesTable,
+          NoteImage,
+          $$NoteImagesTableFilterComposer,
+          $$NoteImagesTableOrderingComposer,
+          $$NoteImagesTableAnnotationComposer,
+          $$NoteImagesTableCreateCompanionBuilder,
+          $$NoteImagesTableUpdateCompanionBuilder,
+          (NoteImage, $$NoteImagesTableReferences),
+          NoteImage,
+          PrefetchHooks Function({bool docId})
+        > {
+  $$NoteImagesTableTableManager(_$AppDatabase db, $NoteImagesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer:
+              () => $$NoteImagesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer:
+              () => $$NoteImagesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer:
+              () => $$NoteImagesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> docId = const Value.absent(),
+                Value<String> file = const Value.absent(),
+                Value<double> x = const Value.absent(),
+                Value<double> y = const Value.absent(),
+                Value<double> w = const Value.absent(),
+                Value<double> aspect = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => NoteImagesCompanion(
+                id: id,
+                docId: docId,
+                file: file,
+                x: x,
+                y: y,
+                w: w,
+                aspect: aspect,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int docId,
+                required String file,
+                Value<double> x = const Value.absent(),
+                Value<double> y = const Value.absent(),
+                Value<double> w = const Value.absent(),
+                Value<double> aspect = const Value.absent(),
+                required DateTime createdAt,
+              }) => NoteImagesCompanion.insert(
+                id: id,
+                docId: docId,
+                file: file,
+                x: x,
+                y: y,
+                w: w,
+                aspect: aspect,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper:
+              (p0) =>
+                  p0
+                      .map(
+                        (e) => (
+                          e.readTable(table),
+                          $$NoteImagesTableReferences(db, table, e),
+                        ),
+                      )
+                      .toList(),
+          prefetchHooksCallback: ({docId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins: <
+                T extends TableManagerState<
+                  dynamic,
+                  dynamic,
+                  dynamic,
+                  dynamic,
+                  dynamic,
+                  dynamic,
+                  dynamic,
+                  dynamic,
+                  dynamic,
+                  dynamic,
+                  dynamic
+                >
+              >(state) {
+                if (docId) {
+                  state =
+                      state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.docId,
+                            referencedTable: $$NoteImagesTableReferences
+                                ._docIdTable(db),
+                            referencedColumn:
+                                $$NoteImagesTableReferences._docIdTable(db).id,
+                          )
+                          as T;
+                }
+
+                return state;
+              },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$NoteImagesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $NoteImagesTable,
+      NoteImage,
+      $$NoteImagesTableFilterComposer,
+      $$NoteImagesTableOrderingComposer,
+      $$NoteImagesTableAnnotationComposer,
+      $$NoteImagesTableCreateCompanionBuilder,
+      $$NoteImagesTableUpdateCompanionBuilder,
+      (NoteImage, $$NoteImagesTableReferences),
+      NoteImage,
       PrefetchHooks Function({bool docId})
     >;
 typedef $$TasksTableCreateCompanionBuilder =
@@ -7140,6 +8091,8 @@ class $AppDatabaseManager {
       $$DocumentsTableTableManager(_db, _db.documents);
   $$StrokesTableTableManager get strokes =>
       $$StrokesTableTableManager(_db, _db.strokes);
+  $$NoteImagesTableTableManager get noteImages =>
+      $$NoteImagesTableTableManager(_db, _db.noteImages);
   $$TasksTableTableManager get tasks =>
       $$TasksTableTableManager(_db, _db.tasks);
   $$DayNotesTableTableManager get dayNotes =>

@@ -128,3 +128,66 @@ class DrawingRepository {
     return (_db.delete(_db.strokes)..where((t) => t.docId.equals(docId))).go();
   }
 }
+
+/// Notun üzerine serbestçe yerleştirilen görseller. Koordinatlar çizimlerle
+/// aynı uzayda (sayfa genişliğine göre normalize, tüm sayfalar tek düzlem).
+class NoteImageRepository {
+  NoteImageRepository(this._db);
+
+  final AppDatabase _db;
+
+  Stream<List<NoteImage>> watch(int docId) {
+    final q = _db.select(_db.noteImages)
+      ..where((t) => t.docId.equals(docId))
+      ..orderBy([(t) => OrderingTerm(expression: t.createdAt)]);
+    return q.watch();
+  }
+
+  Future<List<NoteImage>> getAll(int docId) {
+    final q = _db.select(_db.noteImages)
+      ..where((t) => t.docId.equals(docId))
+      ..orderBy([(t) => OrderingTerm(expression: t.createdAt)]);
+    return q.get();
+  }
+
+  Future<int> add({
+    required int docId,
+    required String file,
+    required double x,
+    required double y,
+    required double w,
+    required double aspect,
+  }) {
+    return _db.into(_db.noteImages).insert(
+          NoteImagesCompanion.insert(
+            docId: docId,
+            file: file,
+            x: Value(x),
+            y: Value(y),
+            w: Value(w),
+            aspect: Value(aspect),
+            createdAt: DateTime.now(),
+          ),
+        );
+  }
+
+  /// Taşıma / boyutlandırma sonrası konumu yazar.
+  Future<void> setRect(int id, {double? x, double? y, double? w}) {
+    return (_db.update(_db.noteImages)..where((t) => t.id.equals(id))).write(
+      NoteImagesCompanion(
+        x: x == null ? const Value.absent() : Value(x),
+        y: y == null ? const Value.absent() : Value(y),
+        w: w == null ? const Value.absent() : Value(w),
+      ),
+    );
+  }
+
+  Future<void> delete(int id) =>
+      (_db.delete(_db.noteImages)..where((t) => t.id.equals(id))).go();
+
+  /// Hâlâ bir nota yerleştirilmiş tüm dosya adları (dosya temizliği için).
+  Future<Set<String>> allFileNames() async {
+    final rows = await _db.select(_db.noteImages).get();
+    return {for (final r in rows) r.file};
+  }
+}

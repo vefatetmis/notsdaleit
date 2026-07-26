@@ -9,7 +9,6 @@ import 'package:path_provider/path_provider.dart';
 import '../../core/i18n/i18n.dart';
 import '../../data/data_providers.dart';
 import '../editor/editor_state.dart';
-import 'form_layout.dart';
 import 'form_model.dart';
 
 /// Nota görsel ekleme akışı.
@@ -51,10 +50,15 @@ Set<String> imageNamesInBody(String body) {
 /// için (notu çoğaltmak aynı dosyaya işaret eder) körlemesine silinemez:
 /// önce kalan tüm belgelerin gövdeleri taranır, yalnız hiçbirinde geçmeyen
 /// dosyalar kaldırılır.
-Future<void> pruneUnusedImages(List<String> remainingBodies) async {
+Future<void> pruneUnusedImages(
+  List<String> remainingBodies, {
+  Set<String> stillPlaced = const {},
+}) async {
   try {
     final dir = await imagesDir();
-    final used = <String>{};
+    // Kullanımda sayılanlar: sayfaya yerleştirilmiş görseller (NoteImages) +
+    // eski form-bloğu görselleri (gövdede duran ImageBlock'lar).
+    final used = <String>{...stillPlaced};
     for (final body in remainingBodies) {
       used.addAll(imageNamesInBody(body));
     }
@@ -70,15 +74,6 @@ Future<void> pruneUnusedImages(List<String> remainingBodies) async {
   } catch (_) {
     // Temizlik en iyi çabadır — başarısızlığı kullanıcıya yansıtmaz.
   }
-}
-
-/// Görselin sayfaya sığması için en-boy oranını sınırlar. Oran modelde tutulur
-/// çünkü sayfalama ölçümü senkron olmak zorunda (dosyayı açamaz).
-double clampImageAspect(double aspect, String? pageSize) {
-  final m = formMetrics(pageSize);
-  final maxAspect = (m.contentH * 0.9) / m.virtualW;
-  if (aspect <= 0 || !aspect.isFinite) return 0.75;
-  return aspect > maxAspect ? maxAspect : aspect;
 }
 
 /// Bir görsel dosyasının en-boy oranını (yükseklik ÷ genişlik) okur.
@@ -122,35 +117,6 @@ Future<void> insertImageIntoNote(BuildContext context, WidgetRef ref) async {
       ));
   }
 
-  // Serbest (Quill) not tabloda olduğu gibi forma dönüşür → önceden söyle.
-  if (!isFormBody(doc.body)) {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(ctx.t('Görsel ekle', 'Add image')),
-        content: Text(ctx.t(
-          'Bu not görsel eklenince form notuna dönüşür: mevcut yazın çizgili '
-              'bir metin alanına taşınır, kalın/italik gibi biçimler düz metne '
-              'döner. Çizimler olduğu gibi kalır.',
-          'Adding an image turns this note into a form note: your current text '
-              'moves into a ruled text area and formatting like bold/italic '
-              'becomes plain text. Drawings are kept as they are.',
-        )),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(ctx.t('Vazgeç', 'Cancel')),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(ctx.t('Devam', 'Continue')),
-          ),
-        ],
-      ),
-    );
-    if (ok != true) return;
-  }
-
   final res = await FilePicker.pickFiles(type: FileType.image);
   final path = res?.files.isNotEmpty == true ? res!.files.first.path : null;
   if (path == null) return;
@@ -175,5 +141,5 @@ Future<void> insertImageIntoNote(BuildContext context, WidgetRef ref) async {
 
   final dir = await imagesDir();
   final aspect = await _readAspect(imageFileFor(dir.path, name)) ?? 0.75;
-  insert(name, clampImageAspect(aspect, doc.pageSize));
+  insert(name, aspect);
 }

@@ -122,6 +122,20 @@ final docTagIdsProvider = Provider<Map<int, Set<int>>>((ref) {
 });
 
 /// Şu an açık olan belge (editör/PDF ekranı için).
+/// Not görselleri deposu (serbest konumlu görseller).
+final noteImageRepositoryProvider = Provider<NoteImageRepository>(
+    (ref) => NoteImageRepository(ref.watch(databaseProvider)));
+
+/// Aktif belgenin görselleri — canlı akış.
+final activeImagesProvider = StreamProvider<List<NoteImage>>((ref) {
+  final id = ref.watch(navProvider).activeDocId;
+  if (id == null) return Stream.value(const <NoteImage>[]);
+  return ref.watch(noteImageRepositoryProvider).watch(id);
+});
+
+/// Editörde seçili görselin id'si (taşıma/boyutlandırma tutamakları için).
+final selectedImageProvider = StateProvider<int?>((ref) => null);
+
 final activeDocumentProvider = Provider<Document?>((ref) {
   final id = ref.watch(navProvider).activeDocId;
   if (id == null) return null;

@@ -18,6 +18,7 @@ import '../forms/form_page.dart';
 import '../forms/insert_image.dart';
 import '../shell/shell_state.dart';
 import 'editor_state.dart';
+import 'image_layer.dart';
 import 'table_embed.dart';
 
 /// Birleşik not editörü: boyutlu sayfa üzerinde hem **biçimli yazı**
@@ -53,10 +54,6 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   double _gap = 0;
   double _viewportH = 0;
   int _pages = 1;
-
-  // Ekrandaki aktif parmak sayısı (kalem modunda iki parmakla kaydırmayı
-  // ayırt etmek için: 1 parmak çizer, 2 parmak InteractiveViewer'a bırakılır).
-  int _pointers = 0;
 
   // Canlı ortak not: uzaktan gelen metni uygularken yerel kaydetme/yankı
   // döngüsünü kes; kullanıcı az önce yazdıysa uzaktan geleni uygulama (onun
@@ -136,31 +133,27 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     // Sayfa sayısı gerekiyorsa `_Sheet`'in bir sonraki çiziminde büyür.
   }
 
-  /// Belge menüsünden görsel ekler. Tablo gibi: serbest (Quill) not önce
-  /// forma dönüştürülür, görsel **sona** eklenir.
-  void _insertImage(String name, double aspect) {
-    final block = ImageBlock(file: name, aspect: aspect);
-    setState(() {
-      if (_form == null) {
-        final text = _controller.document.toPlainText().trimRight();
-        _form = FormDoc([
-          if (text.isNotEmpty) AreaBlock(value: text, minLines: 3),
-          block,
-          // Görselin ALTINA yazı alanı: aksi hâlde (özellikle boş notta)
-          // görselden sonra yazacak yer kalmıyordu.
-          AreaBlock(minLines: 3),
-        ]);
-        if (ref.read(activeQuillControllerProvider) == _controller) {
-          ref.read(activeQuillControllerProvider.notifier).state = null;
-        }
-      } else {
-        _form!.blocks.add(block);
-        // Zaten boş bir yazı alanıyla bitmiyorsa yenisini ekle.
-        final last = _form!.blocks.last;
-        if (last is! AreaBlock) _form!.blocks.add(AreaBlock(minLines: 3));
-      }
-    });
-    _save();
+  /// Belge menüsünden görsel ekler. **Notu forma dönüştürmez** — görsel,
+  /// çizimler gibi sayfanın üzerine serbestçe yerleştirilen ayrı bir katmandır
+  /// (`NoteImages` tablosu). Bakılan sayfanın üst-ortasına konur; kullanıcı
+  /// sürükleyip boyutlandırır.
+  Future<void> _insertImage(String name, double aspect) async {
+    final id = _docId;
+    final doc = ref.read(activeDocumentProvider);
+    if (id == null || doc == null) return;
+    final step = aspectForPageSize(doc.pageSize) + kPageGapRatio;
+    final page = ref.read(currentPageProvider);
+    const w = 0.5;
+    final imgId = await ref.read(noteImageRepositoryProvider).add(
+          docId: id,
+          file: name,
+          x: (1 - w) / 2,
+          y: page * step + 0.08,
+          w: w,
+          aspect: aspect,
+        );
+    // Yeni görsel seçili gelsin ki tutamakları görünsün.
+    if (mounted) ref.read(selectedImageProvider.notifier).state = imgId;
   }
 
   /// Form içeriği mevcut sayfalara sığmıyorsa sayfa sayısını büyütür (satır/
@@ -296,11 +289,6 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   }
 
 
-  void _onPointerChange(int delta) {
-    final next = (_pointers + delta).clamp(0, 10);
-    if (next != _pointers) setState(() => _pointers = next);
-  }
-
   @override
   void dispose() {
     _saveTimer?.cancel();
@@ -386,11 +374,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
               _viewportH = c.maxHeight;
               _pages = pageCount;
 
-              return Listener(
-                onPointerDown: (_) => _onPointerChange(1),
-                onPointerUp: (_) => _onPointerChange(-1),
-                onPointerCancel: (_) => _onPointerChange(-1),
-                child: InteractiveViewer(
+              return InteractiveViewer(
                   transformationController: _tc,
                   constrained: false,
                   // Varsayılan zoom = tam genişlik; yalnızca yakınlaştırınca
@@ -398,10 +382,13 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                   // için 1.0'da sağa-sola oynamaz → "oynak" hissi biter).
                   minScale: 1.0,
                   maxScale: 4.0,
-                  // Kalem modunda tek parmak çizer (pan kapalı); ikinci parmak
-                  // gelince pan açılır → iki parmakla kaydır/yakınlaştır. Yazı/el
-                  // modunda tek parmak kaydırır.
-                  panEnabled: penActive ? _pointers >= 2 : true,
+                  // Kalem modunda tek parmak çizer → pan KAPALI (sabit).
+                  // Parmak sayısına göre açıp kapatmak jesti bozuyordu: ikinci
+                  // parmak değince setState → rebuild → devam eden pinch iptal
+                  // oluyor ve yakınlaştırma geri alınamıyordu. İki parmakla
+                  // yakınlaştırma `scaleEnabled` ile çalışır (odak noktalı zoom
+                  // kaydırmayı da uygular).
+                  panEnabled: !penActive,
                   scaleEnabled: true,
                   // Sıfır kenar boşluğu: içerik kenarları görünüm kenarını
                   // geçemez → 1.0'da yatay kilit, dikey tam kaydırma.
@@ -445,7 +432,6 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                       ),
                     ),
                   ),
-                ),
               );
             },
           ),
@@ -694,7 +680,20 @@ class _SheetState extends ConsumerState<_Sheet> {
             Positioned.fill(
               child: ClipPath(
                 clipper: _PagesClipper(pages: pages, pageH: pageH, gap: gap),
-                child: DrawingLayer(docId: widget.docId!, page: 0),
+                child: Stack(
+                  children: [
+                    // Görseller çizimlerin ALTINDA: kalemle görselin üzerine
+                    // yazılabilsin/çizilebilsin.
+                    ImageLayer(
+                      docId: widget.docId!,
+                      width: w,
+                      imagesDirPath: widget.imagesDirPath,
+                      // Kalem modunda dokunuşlar çizime gitmeli.
+                      interactive: !ref.watch(toolProvider).isPen,
+                    ),
+                    DrawingLayer(docId: widget.docId!, page: 0),
+                  ],
+                ),
               ),
             ),
         ],
