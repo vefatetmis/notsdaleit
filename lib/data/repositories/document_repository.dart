@@ -128,6 +128,12 @@ class DocumentRepository {
         );
   }
 
+  /// Notu kilitler / kilidini açar (arayüz kilidi — bkz. lock_service).
+  Future<void> setLocked({required int id, required bool locked}) {
+    return (_db.update(_db.documents)..where((t) => t.id.equals(id)))
+        .write(DocumentsCompanion(locked: Value(locked)));
+  }
+
   /// Notun sayfa arka planını (kâğıt deseni) günceller.
   Future<void> setPageBackground({required int id, required String value}) {
     return (_db.update(_db.documents)..where((t) => t.id.equals(id))).write(

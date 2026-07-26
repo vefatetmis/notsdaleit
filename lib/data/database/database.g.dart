@@ -169,6 +169,19 @@ class $DocumentsTable extends Documents
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _lockedMeta = const VerificationMeta('locked');
+  @override
+  late final GeneratedColumn<bool> locked = GeneratedColumn<bool>(
+    'locked',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("locked" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -207,6 +220,7 @@ class $DocumentsTable extends Documents
     shareCode,
     pinned,
     deletedAt,
+    locked,
     createdAt,
     updatedAt,
   ];
@@ -308,6 +322,12 @@ class $DocumentsTable extends Documents
         deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
       );
     }
+    if (data.containsKey('locked')) {
+      context.handle(
+        _lockedMeta,
+        locked.isAcceptableOrUnknown(data['locked']!, _lockedMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -398,6 +418,11 @@ class $DocumentsTable extends Documents
         DriftSqlType.dateTime,
         data['${effectivePrefix}deleted_at'],
       ),
+      locked:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.bool,
+            data['${effectivePrefix}locked'],
+          )!,
       createdAt:
           attachedDatabase.typeMapping.read(
             DriftSqlType.dateTime,
@@ -432,6 +457,7 @@ class Document extends DataClass implements Insertable<Document> {
   final String? shareCode;
   final bool pinned;
   final DateTime? deletedAt;
+  final bool locked;
   final DateTime createdAt;
   final DateTime updatedAt;
   const Document({
@@ -449,6 +475,7 @@ class Document extends DataClass implements Insertable<Document> {
     this.shareCode,
     required this.pinned,
     this.deletedAt,
+    required this.locked,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -479,6 +506,7 @@ class Document extends DataClass implements Insertable<Document> {
     if (!nullToAbsent || deletedAt != null) {
       map['deleted_at'] = Variable<DateTime>(deletedAt);
     }
+    map['locked'] = Variable<bool>(locked);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -515,6 +543,7 @@ class Document extends DataClass implements Insertable<Document> {
           deletedAt == null && nullToAbsent
               ? const Value.absent()
               : Value(deletedAt),
+      locked: Value(locked),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -540,6 +569,7 @@ class Document extends DataClass implements Insertable<Document> {
       shareCode: serializer.fromJson<String?>(json['shareCode']),
       pinned: serializer.fromJson<bool>(json['pinned']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      locked: serializer.fromJson<bool>(json['locked']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -562,6 +592,7 @@ class Document extends DataClass implements Insertable<Document> {
       'shareCode': serializer.toJson<String?>(shareCode),
       'pinned': serializer.toJson<bool>(pinned),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'locked': serializer.toJson<bool>(locked),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -582,6 +613,7 @@ class Document extends DataClass implements Insertable<Document> {
     Value<String?> shareCode = const Value.absent(),
     bool? pinned,
     Value<DateTime?> deletedAt = const Value.absent(),
+    bool? locked,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => Document(
@@ -599,6 +631,7 @@ class Document extends DataClass implements Insertable<Document> {
     shareCode: shareCode.present ? shareCode.value : this.shareCode,
     pinned: pinned ?? this.pinned,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    locked: locked ?? this.locked,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -621,6 +654,7 @@ class Document extends DataClass implements Insertable<Document> {
       shareCode: data.shareCode.present ? data.shareCode.value : this.shareCode,
       pinned: data.pinned.present ? data.pinned.value : this.pinned,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      locked: data.locked.present ? data.locked.value : this.locked,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -643,6 +677,7 @@ class Document extends DataClass implements Insertable<Document> {
           ..write('shareCode: $shareCode, ')
           ..write('pinned: $pinned, ')
           ..write('deletedAt: $deletedAt, ')
+          ..write('locked: $locked, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -665,6 +700,7 @@ class Document extends DataClass implements Insertable<Document> {
     shareCode,
     pinned,
     deletedAt,
+    locked,
     createdAt,
     updatedAt,
   );
@@ -686,6 +722,7 @@ class Document extends DataClass implements Insertable<Document> {
           other.shareCode == this.shareCode &&
           other.pinned == this.pinned &&
           other.deletedAt == this.deletedAt &&
+          other.locked == this.locked &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -705,6 +742,7 @@ class DocumentsCompanion extends UpdateCompanion<Document> {
   final Value<String?> shareCode;
   final Value<bool> pinned;
   final Value<DateTime?> deletedAt;
+  final Value<bool> locked;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   const DocumentsCompanion({
@@ -722,6 +760,7 @@ class DocumentsCompanion extends UpdateCompanion<Document> {
     this.shareCode = const Value.absent(),
     this.pinned = const Value.absent(),
     this.deletedAt = const Value.absent(),
+    this.locked = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
   });
@@ -740,6 +779,7 @@ class DocumentsCompanion extends UpdateCompanion<Document> {
     this.shareCode = const Value.absent(),
     this.pinned = const Value.absent(),
     this.deletedAt = const Value.absent(),
+    this.locked = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
   }) : type = Value(type),
@@ -760,6 +800,7 @@ class DocumentsCompanion extends UpdateCompanion<Document> {
     Expression<String>? shareCode,
     Expression<bool>? pinned,
     Expression<DateTime>? deletedAt,
+    Expression<bool>? locked,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
   }) {
@@ -778,6 +819,7 @@ class DocumentsCompanion extends UpdateCompanion<Document> {
       if (shareCode != null) 'share_code': shareCode,
       if (pinned != null) 'pinned': pinned,
       if (deletedAt != null) 'deleted_at': deletedAt,
+      if (locked != null) 'locked': locked,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
     });
@@ -798,6 +840,7 @@ class DocumentsCompanion extends UpdateCompanion<Document> {
     Value<String?>? shareCode,
     Value<bool>? pinned,
     Value<DateTime?>? deletedAt,
+    Value<bool>? locked,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
   }) {
@@ -816,6 +859,7 @@ class DocumentsCompanion extends UpdateCompanion<Document> {
       shareCode: shareCode ?? this.shareCode,
       pinned: pinned ?? this.pinned,
       deletedAt: deletedAt ?? this.deletedAt,
+      locked: locked ?? this.locked,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -866,6 +910,9 @@ class DocumentsCompanion extends UpdateCompanion<Document> {
     if (deletedAt.present) {
       map['deleted_at'] = Variable<DateTime>(deletedAt.value);
     }
+    if (locked.present) {
+      map['locked'] = Variable<bool>(locked.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -892,6 +939,7 @@ class DocumentsCompanion extends UpdateCompanion<Document> {
           ..write('shareCode: $shareCode, ')
           ..write('pinned: $pinned, ')
           ..write('deletedAt: $deletedAt, ')
+          ..write('locked: $locked, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -4082,6 +4130,7 @@ typedef $$DocumentsTableCreateCompanionBuilder =
       Value<String?> shareCode,
       Value<bool> pinned,
       Value<DateTime?> deletedAt,
+      Value<bool> locked,
       required DateTime createdAt,
       required DateTime updatedAt,
     });
@@ -4101,6 +4150,7 @@ typedef $$DocumentsTableUpdateCompanionBuilder =
       Value<String?> shareCode,
       Value<bool> pinned,
       Value<DateTime?> deletedAt,
+      Value<bool> locked,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
     });
@@ -4223,6 +4273,11 @@ class $$DocumentsTableFilterComposer
 
   ColumnFilters<DateTime> get deletedAt => $composableBuilder(
     column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get locked => $composableBuilder(
+    column: $table.locked,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4366,6 +4421,11 @@ class $$DocumentsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get locked => $composableBuilder(
+    column: $table.locked,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -4429,6 +4489,9 @@ class $$DocumentsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get deletedAt =>
       $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get locked =>
+      $composableBuilder(column: $table.locked, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -4529,6 +4592,7 @@ class $$DocumentsTableTableManager
                 Value<String?> shareCode = const Value.absent(),
                 Value<bool> pinned = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
+                Value<bool> locked = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
               }) => DocumentsCompanion(
@@ -4546,6 +4610,7 @@ class $$DocumentsTableTableManager
                 shareCode: shareCode,
                 pinned: pinned,
                 deletedAt: deletedAt,
+                locked: locked,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
               ),
@@ -4565,6 +4630,7 @@ class $$DocumentsTableTableManager
                 Value<String?> shareCode = const Value.absent(),
                 Value<bool> pinned = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
+                Value<bool> locked = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
               }) => DocumentsCompanion.insert(
@@ -4582,6 +4648,7 @@ class $$DocumentsTableTableManager
                 shareCode: shareCode,
                 pinned: pinned,
                 deletedAt: deletedAt,
+                locked: locked,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
               ),

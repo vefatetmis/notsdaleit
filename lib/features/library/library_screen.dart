@@ -330,7 +330,8 @@ class _DocCard extends ConsumerWidget {
     final title = doc.title.trim().isEmpty
         ? context.t('Adsız not', 'Untitled note')
         : doc.title.trim();
-    final preview = plainTextFromBody(doc.body);
+    // Kilitli notun içeriği kütüphanede GÖRÜNMEZ (kilidin anlamı bu).
+    final preview = doc.locked ? '' : plainTextFromBody(doc.body);
     final meta = isPdf
         ? '${doc.pageCount ?? 1} ${context.t('sayfa', 'pages')} · ${formatRelative(context, doc.updatedAt)}'
         : '${doc.folder} · ${formatRelative(context, doc.updatedAt)}';
@@ -371,7 +372,7 @@ class _DocCard extends ConsumerWidget {
               if (!next.remove(doc.id)) next.add(doc.id);
               ref.read(librarySelectionProvider.notifier).state = next;
             } else {
-              openDocument(ref, doc);
+              openDocumentGuarded(context, ref, doc);
             }
           },
           onLongPress: () => ref
@@ -401,6 +402,10 @@ class _DocCard extends ConsumerWidget {
                   if (doc.pinned && !selecting) ...[
                     const SizedBox(width: 6),
                     Icon(Icons.push_pin, size: 14, color: nd.accent),
+                  ],
+                  if (doc.locked) ...[
+                    const SizedBox(width: 6),
+                    Icon(Icons.lock_outline, size: 14, color: nd.text2),
                   ],
                   if (doc.sharedId != null) ...[
                     const SizedBox(width: 8),

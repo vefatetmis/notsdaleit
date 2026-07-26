@@ -39,13 +39,17 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final q = query.trim().toLowerCase();
     final allDocs = ref.watch(documentsProvider).valueOrNull ?? const [];
 
+    // Kilitli notlarda **gövde aranmaz** — aksi hâlde içerik arama sonucunda
+    // dolaylı olarak sızardı. Başlık ve klasör aranmaya devam eder ki kullanıcı
+    // kendi notunu bulabilsin (açarken PIN sorulur).
     final results = q.isEmpty
         ? allDocs
-        : allDocs
-            .where((d) => ('${d.title} ${d.folder} ${plainTextFromBody(d.body)}')
-                .toLowerCase()
-                .contains(q))
-            .toList();
+        : allDocs.where((d) {
+            final haystack = d.locked
+                ? '${d.title} ${d.folder}'
+                : '${d.title} ${d.folder} ${plainTextFromBody(d.body)}';
+            return haystack.toLowerCase().contains(q);
+          }).toList();
 
     return Align(
       alignment: Alignment.topCenter,
@@ -149,7 +153,7 @@ class _ResultRow extends ConsumerWidget {
         ),
       ),
       child: InkWell(
-        onTap: () => openDocument(ref, doc),
+        onTap: () => openDocumentGuarded(context, ref, doc),
         onLongPress: () => trashDocument(context, ref, doc),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),

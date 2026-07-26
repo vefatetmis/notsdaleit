@@ -376,7 +376,7 @@ class _FileRow extends ConsumerWidget {
       borderRadius: BorderRadius.circular(10),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => openDocument(ref, doc),
+        onTap: () => openDocumentGuarded(context, ref, doc),
         onLongPress: () => trashDocument(context, ref, doc),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(36, 9, 10, 9),

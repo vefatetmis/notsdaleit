@@ -14,6 +14,7 @@ import '../editor/note_editor_screen.dart';
 import '../export/pdf_export.dart';
 import '../folders/folders_screen.dart';
 import '../forms/insert_image.dart';
+import '../lock/lock_ui.dart';
 import '../ntdl/ntdl_service.dart';
 import '../library/library_screen.dart';
 import '../pdf/pdf_viewer_screen.dart';
@@ -647,6 +648,8 @@ class _DocMenuButton extends ConsumerWidget {
       icon: Icon(Icons.more_vert, size: 20, color: nd.text2),
       onSelected: (v) {
         switch (v) {
+          case 'lock':
+            toggleLock(context, ref, doc);
           case 'image':
             insertImageIntoNote(context, ref);
           case 'addpage':
@@ -677,6 +680,13 @@ class _DocMenuButton extends ConsumerWidget {
           PopupMenuItem(
             value: 'image',
             child: Text(context.t('Görsel ekle', 'Add image')),
+          ),
+        if (isNote)
+          PopupMenuItem(
+            value: 'lock',
+            child: Text(doc.locked
+                ? context.t('Kilidi kaldır', 'Remove lock')
+                : context.t('Notu kilitle', 'Lock note')),
           ),
         if (isNote) const PopupMenuDivider(),
         // ── Sayfa ──

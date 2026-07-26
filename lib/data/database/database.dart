@@ -33,6 +33,11 @@ class Documents extends Table {
   // Yumuşak silme: dolu ise belge çöp kutusunda (kütüphanede/aramada görünmez).
   // null = normal. "Son silinenler"den geri alınır ya da kalıcı silinir.
   DateTimeColumn get deletedAt => dateTime().nullable()();
+  // Not kilidi: true ise belge açılırken PIN sorulur ve kütüphanede içeriği
+  // gizlenir. Yerel bir tercihtir (canlı paylaşımda gönderilmez).
+  // NOT: bu bir ARAYÜZ kilididir, şifreleme DEĞİL — gövde veritabanında düz
+  // durur (bkz. CLAUDE.md "Not kilidi").
+  BoolColumn get locked => boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 }
@@ -160,7 +165,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   /// Bir tablo veritabanında var mı?
   Future<bool> _hasTable(String name) async {
@@ -247,6 +252,9 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 13) {
             await _addColumnIfMissing(m, documents, documents.deletedAt);
+          }
+          if (from < 14) {
+            await _addColumnIfMissing(m, documents, documents.locked);
           }
         },
         beforeOpen: (details) async {

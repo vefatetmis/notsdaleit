@@ -18,6 +18,7 @@ import '../editor/editor_state.dart';
 import '../forms/form_layout.dart';
 import '../forms/form_model.dart';
 import '../library/new_note_dialog.dart';
+import '../lock/lock_ui.dart';
 import 'shell_state.dart';
 
 /// Belge açılırken araçları sıfırlar. Notlar **yazı modunda** açılır (dokununca
@@ -32,6 +33,18 @@ void openDocument(WidgetRef ref, Document d) {
   final isPdf = d.type == 'pdf';
   _resetTools(ref, isPdf: isPdf);
   ref.read(navProvider.notifier).openDoc(d.id, isPdf: isPdf);
+}
+
+/// Belgeyi **kilit kontrolünden geçirerek** açar. Kilitliyse önce PIN sorulur;
+/// yanlış/vazgeçildiyse belge açılmaz. Kütüphane, arama ve klasörler bunu
+/// kullanır (doğrudan [openDocument] kilidi atlar).
+Future<void> openDocumentGuarded(
+  BuildContext context,
+  WidgetRef ref,
+  Document d,
+) async {
+  if (!await ensureUnlocked(context, ref, d)) return;
+  openDocument(ref, d);
 }
 
 /// Yeni not oluşturma akışını başlatır: zengin diyalog (ad + sayfa boyutu +

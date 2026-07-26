@@ -9,7 +9,10 @@ import '../../core/utils/date_format.dart';
 import '../../core/theme/nd_colors.dart';
 import '../auth/auth_service.dart';
 import '../auth/auth_ui.dart';
+import '../../data/data_providers.dart';
 import '../backup/auto_backup.dart';
+import '../lock/lock_service.dart';
+import '../lock/lock_ui.dart';
 import '../backup/backup_service.dart';
 import '../drawing/color_picker.dart';
 import '../drawing/drawing_state.dart';
@@ -219,6 +222,8 @@ class SettingsScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             if (CollabConfig.enabled && kAuthEnabled) _AccountCard(),
+            const SizedBox(height: 12),
+            _LockCard(),
             const SizedBox(height: 12),
             _Card(
               child: Column(
@@ -564,5 +569,101 @@ class _AutoBackupRowState extends ConsumerState<_AutoBackupRow> {
         ],
       ],
     );
+  }
+}
+
+/// Not kilidi kartı: PIN belirle / değiştir / kaldır.
+///
+/// Kartta kilidin **ne olmadığı** da yazıyor — bu bir arayüz kilidi, şifreleme
+/// değil (bkz. lock_service). Kullanıcının yanlış güvenle davranmaması için
+/// bunu açıkça söylemek gerekiyor.
+class _LockCard extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final nd = context.nd;
+    final hasPin = ref.watch(pinSetProvider);
+    final lockedCount = (ref.watch(documentsProvider).valueOrNull ?? const [])
+        .where((d) => d.locked)
+        .length;
+
+    return _Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _CardTitle(context.t('Not kilidi', 'Note lock')),
+          const SizedBox(height: 6),
+          Text(
+            context.t(
+                'Bir PIN belirle, sonra istediğin notu belge menüsünden '
+                    'kilitle. Kilitli notlar açılırken PIN sorulur ve '
+                    'kütüphanede içerikleri görünmez.',
+                'Set a PIN, then lock any note from its document menu. Locked '
+                    'notes ask for the PIN when opened and their content is '
+                    'hidden in the library.'),
+            style: TextStyle(fontSize: 13, height: 1.5, color: nd.text2),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.info_outline, size: 15, color: nd.text2),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  context.t(
+                      'Bu bir ekran kilidi — şifreleme değil. Notun kendisi '
+                          'cihazda düz kayıtlıdır; yedeği açan biri okuyabilir.',
+                      'This is a screen lock, not encryption. The note itself '
+                          'is stored in plain form; anyone opening a backup '
+                          'can read it.'),
+                  style: TextStyle(fontSize: 11.5, height: 1.4, color: nd.text2),
+                ),
+              ),
+            ],
+          ),
+          if (hasPin && lockedCount > 0) ...[
+            const SizedBox(height: 8),
+            Text(
+              context.t('$lockedCount not kilitli', '$lockedCount note(s) locked'),
+              style: TextStyle(fontSize: 12, color: nd.text2),
+            ),
+          ],
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => hasPin
+                      ? _changePin(context, ref)
+                      : setPinFlow(context, ref),
+                  icon: const Icon(Icons.pin_outlined, size: 18),
+                  label: Text(hasPin
+                      ? context.t('PIN’i değiştir', 'Change PIN')
+                      : context.t('PIN belirle', 'Set PIN')),
+                ),
+              ),
+              if (hasPin) ...[
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => removePinFlow(context, ref),
+                    icon: const Icon(Icons.lock_open_outlined, size: 18),
+                    label: Text(context.t('PIN’i kaldır', 'Remove PIN')),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// PIN değiştirme: önce mevcut PIN doğrulanır, sonra yenisi belirlenir.
+  Future<void> _changePin(BuildContext context, WidgetRef ref) async {
+    final ok =
+        await askPin(context, ref, context.t('Mevcut PIN', 'Current PIN'));
+    if (!ok || !context.mounted) return;
+    await setPinFlow(context, ref);
   }
 }

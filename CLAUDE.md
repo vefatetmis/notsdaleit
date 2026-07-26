@@ -194,7 +194,8 @@ lib/
   schemaVersion 10), `pinned` (kütüphanede sabit/pin — bool, yerel tercih,
   collab'a gönderilmez; schemaVersion 11), `deletedAt` (yumuşak silme/çöp
   kutusu — nullable; dolu ise kütüphane/arama/klasörlerde görünmez; schemaVersion
-  13), `createdAt`, `updatedAt`. (schemaVersion 2 — pageSize; 5 — pageColor;
+  13), `locked` (not kilidi — bool; açarken PIN sorulur, kütüphanede önizleme
+  gizlenir; schemaVersion 14), `createdAt`, `updatedAt`. (schemaVersion 2 — pageSize; 5 — pageColor;
   10 — pageBackground; 11 — pinned; 13 — deletedAt.)
 - **Tags + DocumentTags** (schemaVersion 12): kalıcı etiketler (#önemli…) +
   belge-etiket **çoklu-çoğa** ara tablo (cascade). `TagRepository`
@@ -917,15 +918,57 @@ ama **görsel dosyasını taşımaz** → başka cihazda geri yüklenen notta g�
 "bulunamadı" görünür. Dosyaları yedeğe gömmek (base64) ayrı bir iş; PDF
 dosyalarının yedeğe girmemesiyle aynı bilinçli çizgide duruyor.
 
+### ✅ NOT KİLİDİ — PIN (25 Tem 2026)
+
+Şema **v14**: `Documents.locked` (bool). `features/lock/`:
+
+- **`lock_service.dart`:** PIN **saklanmaz** — rastgele 16 baytlık tuz +
+  SHA-256 özeti SharedPreferences'ta (`lockPinHash`/`lockPinSalt`).
+  `pinSetProvider` (Notifier<bool>: setPin/clearPin/verify) +
+  `unlockedNotesProvider` (bu oturumda açılmış not id'leri — **kalıcı değil**,
+  uygulama kapanınca kilit geri gelir).
+  **Paket:** `crypto ^3.0.7` doğrudan bağımlılığa alındı (zaten dolaylı vardı;
+  saf Dart, native kod yok → sürüm sabitlerini etkilemez).
+- **`lock_ui.dart`:** `askPin` (doğrulama), `setPinFlow` (iki kez sorar),
+  `removePinFlow` (**PIN kaldırılınca kilitli notların kilidi de açılır** —
+  yoksa açılamayan not kalırdı), `toggleLock`, `ensureUnlocked`.
+- **Açma yolu tek noktadan:** `actions.openDocumentGuarded(context, ref, doc)`
+  → kilitliyse PIN sorar. Kütüphane, arama ve klasörler bunu kullanır.
+  (`openDocument` doğrudan çağrılırsa kilit ATLANIR — yeni çağrı yeri eklerken
+  guarded olanı kullan.)
+- **Sızıntı kapatıldı:** kütüphane kartında kilitli notun **önizlemesi
+  gösterilmez**, kartta kilit ikonu çıkar; **aramada kilitli notun gövdesi
+  aranmaz** (başlık/klasör aranır — kullanıcı kendi notunu bulabilsin).
+- **UI:** belge menüsü (⋮) → "Notu kilitle / Kilidi kaldır"; Ayarlar →
+  **"Not kilidi"** kartı (PIN belirle/değiştir/kaldır + kaç not kilitli).
+
+**BU ŞİFRELEME DEĞİL — kartta da yazıyor.** Not gövdesi veritabanında düz
+durur; yedeği açan ya da cihaza erişen okuyabilir. Amaç, telefonu eline alanın
+notu kazara/meraktan açmasını engellemek. Gerçek gizlilik gövde şifrelemesi
+ister (yedek + paylaşım + arama hepsini etkiler) — ayrı ve büyük bir iş.
+
+**Biyometrik (parmak izi) YOK:** `local_auth` Dart 3.7.2 uyumu doğrulanmadı;
+PIN paketsiz çalıştığı için önce o yapıldı.
+
 ### 📌 SIRADAKİ BÜYÜK ÜÇLÜNÜN KALANI
 
 1. ~~Nota fotoğraf/görsel ekleme~~ → **YAPILDI** (yukarı bkz.). Kalan:
    **kameradan çekme** (`image_picker` riski ölçülerek) + görselin yedeğe
    gömülmesi + görsel boyutlandırma (şu an sayfa genişliğini kaplar).
-2. **Not kilidi** — biyometrik yerine önce **PIN** (paketsiz, SharedPreferences'ta
-   hash) yapılmalı; `local_auth` Dart 3.7.2 uyumu ayrıca doğrulanmalı.
+2. ~~Not kilidi~~ → **YAPILDI** (yukarı bkz.). Kalan: biyometrik açma
+   (`local_auth`), uygulama geneli kilit (açılışta PIN).
 3. **Sesli not** — ses kaydı + oynatıcı (`record` benzeri paket), dosya yönetimi
    yedeklemeye de girmeli. En büyük iş.
+4. **Ana ekran widget'ı (Android)** — kullanıcı istedi (25 Tem 2026), listeye
+   alındı. **Kapsam:** en değerli hâli "hızlı not" (ana ekrandan tek dokunuşla
+   yeni nota düşmek); ikinci aday "bugünün görevleri/rutinleri". **Gereken:**
+   `home_widget` paketi + **native Android tarafı** (AppWidgetProvider + layout
+   XML + güncelleme tetikleyicisi). **Riskler:** (a) eklentilerin Kotlin
+   sürümü 1.9.25'e sabit — paketin uyumu önce doğrulanmalı, (b) widget'ın
+   verisi uygulamayla paylaşılmalı (SharedPreferences köprüsü), (c) uygulamada
+   henüz "hızlı not" akışı yok — widget onun kısayolu olacak, önce akışın
+   kendisi gerekebilir. **Sıra:** kilit ve sesli nottan sonra; native iş
+   olduğu için cihazda test şart.
 
 **C — fazlalıklar**
 9. **`features/editor/table_embed.dart`** (318 satır) — başarısız ndtable
