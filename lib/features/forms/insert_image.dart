@@ -34,6 +34,44 @@ Future<Directory> imagesDir() async {
 /// cihazdan cihaza değişir).
 File imageFileFor(String dirPath, String name) => File('$dirPath/$name');
 
+/// Bir not gövdesindeki görsel dosya adları.
+Set<String> imageNamesInBody(String body) {
+  if (!isFormBody(body)) return const {};
+  final form = FormDoc.tryParse(body);
+  if (form == null) return const {};
+  return {
+    for (final b in form.blocks)
+      if (b is ImageBlock && b.file.isNotEmpty) b.file,
+  };
+}
+
+/// Artık hiçbir notun kullanmadığı görsel dosyalarını siler.
+///
+/// Bir not kalıcı silindiğinde çağrılır. Dosyalar **paylaşılabilir** olduğu
+/// için (notu çoğaltmak aynı dosyaya işaret eder) körlemesine silinemez:
+/// önce kalan tüm belgelerin gövdeleri taranır, yalnız hiçbirinde geçmeyen
+/// dosyalar kaldırılır.
+Future<void> pruneUnusedImages(List<String> remainingBodies) async {
+  try {
+    final dir = await imagesDir();
+    final used = <String>{};
+    for (final body in remainingBodies) {
+      used.addAll(imageNamesInBody(body));
+    }
+    for (final f in dir.listSync().whereType<File>()) {
+      final name = f.path.split(RegExp(r'[\\/]')).last;
+      if (used.contains(name)) continue;
+      try {
+        f.deleteSync();
+      } catch (_) {
+        // Silinemeyen dosya sorun değil; bir sonraki temizlikte denenir.
+      }
+    }
+  } catch (_) {
+    // Temizlik en iyi çabadır — başarısızlığı kullanıcıya yansıtmaz.
+  }
+}
+
 /// Görselin sayfaya sığması için en-boy oranını sınırlar. Oran modelde tutulur
 /// çünkü sayfalama ölçümü senkron olmak zorunda (dosyayı açamaz).
 double clampImageAspect(double aspect, String? pageSize) {
@@ -44,18 +82,23 @@ double clampImageAspect(double aspect, String? pageSize) {
 }
 
 /// Bir görsel dosyasının en-boy oranını (yükseklik ÷ genişlik) okur.
+///
+/// Görseli **çözmeden** yalnız başlığından ölçüyü alır (`ImageDescriptor`):
+/// tam çözme 12 MP'lik bir telefon fotoğrafında ~48 MB bellek demek olurdu ve
+/// burada tek ihtiyacımız oran.
 Future<double?> _readAspect(File file) async {
+  ui.ImmutableBuffer? buffer;
+  ui.ImageDescriptor? desc;
   try {
-    final bytes = await file.readAsBytes();
-    final codec = await ui.instantiateImageCodec(bytes);
-    final frame = await codec.getNextFrame();
-    final img = frame.image;
-    final a = img.height / img.width;
-    img.dispose();
-    codec.dispose();
-    return a;
+    buffer = await ui.ImmutableBuffer.fromUint8List(await file.readAsBytes());
+    desc = await ui.ImageDescriptor.encoded(buffer);
+    if (desc.width == 0) return null;
+    return desc.height / desc.width;
   } catch (_) {
     return null;
+  } finally {
+    desc?.dispose();
+    buffer?.dispose();
   }
 }
 

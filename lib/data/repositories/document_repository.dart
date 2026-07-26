@@ -128,6 +128,13 @@ class DocumentRepository {
         );
   }
 
+  /// Tüm belgelerin gövdeleri (çöp kutusundakiler dâhil). Kullanılmayan
+  /// görsel dosyalarını temizlerken "bu dosyaya hâlâ atıf var mı" için.
+  Future<List<String>> getAllBodies() async {
+    final rows = await _db.select(_db.documents).get();
+    return [for (final d in rows) d.body];
+  }
+
   /// Notu kilitler / kilidini açar (arayüz kilidi — bkz. lock_service).
   Future<void> setLocked({required int id, required bool locked}) {
     return (_db.update(_db.documents)..where((t) => t.id.equals(id)))

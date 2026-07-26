@@ -950,6 +950,31 @@ ister (yedek + paylaşım + arama hepsini etkiler) — ayrı ve büyük bir iş.
 **Biyometrik (parmak izi) YOK:** `local_auth` Dart 3.7.2 uyumu doğrulanmadı;
 PIN paketsiz çalıştığı için önce o yapıldı.
 
+### 🔍 İKİNCİ KOD DENETİMİ (25 Tem 2026) — dört sessiz hata düzeltildi
+
+Kullanıcı "sorunlarımıza göz atsak ve uygulamamızı tarasak iyi olur" dedi.
+`flutter analyze` temiz, 12 test geçiyor, çeviri eksiği yok, ölü `catch` yok.
+Taramada **veri taşıma boşlukları** çıktı (hepsi düzeltildi):
+
+1. **Yedek `locked` alanını taşımıyordu** → kilitli not yedekten **kilitsiz**
+   dönüyordu. `backup_service` artık yazıyor ve okuyor.
+2. **`.ntdl` `pageBackground` taşımıyordu** → paylaşılan notta sayfa deseni
+   (çizgili/kareli) kayboluyordu. Eklendi.
+3. **Silinen notların görselleri diskte kalıyordu** → zamanla şişer.
+   `permanentlyDeleteDocuments` artık `pruneUnusedImages` çağırıyor. Dosyalar
+   **paylaşılabilir** olduğu için (notu çoğaltmak aynı dosyayı gösterir)
+   körlemesine silinmez: kalan tüm gövdeler taranıp yalnız hiçbirinde geçmeyen
+   dosya silinir (`repo.getAllBodies`).
+4. **Görsel oranı okunurken tam çözme yapılıyordu** → 12 MP telefon
+   fotoğrafında ~48 MB bellek zirvesi. `ui.ImageDescriptor.encoded` ile artık
+   yalnız başlıktan ölçü okunuyor (çözme yok).
+
+**Denetimde bulunan ama BİLEREK bırakılanlar** (sıraya alındı, aşağıdaki
+listelerde): Quill sayfa taşması · yedekten dönen hatırlatıcılar · editörden
+etiketleme · lasso taşımanın collab'a gitmemesi · görselin yedeğe girmemesi ·
+`table_embed.dart` (318 satır ölü ağırlık) · sürüm yazısının elle eşitlenmesi ·
+otomatik yedeğin ana thread'de JSON üretmesi (çok büyük veride kısa donma).
+
 ### 📌 SIRADAKİ BÜYÜK ÜÇLÜNÜN KALANI
 
 1. ~~Nota fotoğraf/görsel ekleme~~ → **YAPILDI** (yukarı bkz.). Kalan:

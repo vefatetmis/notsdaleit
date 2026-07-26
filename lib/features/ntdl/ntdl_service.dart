@@ -28,6 +28,7 @@ Future<void> exportNtdl(WidgetRef ref, Document doc) async {
       'title': doc.title,
       'pageSize': doc.pageSize,
       'pageColor': doc.pageColor,
+      'pageBackground': doc.pageBackground,
       'pageCount': doc.pageCount,
       'body': doc.body,
     },
@@ -76,6 +77,7 @@ Future<void> importNtdlFromPath(WidgetRef ref, String srcPath) async {
         folder: 'Kişisel',
         pageSize: (note['pageSize'] as String?) ?? 'a4',
         pageColor: (note['pageColor'] as String?) ?? 'beyaz',
+        pageBackground: (note['pageBackground'] as String?) ?? 'duz',
         pageCount: (note['pageCount'] as int?) ?? 1,
       );
 

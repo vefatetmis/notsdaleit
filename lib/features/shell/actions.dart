@@ -17,6 +17,7 @@ import '../drawing/stroke_painter.dart';
 import '../editor/editor_state.dart';
 import '../forms/form_layout.dart';
 import '../forms/form_model.dart';
+import '../forms/insert_image.dart';
 import '../library/new_note_dialog.dart';
 import '../lock/lock_ui.dart';
 import 'shell_state.dart';
@@ -481,6 +482,7 @@ Future<void> permanentlyDeleteDocuments(
   if (ok != true) return;
 
   final repo = ref.read(documentRepositoryProvider);
+  var hadImages = false;
   for (final id in ids) {
     final d = await repo.getById(id);
     if (d != null && d.type == 'pdf' && d.filePath != null) {
@@ -489,7 +491,16 @@ Future<void> permanentlyDeleteDocuments(
         if (f.existsSync()) f.deleteSync();
       } catch (_) {}
     }
+    if (d != null && imageNamesInBody(d.body).isNotEmpty) hadImages = true;
     await repo.delete(id);
+  }
+
+  // Silinen notlarda görsel varsa artık kimsenin kullanmadığı dosyaları
+  // temizle. Dosyalar paylaşılabildiği (notu çoğaltmak aynı dosyayı gösterir)
+  // için körlemesine silinmez — kalan gövdeler taranır.
+  if (hadImages) {
+    final remaining = await repo.getAllBodies();
+    await pruneUnusedImages(remaining);
   }
 }
 
