@@ -19,6 +19,9 @@ import '../shell/shell_state.dart';
 ///
 /// PIN'in kendisi saklanmaz: rastgele bir tuz + SHA-256 özeti saklanır.
 
+/// PIN uzunluğu — sabit 6 hane (giriş kutucukları buna göre çizilir).
+const int kPinLength = 6;
+
 const _kHashKey = 'lockPinHash';
 const _kSaltKey = 'lockPinSalt';
 

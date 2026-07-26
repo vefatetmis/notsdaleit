@@ -103,6 +103,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       ref.read(tableInserterProvider.notifier).state = _insertTable;
       // Belge menüsündeki "Görsel ekle" bu kancayı çağırır.
       ref.read(imageInserterProvider.notifier).state = _insertImage;
+      // Belge menüsündeki "Yakınlaştırmayı sıfırla".
+      ref.read(zoomResetterProvider.notifier).state = _resetZoom;
       if (emptyOnOpen && ref.read(toolProvider) == PenTool.yazi) {
         _focus.requestFocus();
       }
@@ -144,12 +146,18 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         _form = FormDoc([
           if (text.isNotEmpty) AreaBlock(value: text, minLines: 3),
           block,
+          // Görselin ALTINA yazı alanı: aksi hâlde (özellikle boş notta)
+          // görselden sonra yazacak yer kalmıyordu.
+          AreaBlock(minLines: 3),
         ]);
         if (ref.read(activeQuillControllerProvider) == _controller) {
           ref.read(activeQuillControllerProvider.notifier).state = null;
         }
       } else {
         _form!.blocks.add(block);
+        // Zaten boş bir yazı alanıyla bitmiyorsa yenisini ekle.
+        final last = _form!.blocks.last;
+        if (last is! AreaBlock) _form!.blocks.add(AreaBlock(minLines: 3));
       }
     });
     _save();
@@ -263,6 +271,12 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   /// sayfa sayısı büyür.
   void _onPagesMeasured(int natural) => _ensurePages(natural);
 
+  /// Yakınlaştırmayı başa döndürür (üst bar menüsü + pinch sonrası oturtma).
+  void _resetZoom() {
+    _tc.value = Matrix4.identity();
+    _onTransform();
+  }
+
   /// Görünümün ortası hangi sayfa kartına denk geliyor? Üst bardaki "sayfa
   /// ekle / sayfayı sil" bunu kullanır (kullanıcıya hangi sayfa olduğu
   /// sorulmaz — baktığı sayfa neyse odur).
@@ -304,6 +318,9 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     }
     if (ref.read(imageInserterProvider) == _insertImage) {
       ref.read(imageInserterProvider.notifier).state = null;
+    }
+    if (ref.read(zoomResetterProvider) == _resetZoom) {
+      ref.read(zoomResetterProvider.notifier).state = null;
     }
     _controller.dispose();
     _focus.dispose();
@@ -389,6 +406,14 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                   // Sıfır kenar boşluğu: içerik kenarları görünüm kenarını
                   // geçemez → 1.0'da yatay kilit, dikey tam kaydırma.
                   boundaryMargin: EdgeInsets.zero,
+                  // Parmak kalkınca ölçek 1'e yakınsa tam 1'e oturt. Sahada
+                  // "yakınlaştırdım, eskisi kadar uzaklaştıramadım" oluyordu:
+                  // pinch 1.0'a tam inemeyip 1.0x'in az üstünde takılıyor ve
+                  // sayfa büyük kalıyordu.
+                  onInteractionEnd: (_) {
+                    final s = _tc.value.getMaxScaleOnAxis();
+                    if (s > 1.0 && s < 1.06) _resetZoom();
+                  },
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                     child: SizedBox(

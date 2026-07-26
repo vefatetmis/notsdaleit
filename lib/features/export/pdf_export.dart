@@ -1411,8 +1411,15 @@ void _paintForm(
         }
         cy += h + 14 * scale;
       case ImageBlock():
-        final h = maxWidth * b.aspect;
-        final dst = Rect.fromLTWH(x, cy, maxWidth, h);
+        // Genişlik oranı + hizalama ekrandakiyle aynı (form_page._image).
+        final iw = maxWidth * b.width;
+        final h = iw * b.aspect;
+        final ix = switch (b.align) {
+          'left' => x,
+          'right' => x + maxWidth - iw,
+          _ => x + (maxWidth - iw) / 2,
+        };
+        final dst = Rect.fromLTWH(ix, cy, iw, h);
         final img = images[b.file];
         if (img != null) {
           // BoxFit.cover: kaynağı hedef orana göre kırp (ekranla aynı).

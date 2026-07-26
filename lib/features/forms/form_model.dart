@@ -277,6 +277,8 @@ sealed class FormBlock {
           file: (j['f'] as String?) ?? '',
           aspect: (j['a'] as num?)?.toDouble() ?? 0.75,
           caption: (j['c'] as String?) ?? '',
+          width: (j['w'] as num?)?.toDouble() ?? 1.0,
+          align: (j['al'] as String?) ?? 'center',
         );
       case 'table':
         return TableBlock(
@@ -576,11 +578,24 @@ class TableBlock extends FormBlock {
 /// yapabilmek için oran modelde tutulur (ölçüm senkron olmak zorunda);
 /// eklenirken sayfaya sığacak şekilde sınırlanır (`clampImageAspect`).
 class ImageBlock extends FormBlock {
-  ImageBlock({required this.file, this.aspect = 0.75, this.caption = ''});
+  ImageBlock({
+    required this.file,
+    this.aspect = 0.75,
+    this.caption = '',
+    this.width = 1.0,
+    this.align = 'center',
+  });
 
   final String file;
   double aspect;
   String caption;
+
+  /// Sayfa genişliğinin kaçta kaçını kaplar (0.25–1.0). Kullanıcı görsele
+  /// uzun basıp değiştirir.
+  double width;
+
+  /// Tam genişlikte değilken yatay hizalama: 'left' | 'center' | 'right'.
+  String align;
 
   @override
   Map<String, dynamic> toJson() => {
@@ -588,6 +603,8 @@ class ImageBlock extends FormBlock {
         'f': file,
         'a': double.parse(aspect.toStringAsFixed(4)),
         if (caption.isNotEmpty) 'c': caption,
+        if (width != 1.0) 'w': double.parse(width.toStringAsFixed(3)),
+        if (align != 'center') 'al': align,
       };
 
   @override

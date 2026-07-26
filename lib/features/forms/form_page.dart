@@ -1032,26 +1032,37 @@ class _FormPageState extends ConsumerState<FormPage> {
   Widget _image(int i, ImageBlock b) {
     final dirPath = widget.imagesDirPath;
     final file = dirPath == null ? null : imageFileFor(dirPath, b.file);
+    final alignment = switch (b.align) {
+      'left' => Alignment.centerLeft,
+      'right' => Alignment.centerRight,
+      _ => Alignment.center,
+    };
     return LayoutBuilder(
       builder: (context, c) {
-        final h = c.maxWidth * b.aspect;
+        final w = c.maxWidth * b.width;
+        final h = w * b.aspect;
         return GestureDetector(
-          onLongPress: widget.editable ? () => _deleteImage(i) : null,
+          // Uzun bas → boyut / hizalama / sil menüsü.
+          onLongPress: widget.editable ? () => _imageMenu(i, b) : null,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              SizedBox(
-                height: h,
-                child: file == null || !file.existsSync()
-                    ? _missingImage()
-                    : ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
-                        child: Image.file(
-                          file,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _missingImage(),
+              Align(
+                alignment: alignment,
+                child: SizedBox(
+                  width: w,
+                  height: h,
+                  child: file == null || !file.existsSync()
+                      ? _missingImage()
+                      : ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: Image.file(
+                            file,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _missingImage(),
+                          ),
                         ),
-                      ),
+                ),
               ),
               if (b.caption.isNotEmpty) ...[
                 const SizedBox(height: 6),
@@ -1060,6 +1071,81 @@ class _FormPageState extends ConsumerState<FormPage> {
                   style: TextStyle(fontSize: 12, height: 1.3, color: paper.muted),
                 ),
               ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// Görsele uzun basınca: boyut, hizalama, sil.
+  void _imageMenu(int i, ImageBlock b) {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) {
+        Widget item(IconData icon, String label, VoidCallback onTap,
+            {bool selected = false, bool danger = false}) {
+          final color = danger ? Theme.of(ctx).colorScheme.error : null;
+          return ListTile(
+            leading: Icon(icon, size: 20, color: color),
+            title: Text(label, style: TextStyle(color: color)),
+            trailing: selected ? const Icon(Icons.check, size: 18) : null,
+            onTap: () {
+              Navigator.of(ctx).pop();
+              onTap();
+            },
+          );
+        }
+
+        void setWidth(double v) {
+          setState(() => b.width = v);
+          _changed();
+        }
+
+        void setAlign(String v) {
+          setState(() => b.align = v);
+          _changed();
+        }
+
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 6),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(ctx.t('Görsel', 'Image'),
+                      style: const TextStyle(
+                          fontSize: 13, fontWeight: FontWeight.w700)),
+                ),
+              ),
+              item(Icons.photo_size_select_small, ctx.t('Küçük', 'Small'),
+                  () => setWidth(0.4),
+                  selected: b.width < 0.55),
+              item(Icons.photo_size_select_large, ctx.t('Orta', 'Medium'),
+                  () => setWidth(0.7),
+                  selected: b.width >= 0.55 && b.width < 0.9),
+              item(Icons.photo_size_select_actual,
+                  ctx.t('Tam genişlik', 'Full width'), () => setWidth(1.0),
+                  selected: b.width >= 0.9),
+              if (b.width < 0.9) ...[
+                const Divider(height: 1),
+                item(Icons.format_align_left, ctx.t('Sola yasla', 'Align left'),
+                    () => setAlign('left'),
+                    selected: b.align == 'left'),
+                item(Icons.format_align_center, ctx.t('Ortala', 'Centre'),
+                    () => setAlign('center'),
+                    selected: b.align == 'center'),
+                item(Icons.format_align_right, ctx.t('Sağa yasla', 'Align right'),
+                    () => setAlign('right'),
+                    selected: b.align == 'right'),
+              ],
+              const Divider(height: 1),
+              item(Icons.delete_outline, ctx.t('Görseli sil', 'Delete image'),
+                  () => _deleteImage(i),
+                  danger: true),
+              const SizedBox(height: 8),
             ],
           ),
         );

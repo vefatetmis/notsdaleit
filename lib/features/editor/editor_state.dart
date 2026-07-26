@@ -47,6 +47,11 @@ typedef ImageInserter = void Function(String name, double aspect);
 
 final imageInserterProvider = StateProvider<ImageInserter?>((ref) => null);
 
+/// Açık editörün "yakınlaştırmayı sıfırla" kancası. Zoom durumu
+/// `InteractiveViewer`'ın controller'ında olduğu için sıfırlamayı editör yapar;
+/// üst bar menüsü bunu çağırır.
+final zoomResetterProvider = StateProvider<VoidCallback?>((ref) => null);
+
 /// Editörde **şu an bakılan sayfa** (0 tabanlı). Görünümün ortasının hangi
 /// sayfa kartına denk geldiğinden hesaplanır (`NoteEditorScreen._onTransform`).
 /// Üst bar menüsündeki "sayfa ekle / sayfayı sil" bunu kullanır — böylece

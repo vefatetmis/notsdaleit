@@ -648,6 +648,8 @@ class _DocMenuButton extends ConsumerWidget {
       icon: Icon(Icons.more_vert, size: 20, color: nd.text2),
       onSelected: (v) {
         switch (v) {
+          case 'zoomreset':
+            ref.read(zoomResetterProvider)?.call();
           case 'lock':
             toggleLock(context, ref, doc);
           case 'image':
@@ -675,6 +677,14 @@ class _DocMenuButton extends ConsumerWidget {
         }
       },
       itemBuilder: (context) => [
+        // ── Görünüm ──
+        if (ref.watch(zoomResetterProvider) != null)
+          PopupMenuItem(
+            value: 'zoomreset',
+            child: Text(
+                context.t('Yakınlaştırmayı sıfırla', 'Reset zoom')),
+          ),
+        if (ref.watch(zoomResetterProvider) != null) const PopupMenuDivider(),
         // ── İçerik ekleme ──
         if (isNote)
           PopupMenuItem(

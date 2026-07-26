@@ -126,8 +126,9 @@ void _toast(BuildContext context, String tr, String en) {
     ));
 }
 
-/// PIN giriş kutusu. [returnPin] true ise girilen PIN döner (belirleme akışı),
-/// aksi hâlde doğrulanır ve bool döner.
+/// PIN giriş kutusu: **6 kutucuk**. Görünmez bir `TextField` tuşları toplar,
+/// kutucuklar doldukça dolar; altıncı rakamda kendiliğinden onaylanır (ayrı
+/// "Tamam" beklemek gereksiz — uzunluk sabit).
 class _PinDialog extends ConsumerStatefulWidget {
   const _PinDialog({
     required this.title,
@@ -145,21 +146,37 @@ class _PinDialog extends ConsumerStatefulWidget {
 
 class _PinDialogState extends ConsumerState<_PinDialog> {
   final _c = TextEditingController();
+  final _focus = FocusNode();
   String? _error;
 
   @override
+  void initState() {
+    super.initState();
+    _c.addListener(_onChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _focus.requestFocus());
+  }
+
+  @override
   void dispose() {
+    _c.removeListener(_onChanged);
     _c.dispose();
+    _focus.dispose();
     super.dispose();
   }
 
-  void _submit() {
-    final pin = _c.text.trim();
-    if (pin.length < 4) {
-      setState(() => _error = context.t(
-          'PIN en az 4 rakam olmalı', 'The PIN must be at least 4 digits'));
-      return;
+  void _onChanged() {
+    setState(() => _error = null);
+    if (_c.text.length == kPinLength) {
+      // Kullanıcı son rakamı görsün diye bir kare bekle.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _submit();
+      });
     }
+  }
+
+  void _submit() {
+    final pin = _c.text;
+    if (pin.length != kPinLength) return;
     if (widget.returnPin) {
       Navigator.of(context).pop(pin);
       return;
@@ -169,36 +186,69 @@ class _PinDialogState extends ConsumerState<_PinDialog> {
     } else {
       setState(() => _error = context.t('PIN yanlış', 'Wrong PIN'));
       _c.clear();
+      _focus.requestFocus();
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final nd = context.nd;
+    final len = _c.text.length;
+
     return AlertDialog(
       title: Text(widget.title),
       content: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          TextField(
-            controller: _c,
-            autofocus: true,
-            obscureText: true,
-            keyboardType: TextInputType.number,
-            maxLength: 8,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            onSubmitted: (_) => _submit(),
-            decoration: InputDecoration(
-              hintText: '••••',
-              counterText: '',
-              errorText: _error,
-            ),
+          // Kutucuklar + üstlerinde tuşları toplayan görünmez alan.
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  for (var i = 0; i < kPinLength; i++)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: _PinBox(
+                        filled: i < len,
+                        active: i == len,
+                        error: _error != null,
+                      ),
+                    ),
+                ],
+              ),
+              // Görünmez: imleç/metin gizli, yalnız klavye girdisi alır.
+              SizedBox(
+                width: kPinLength * 44,
+                height: 52,
+                child: TextField(
+                  controller: _c,
+                  focusNode: _focus,
+                  autofocus: true,
+                  keyboardType: TextInputType.number,
+                  maxLength: kPinLength,
+                  showCursor: false,
+                  style: const TextStyle(color: Colors.transparent),
+                  cursorColor: Colors.transparent,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  decoration: const InputDecoration(
+                    counterText: '',
+                    border: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 10),
           Text(
-            context.t('4–8 rakam', '4–8 digits'),
-            style: TextStyle(fontSize: 12, color: nd.text2),
+            _error ?? context.t('$kPinLength haneli PIN', '$kPinLength-digit PIN'),
+            style: TextStyle(
+              fontSize: 12.5,
+              color: _error != null ? Theme.of(context).colorScheme.error : nd.text2,
+            ),
           ),
         ],
       ),
@@ -207,11 +257,51 @@ class _PinDialogState extends ConsumerState<_PinDialog> {
           onPressed: () => Navigator.of(context).pop(),
           child: Text(context.t('Vazgeç', 'Cancel')),
         ),
-        FilledButton(
-          onPressed: _submit,
-          child: Text(context.t('Tamam', 'OK')),
-        ),
       ],
+    );
+  }
+}
+
+/// Tek PIN kutucuğu: boş / dolu / sıradaki (vurgulu).
+class _PinBox extends StatelessWidget {
+  const _PinBox({
+    required this.filled,
+    required this.active,
+    required this.error,
+  });
+
+  final bool filled;
+  final bool active;
+  final bool error;
+
+  @override
+  Widget build(BuildContext context) {
+    final nd = context.nd;
+    final border = error
+        ? Theme.of(context).colorScheme.error
+        : active
+            ? nd.accent
+            : nd.borderStrong;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 140),
+      width: 36,
+      height: 46,
+      decoration: BoxDecoration(
+        color: nd.bg,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: border, width: active || error ? 2 : 1),
+      ),
+      alignment: Alignment.center,
+      child: filled
+          ? Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                color: nd.text,
+                shape: BoxShape.circle,
+              ),
+            )
+          : null,
     );
   }
 }
