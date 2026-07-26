@@ -496,7 +496,7 @@ kalem olduğundan ızgara/2-kolon düzenler birebir çıkmaz. **Karar: pragmatik
 | Kanal | Sürüm | Durum |
 |-------|-------|-------|
 | Play üretim | — | **ETKİN DEĞİL** — uygulama hiç üretime çıkmadı (eski notlardaki "1.0 mağazada yayında" YANLIŞTI, 23 Tem 2026'da konsoldan doğrulandı) |
-| Play kapalı test (Alpha) | **1.3.0+4** (vc 4) | ⚠️ Yayında ama **BOZUK** — eski sürümden güncelleyende migration hatası (bkz. "KRİTİK HATA"); yerine 1.3.1+5 yüklenmeli |
+| Play kapalı test (Alpha) | **1.3.1+5** (vc 5) | ✅ Yayında ve çalışıyor — 1.3.0+4'teki migration hatası düzeltildi (bkz. "KRİTİK HATA"), saha testinde doğrulandı |
 | Play dahili test | 1.0.0 (vc 2) | Etkin (16 Tem 2026) |
 | Dev / paralel APK | 1.3.0+4 (aynı kod) | **Aktif geliştirme burada** |
 
@@ -665,7 +665,8 @@ kurulum. Düzeltme geri alındığında bu testlerin **3'ü düşüyor** (doğru
 yani regresyonu gerçekten yakalıyorlar.
 
 **Sürüm:** pubspec `1.3.0+4` → **`1.3.1+5`** (Ayarlar'daki sürüm yazısı da
-elle güncellendi). Kapalı teste **acil** yüklenmesi gereken sürüm budur.
+elle güncellendi). **Kapalı teste yüklendi ve sahada doğrulandı** (25 Tem
+2026, kullanıcı: "yükledim düzeldi").
 
 ### 🎨 RENK PALETİ DEĞİŞTİ — sıcak bej + denim mavi (24 Tem 2026)
 
@@ -883,15 +884,44 @@ listenin ilk üçü uygulandı (kalanlar aşağıda "SIRADAKİ BÜYÜK ÜÇLÜ")
 - `backup_service.exportBackup` içindeki veri toplama `collectBackupData(ref)`
   olarak ayrıldı (dışa aktarma + otomatik yedek aynı veriyi üretir).
 
-### 📌 SIRADAKİ BÜYÜK ÜÇLÜ (kullanıcı onayladı: "hepsi harika özellikler")
+### ✅ NOTA GÖRSEL EKLEME (25 Tem 2026) — büyük üçlünün ilki
 
-Denetimde önerilen 6 maddenin kalan 3'ü — **sıradaki iş bunlar**:
+Tablo deseninin aynısı: görsel bir **form bloğu** (`ImageBlock`). Böylece
+kaydetme, canlı paylaşım (LWW gövde), .ntdl, yedek ve şablon taşıma
+kendiliğinden çalışıyor — blok JSON'un içinde.
 
-1. **Nota fotoğraf/görsel ekleme** — en büyük eksik. `image_picker` + görseli
-   uygulama klasörüne kopyalama + editörde gösterim + PDF/PNG export + yedek/
-   collab taşıma. **Mimari öneri:** tablo gibi bir **form bloğu** (`ImageBlock`)
-   olarak yapılmalı (serbest not forma dönüşür) — `flutter_quill_extensions`
-   eklemek yeni bağımlılık ve sürüm riski demek.
+- **Paket YOK:** görsel seçme mevcut `file_picker` ile (`FileType.image`).
+  `image_picker` (kamera) bilinçli olarak ertelendi — yeni bağımlılık +
+  eklentilerin Kotlin 1.9.25 kısıtı risk demek. **Kamera ikinci adım.**
+- **Dosya:** seçilen görsel `<appDocs>/images/` altına **kopyalanır** (galeride
+  silinse bile not bozulmasın). Modelde yalnız **dosya adı** durur — tam yol
+  cihazdan cihaza değişir. `insert_image.dart`: `imagesDir()`, `imageFileFor()`.
+- **Oran modelde:** `ImageBlock.aspect` (yükseklik ÷ genişlik). Sayfalama ölçümü
+  **senkron** olmak zorunda (dosyayı açamaz), bu yüzden oran eklerken okunup
+  saklanır ve `clampImageAspect` ile sayfaya sığacak şekilde sınırlanır
+  (contentH'ın %90'ı).
+- **Ekran** (`form_page._image`): `Image.file` + `BoxFit.cover`, dosya yoksa
+  kırık-görsel yer tutucu. **Uzun bas → kaldır** ("Geri al" snackbar'lı; dosya
+  diskte kalır). Klasör yolu asenkron çözüldüğü için editörden `imagesDirPath`
+  olarak geçilir.
+- **PDF/PNG** (`pdf_export`): `_paintForm` senkron olduğundan görseller
+  **önceden** yüklenir (`_loadFormImages` → `Map<String, ui.Image>`), çizimden
+  sonra `dispose` edilir. Aynı `BoxFit.cover` kırpması + yuvarlak köşe; dosya
+  yoksa yer tutucu kutu çizilir (çıktıda boşluk kalmaz).
+- **Ekleme:** belge menüsü (⋮) → **"Görsel ekle"**. Serbest (Quill) notta
+  tabloda olduğu gibi **forma dönüştürme uyarısı** çıkar; görsel **sona**
+  eklenir (araya girmek blok index'lerini kaydırıp alan biçimlerini bozardı).
+
+**Bilinen sınır (ÖNEMLİ):** yedek/`.ntdl`/canlı paylaşım blok JSON'unu taşır
+ama **görsel dosyasını taşımaz** → başka cihazda geri yüklenen notta görsel
+"bulunamadı" görünür. Dosyaları yedeğe gömmek (base64) ayrı bir iş; PDF
+dosyalarının yedeğe girmemesiyle aynı bilinçli çizgide duruyor.
+
+### 📌 SIRADAKİ BÜYÜK ÜÇLÜNÜN KALANI
+
+1. ~~Nota fotoğraf/görsel ekleme~~ → **YAPILDI** (yukarı bkz.). Kalan:
+   **kameradan çekme** (`image_picker` riski ölçülerek) + görselin yedeğe
+   gömülmesi + görsel boyutlandırma (şu an sayfa genişliğini kaplar).
 2. **Not kilidi** — biyometrik yerine önce **PIN** (paketsiz, SharedPreferences'ta
    hash) yapılmalı; `local_auth` Dart 3.7.2 uyumu ayrıca doğrulanmalı.
 3. **Sesli not** — ses kaydı + oynatıcı (`record` benzeri paket), dosya yönetimi

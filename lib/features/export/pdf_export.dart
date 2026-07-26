@@ -20,6 +20,7 @@ import '../editor/editor_state.dart';
 import '../editor/table_embed.dart';
 import '../forms/form_layout.dart';
 import '../forms/form_model.dart';
+import '../forms/insert_image.dart';
 
 String _safeName(String title) {
   final t = title.trim().isEmpty ? 'not' : title.trim();
@@ -240,6 +241,7 @@ Future<void> exportDocumentAsPdf(
   // Çizimler ekranda sayfalar + aralıklardan oluşan sürekli bir düzlemde
   // durur; PDF'te her sayfa kendi dilimini kaydırılmış çizimle alır.
   final allStrokes = [for (final s in rows) PenStroke.fromRow(s)];
+  final formImages = await _loadFormImages(form);
 
   final pdf = pw.Document();
   for (var i = 0; i < pageCount; i++) {
@@ -257,6 +259,7 @@ Future<void> exportDocumentAsPdf(
       formPage: i,
       formScale: formScale,
       strokeOffsetY: i * (aspect + kPageGapRatio) * w,
+      formImages: formImages,
     );
     final memImage = pw.MemoryImage(imageBytes);
     pdf.addPage(
@@ -270,6 +273,9 @@ Future<void> exportDocumentAsPdf(
     );
   }
 
+  for (final img in formImages.values) {
+    img.dispose();
+  }
   await Printing.sharePdf(bytes: await pdf.save(), filename: filename);
 }
 
@@ -340,6 +346,7 @@ Future<void> exportDocumentAsPng(
   final formScale = metrics == null ? 1.0 : w / metrics.virtualPageW;
 
   final allStrokes = [for (final s in rows) PenStroke.fromRow(s)];
+  final formImages = await _loadFormImages(form);
 
   // Her sayfayı ayrı çiz, sonra tek uzun görüntüde birleştir.
   final images = <ui.Image>[];
@@ -358,6 +365,7 @@ Future<void> exportDocumentAsPng(
       // Çizimler editörün sürekli düzleminde durur → editörün kendi sayfa
       // aralığı (kPageGapRatio) ile kaydırılır, görüntünün ayracıyla değil.
       strokeOffsetY: i * (aspect + kPageGapRatio) * w,
+      formImages: formImages,
     ));
   }
 
@@ -371,6 +379,9 @@ Future<void> exportDocumentAsPng(
   final composite = await picture.toImage(w.round(), totalH.round());
   picture.dispose();
   for (final img in images) {
+    img.dispose();
+  }
+  for (final img in formImages.values) {
     img.dispose();
   }
   final data = await composite.toByteData(format: ui.ImageByteFormat.png);
@@ -406,6 +417,7 @@ Future<Uint8List> _renderPageImage(
   int formPage = 0,
   double formScale = 1,
   double strokeOffsetY = 0,
+  Map<String, ui.Image> formImages = const {},
 }) async {
   final image = await _renderPageUiImage(
     w,
@@ -418,6 +430,7 @@ Future<Uint8List> _renderPageImage(
     formLayout: formLayout,
     formPage: formPage,
     formScale: formScale,
+    formImages: formImages,
     strokeOffsetY: strokeOffsetY,
   );
   final data = await image.toByteData(format: ui.ImageByteFormat.png);
@@ -428,6 +441,32 @@ Future<Uint8List> _renderPageImage(
 /// Bir sayfayı (kâğıt zemini + deseni + varsa biçimli metin / form blokları +
 /// çizimler) bir [ui.Image]'a çizer. [strokeOffsetY] o sayfanın sürekli çizim
 /// düzlemindeki üst konumu (piksel). PNG export bunları alt alta birleştirir.
+/// Formdaki görselleri çıktı için önceden yükler. `_paintForm` senkron
+/// çizdiği için (canvas), görsellerin hazır `ui.Image` olarak verilmesi gerekir.
+/// Dönen görüntüler çağıran tarafından `dispose` edilmelidir.
+Future<Map<String, ui.Image>> _loadFormImages(FormDoc? form) async {
+  if (form == null) return const {};
+  final out = <String, ui.Image>{};
+  Directory dir;
+  try {
+    dir = await imagesDir();
+  } catch (_) {
+    return out;
+  }
+  for (final b in form.blocks) {
+    if (b is! ImageBlock || out.containsKey(b.file)) continue;
+    try {
+      final f = imageFileFor(dir.path, b.file);
+      if (!f.existsSync()) continue;
+      final codec = await ui.instantiateImageCodec(await f.readAsBytes());
+      out[b.file] = (await codec.getNextFrame()).image;
+    } catch (_) {
+      // Okunamayan görsel çıktıda yer tutucu olarak çizilir.
+    }
+  }
+  return out;
+}
+
 Future<ui.Image> _renderPageUiImage(
   double w,
   double h,
@@ -440,6 +479,7 @@ Future<ui.Image> _renderPageUiImage(
   int formPage = 0,
   double formScale = 1,
   double strokeOffsetY = 0,
+  Map<String, ui.Image> formImages = const {},
 }) async {
   final recorder = ui.PictureRecorder();
   final canvas = Canvas(recorder);
@@ -458,7 +498,7 @@ Future<ui.Image> _renderPageUiImage(
   if (form != null && formLayout != null) {
     final pad = 22.0 * formScale;
     _paintForm(canvas, form, formLayout, formPage, pad, pad, w - pad * 2,
-        formScale, pal);
+        formScale, pal, formImages);
   } else if (body != null && body.trim().isNotEmpty) {
     final pad = 22.0 * scale;
     _paintRichText(
@@ -879,6 +919,7 @@ void _paintForm(
   double maxWidth,
   double scale,
   _PdfPalette pal,
+  Map<String, ui.Image> images,
 ) {
   var cy = y;
 
@@ -1369,6 +1410,49 @@ void _paintForm(
           }
         }
         cy += h + 14 * scale;
+      case ImageBlock():
+        final h = maxWidth * b.aspect;
+        final dst = Rect.fromLTWH(x, cy, maxWidth, h);
+        final img = images[b.file];
+        if (img != null) {
+          // BoxFit.cover: kaynağı hedef orana göre kırp (ekranla aynı).
+          final srcAspect = img.height / img.width;
+          Rect src;
+          if (srcAspect > b.aspect) {
+            final sh = img.width * b.aspect;
+            src = Rect.fromLTWH(
+                0, (img.height - sh) / 2, img.width.toDouble(), sh);
+          } else {
+            final sw = img.height / b.aspect;
+            src = Rect.fromLTWH(
+                (img.width - sw) / 2, 0, sw, img.height.toDouble());
+          }
+          canvas.save();
+          canvas.clipRRect(
+              RRect.fromRectAndRadius(dst, Radius.circular(6 * scale)));
+          canvas.drawImageRect(img, src, dst, Paint());
+          canvas.restore();
+        } else {
+          // Dosya bulunamadı → yer tutucu (çıktıda boşluk kalmasın).
+          final rr = RRect.fromRectAndRadius(dst, Radius.circular(6 * scale));
+          canvas.drawRRect(rr, Paint()..color = pal.faint);
+          canvas.drawRRect(
+            rr,
+            Paint()
+              ..color = pal.line
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 1 * scale,
+          );
+        }
+        cy += h;
+        if (b.caption.isNotEmpty) {
+          cy += 6 * scale;
+          final tp =
+              _formTp(b.caption, ts(12, scale, color: pal.muted), maxWidth);
+          tp.paint(canvas, Offset(x, cy));
+          cy += tp.height;
+        }
+        cy += 14 * scale;
       case TableBlock():
         // Tablo yalnızca satır birimleriyle çizilir (yukarıda) — bütün blok
         // birimi üretilmez.

@@ -15,6 +15,7 @@ import '../drawing/drawing_state.dart';
 import '../forms/form_layout.dart';
 import '../forms/form_model.dart';
 import '../forms/form_page.dart';
+import '../forms/insert_image.dart';
 import '../shell/shell_state.dart';
 import 'editor_state.dart';
 import 'table_embed.dart';
@@ -44,6 +45,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   int? _docId;
   int _requestedPages = 0;
   bool _loaded = false;
+  String? _imagesDirPath;
 
   // Görünen sayfayı hesaplamak için son çizim ölçüleri (build'de güncellenir,
   // `_onTransform` okur).
@@ -82,6 +84,10 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     if (!_loaded) _load();
     _controller.addListener(_scheduleSave);
     _tc.addListener(_onTransform);
+    // Görsellerin klasörü (asenkron) — FormPage'e yol olarak geçilir.
+    imagesDir().then((d) {
+      if (mounted) setState(() => _imagesDirPath = d.path);
+    });
 
     // Boş not + yazı modunda açılıyorsa klavye direkt gelsin (yeni not akışı).
     final emptyOnOpen = _loaded && _form == null && body.trim().isEmpty;
@@ -95,6 +101,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       }
       // Araç çubuğundaki tablo düğmesi bu kancayı çağırır.
       ref.read(tableInserterProvider.notifier).state = _insertTable;
+      // Belge menüsündeki "Görsel ekle" bu kancayı çağırır.
+      ref.read(imageInserterProvider.notifier).state = _insertImage;
       if (emptyOnOpen && ref.read(toolProvider) == PenTool.yazi) {
         _focus.requestFocus();
       }
@@ -124,6 +132,27 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     });
     _save();
     // Sayfa sayısı gerekiyorsa `_Sheet`'in bir sonraki çiziminde büyür.
+  }
+
+  /// Belge menüsünden görsel ekler. Tablo gibi: serbest (Quill) not önce
+  /// forma dönüştürülür, görsel **sona** eklenir.
+  void _insertImage(String name, double aspect) {
+    final block = ImageBlock(file: name, aspect: aspect);
+    setState(() {
+      if (_form == null) {
+        final text = _controller.document.toPlainText().trimRight();
+        _form = FormDoc([
+          if (text.isNotEmpty) AreaBlock(value: text, minLines: 3),
+          block,
+        ]);
+        if (ref.read(activeQuillControllerProvider) == _controller) {
+          ref.read(activeQuillControllerProvider.notifier).state = null;
+        }
+      } else {
+        _form!.blocks.add(block);
+      }
+    });
+    _save();
   }
 
   /// Form içeriği mevcut sayfalara sığmıyorsa sayfa sayısını büyütür (satır/
@@ -273,6 +302,9 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     if (ref.read(tableInserterProvider) == _insertTable) {
       ref.read(tableInserterProvider.notifier).state = null;
     }
+    if (ref.read(imageInserterProvider) == _insertImage) {
+      ref.read(imageInserterProvider.notifier).state = null;
+    }
     _controller.dispose();
     _focus.dispose();
     _editorScroll.dispose();
@@ -377,6 +409,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                             pageSize: pageSize,
                             form: _form,
                             formEditable: textMode,
+                            imagesDirPath: _imagesDirPath,
                             onFormChanged: _scheduleSave,
                             onPagesMeasured: _onPagesMeasured,
                           ),
@@ -440,6 +473,7 @@ class _Sheet extends ConsumerStatefulWidget {
     required this.pageSize,
     required this.form,
     required this.formEditable,
+    required this.imagesDirPath,
     required this.onFormChanged,
     required this.onPagesMeasured,
   });
@@ -456,6 +490,7 @@ class _Sheet extends ConsumerStatefulWidget {
   final String pageSize;
   final FormDoc? form;
   final bool formEditable;
+  final String? imagesDirPath;
   final VoidCallback onFormChanged;
 
   /// İçeriğin kaç sayfa tuttuğu — her çizimde bildirilir (büyütme + silme).
@@ -593,6 +628,7 @@ class _SheetState extends ConsumerState<_Sheet> {
                             editable: widget.formEditable,
                             onChanged: _formChanged,
                             pageSize: widget.pageSize,
+                            imagesDirPath: widget.imagesDirPath,
                             layout: layout,
                           ),
                         ),

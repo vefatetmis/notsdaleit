@@ -40,6 +40,13 @@ typedef TableInserter = void Function(int rows, int cols);
 
 final tableInserterProvider = StateProvider<TableInserter?>((ref) => null);
 
+/// Açık editörün "görsel ekle" kancası — tablo kancasının eşi. Görsel de bir
+/// **form bloğu** olduğundan eklemeyi editör yapar (serbest not gerekiyorsa
+/// forma dönüştürülür). `name` = `images/` altındaki dosya adı.
+typedef ImageInserter = void Function(String name, double aspect);
+
+final imageInserterProvider = StateProvider<ImageInserter?>((ref) => null);
+
 /// Editörde **şu an bakılan sayfa** (0 tabanlı). Görünümün ortasının hangi
 /// sayfa kartına denk geldiğinden hesaplanır (`NoteEditorScreen._onTransform`).
 /// Üst bar menüsündeki "sayfa ekle / sayfayı sil" bunu kullanır — böylece

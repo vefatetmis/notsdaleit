@@ -272,6 +272,12 @@ sealed class FormBlock {
         );
       case 'sketch':
         return SketchBlock((j['h'] as num?)?.toDouble() ?? 120);
+      case 'image':
+        return ImageBlock(
+          file: (j['f'] as String?) ?? '',
+          aspect: (j['a'] as num?)?.toDouble() ?? 0.75,
+          caption: (j['c'] as String?) ?? '',
+        );
       case 'table':
         return TableBlock(
           rows: [
@@ -559,5 +565,33 @@ class TableBlock extends FormBlock {
       final line = r.where((c) => c.isNotEmpty).join(' ');
       if (line.isNotEmpty) sb.writeln(line);
     }
+  }
+}
+
+/// Nota eklenen **görsel**. Dosyanın kendisi uygulama klasöründeki `images/`
+/// dizininde durur; burada yalnız **dosya adı** saklanır — tam yol cihazdan
+/// cihaza (ve Android sürümleri arasında) değişebilir.
+///
+/// [aspect] = yükseklik ÷ genişlik. Görselin dosyasını açmadan sayfalama
+/// yapabilmek için oran modelde tutulur (ölçüm senkron olmak zorunda);
+/// eklenirken sayfaya sığacak şekilde sınırlanır (`clampImageAspect`).
+class ImageBlock extends FormBlock {
+  ImageBlock({required this.file, this.aspect = 0.75, this.caption = ''});
+
+  final String file;
+  double aspect;
+  String caption;
+
+  @override
+  Map<String, dynamic> toJson() => {
+        'type': 'image',
+        'f': file,
+        'a': double.parse(aspect.toStringAsFixed(4)),
+        if (caption.isNotEmpty) 'c': caption,
+      };
+
+  @override
+  void collectText(StringBuffer sb) {
+    if (caption.isNotEmpty) sb.writeln(caption);
   }
 }

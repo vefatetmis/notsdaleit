@@ -13,6 +13,7 @@ import '../editor/editor_state.dart';
 import '../editor/note_editor_screen.dart';
 import '../export/pdf_export.dart';
 import '../folders/folders_screen.dart';
+import '../forms/insert_image.dart';
 import '../ntdl/ntdl_service.dart';
 import '../library/library_screen.dart';
 import '../pdf/pdf_viewer_screen.dart';
@@ -646,6 +647,8 @@ class _DocMenuButton extends ConsumerWidget {
       icon: Icon(Icons.more_vert, size: 20, color: nd.text2),
       onSelected: (v) {
         switch (v) {
+          case 'image':
+            insertImageIntoNote(context, ref);
           case 'addpage':
             addPageAfterCurrent(ref);
           case 'delpage':
@@ -669,6 +672,13 @@ class _DocMenuButton extends ConsumerWidget {
         }
       },
       itemBuilder: (context) => [
+        // ── İçerik ekleme ──
+        if (isNote)
+          PopupMenuItem(
+            value: 'image',
+            child: Text(context.t('Görsel ekle', 'Add image')),
+          ),
+        if (isNote) const PopupMenuDivider(),
         // ── Sayfa ──
         if (isNote) ...[
           PopupMenuItem(

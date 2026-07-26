@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/i18n/i18n.dart';
 import '../editor/editor_state.dart';
+import 'insert_image.dart';
 import 'form_layout.dart';
 import 'form_model.dart';
 
@@ -19,6 +20,7 @@ class FormPage extends ConsumerStatefulWidget {
     required this.editable,
     required this.onChanged,
     required this.pageSize,
+    this.imagesDirPath,
     this.layout,
   });
 
@@ -29,6 +31,10 @@ class FormPage extends ConsumerStatefulWidget {
 
   /// Sayfa boyutu — tablo satır/sütun üst sınırları buradan türetilir.
   final String? pageSize;
+
+  /// Görsellerin bulunduğu klasör (`<appDocs>/images`). Asenkron çözüldüğü
+  /// için editörden geçirilir; null ise görseller "yüklenemedi" gösterilir.
+  final String? imagesDirPath;
 
   /// Sayfalama (`paginateForm` üretir): bloklar/satırlar sayfa sınırını
   /// ortalamak yerine spacer'la sonraki sayfanın başına düşer.
@@ -1021,6 +1027,80 @@ class _FormPageState extends ConsumerState<FormPage> {
     );
   }
 
+  /// Görsel bloğu. Dosya `images/` klasöründedir; yüksekliği modeldeki
+  /// orandan gelir (sayfalama ile birebir aynı). Uzun basınca silinir.
+  Widget _image(int i, ImageBlock b) {
+    final dirPath = widget.imagesDirPath;
+    final file = dirPath == null ? null : imageFileFor(dirPath, b.file);
+    return LayoutBuilder(
+      builder: (context, c) {
+        final h = c.maxWidth * b.aspect;
+        return GestureDetector(
+          onLongPress: widget.editable ? () => _deleteImage(i) : null,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                height: h,
+                child: file == null || !file.existsSync()
+                    ? _missingImage()
+                    : ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: Image.file(
+                          file,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _missingImage(),
+                        ),
+                      ),
+              ),
+              if (b.caption.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  b.caption,
+                  style: TextStyle(fontSize: 12, height: 1.3, color: paper.muted),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _missingImage() => Container(
+        decoration: BoxDecoration(
+          color: paper.faint,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: paper.line),
+        ),
+        alignment: Alignment.center,
+        child: Icon(Icons.broken_image_outlined, color: paper.muted, size: 28),
+      );
+
+  /// Görseli nottan kaldırır (dosya diskte kalır — "Geri al" için).
+  void _deleteImage(int block) {
+    final removed = widget.form.blocks[block];
+    setState(() {
+      widget.form.blocks.removeAt(block);
+      widget.form.clearStylesForBlock(block);
+    });
+    _changed();
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        behavior: SnackBarBehavior.floating,
+        content: Text(context.t('Görsel kaldırıldı', 'Image removed')),
+        action: SnackBarAction(
+          label: context.t('Geri al', 'Undo'),
+          onPressed: () {
+            setState(() => widget.form.blocks
+                .insert(block.clamp(0, widget.form.blocks.length), removed));
+            _changed();
+          },
+        ),
+      ));
+  }
+
   Widget _sketch(SketchBlock b) {
     return CustomPaint(
       painter: _SketchBoxPainter(paper.line),
@@ -1054,6 +1134,7 @@ class _FormPageState extends ConsumerState<FormPage> {
         CornellBlock() => _cornell(i, b),
         SketchBlock() => _sketch(b),
         TableBlock() => _table(i, b),
+        ImageBlock() => _image(i, b),
       };
       // Sayfalama: bütün-blok birimleri (row == -1) sığmazsa sonraki sayfaya
       // atlar. Satırlı bloklar (checklist/numaralı/saat) kendi satır

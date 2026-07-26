@@ -221,6 +221,11 @@ double measureFormBlock(FormBlock b, double w, {required bool editable}) {
       return box1 + 12 + box2;
     case SketchBlock():
       return b.height;
+    case ImageBlock():
+      // Görsel sayfa genişliğini kaplar; yüksekliği oranından gelir. Oran
+      // eklenirken sayfaya sığacak şekilde sınırlanmıştır (clampImageAspect),
+      // burada dosyayı açmaya gerek kalmaz (ölçüm senkron olmak zorunda).
+      return w * b.aspect + (b.caption.isEmpty ? 0 : 6 + fbLine(12));
     case TableBlock():
       var h = 0.0;
       for (var r = 0; r < b.rows.length; r++) {
