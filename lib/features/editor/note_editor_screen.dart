@@ -55,6 +55,31 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   double _viewportH = 0;
   int _pages = 1;
 
+  // ── Yakınlaştırma / kaydırma jesti ────────────────────────────────────
+  //
+  // `InteractiveViewer`'ın **jesti** kullanılamadı (widget'ın kendisi duruyor;
+  // yalnızca dönüşümü uygular ve `constrained: false` ile ölçüyü yönetir).
+  // Sebebi Flutter kaynağında: `_getGestureType` jest türünü **ilk
+  // güncellemede** seçip jest boyunca kilitler; iki parmak ekrana aynı anda
+  // değdiğinde o ilk karede `details.scale` tam 1.0 olduğu için tür "pan"
+  // çıkar ve ardından `case _GestureType.pan` içindeki
+  // `if (details.scale != 1.0) { …; return; }` ile **tüm ölçek değişimleri
+  // atılır**. Sahada "yakınlaştırdım, geri küçültemiyorum" bunun sonucuydu
+  // (üç turda çözülemedi). Matrisi kendimiz sürünce jest türü diye bir şey
+  // kalmıyor.
+  static const double _kMinZoom = 1.0;
+  static const double _kMaxZoom = 4.0;
+
+  final Map<int, Offset> _touch = {};
+  double? _pinchDist0;
+  double _pinchScale0 = 1;
+  Offset _pinchFocalScene = Offset.zero;
+  Offset? _panLast;
+  bool _penMode = false; // build'de güncellenir
+  double _viewportW = 0;
+  double _contentW = 0;
+  double _contentH = 0;
+
   // Canlı ortak not: uzaktan gelen metni uygularken yerel kaydetme/yankı
   // döngüsünü kes; kullanıcı az önce yazdıysa uzaktan geleni uygulama (onun
   // sürümü zaten sunucuya gidecek).
@@ -264,6 +289,87 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   /// sayfa sayısı büyür.
   void _onPagesMeasured(int natural) => _ensurePages(natural);
 
+  /// Viewport noktasını içerik (sahne) uzayına çevirir.
+  Offset _toScene(Offset p) =>
+      MatrixUtils.transformPoint(Matrix4.inverted(_tc.value), p);
+
+  /// Matrisi sınırlara oturtur: içerik görünümden büyükse kenarları geçmesin,
+  /// küçükse ortalansın (yatay) / başa yaslansın (dikey).
+  Matrix4 _clampMatrix(double scale, double tx, double ty) {
+    final cw = _contentW * scale;
+    final ch = _contentH * scale;
+    final nx = cw <= _viewportW
+        ? (_viewportW - cw) / 2
+        : tx.clamp(_viewportW - cw, 0.0);
+    final ny = ch <= _viewportH ? 0.0 : ty.clamp(_viewportH - ch, 0.0);
+    return Matrix4.identity()
+      ..translate(nx, ny)
+      ..scale(scale);
+  }
+
+  void _onTouchDown(PointerDownEvent e) {
+    _touch[e.pointer] = e.localPosition;
+    _pinchDist0 = null; // iki parmağa geçişte referans yeniden alınır
+    _panLast = _touch.length == 1 ? e.localPosition : null;
+  }
+
+  void _onTouchMove(PointerMoveEvent e) {
+    if (!_touch.containsKey(e.pointer)) return;
+    _touch[e.pointer] = e.localPosition;
+
+    if (_touch.length >= 2) {
+      _panLast = null;
+      _applyPinch();
+      return;
+    }
+    // Tek parmak: kalem modunda çizim DrawingLayer'ın — sayfa kaymaz.
+    if (_penMode) return;
+    final last = _panLast;
+    _panLast = e.localPosition;
+    if (last == null) return;
+    final d = e.localPosition - last;
+    final m = _tc.value;
+    final t = m.getTranslation();
+    _tc.value = _clampMatrix(m.getMaxScaleOnAxis(), t.x + d.dx, t.y + d.dy);
+  }
+
+  void _onTouchUp(PointerEvent e) {
+    _touch.remove(e.pointer);
+    _pinchDist0 = null;
+    _panLast = _touch.length == 1 ? _touch.values.first : null;
+    if (_touch.isEmpty) {
+      // 1'e çok yakınsa tam otursun (kıl payı büyük kalmasın).
+      final sc = _tc.value.getMaxScaleOnAxis();
+      if (sc > 1.0 && sc < 1.03) _resetZoom();
+    }
+  }
+
+  void _applyPinch() {
+    final pts = _touch.values.toList();
+    final a = pts[0];
+    final b = pts[1];
+    final dist = (a - b).distance;
+    final focal = Offset((a.dx + b.dx) / 2, (a.dy + b.dy) / 2);
+
+    // İlk kare: yalnız referansları al (ölçek değişimi yok).
+    if (_pinchDist0 == null || dist <= 0) {
+      _pinchDist0 = dist <= 0 ? null : dist;
+      _pinchScale0 = _tc.value.getMaxScaleOnAxis();
+      _pinchFocalScene = _toScene(focal);
+      return;
+    }
+
+    final target =
+        (_pinchScale0 * dist / _pinchDist0!).clamp(_kMinZoom, _kMaxZoom);
+    // Parmakların ortasındaki sahne noktası yerinde kalsın:
+    //   ekran = sahne × ölçek + t   →   t = focal − sahne × ölçek
+    _tc.value = _clampMatrix(
+      target,
+      focal.dx - _pinchFocalScene.dx * target,
+      focal.dy - _pinchFocalScene.dy * target,
+    );
+  }
+
   /// Yakınlaştırmayı başa döndürür (üst bar menüsü + pinch sonrası oturtma).
   void _resetZoom() {
     _tc.value = Matrix4.identity();
@@ -368,39 +474,40 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
             builder: (context, c) {
               final baseW = (c.maxWidth - 32).clamp(120.0, 680.0);
               final pageHBase = baseW * aspect;
-              // `_onTransform` bu ölçülerle görünen sayfayı bulur.
+              // `_onTransform` + jest sınırlaması bu ölçüleri kullanır.
               _pageH = pageHBase;
               _gap = baseW * kPageGapRatio;
               _viewportH = c.maxHeight;
+              _viewportW = c.maxWidth;
               _pages = pageCount;
+              _penMode = penActive;
+              // İçerik kutusu: yanlarda 16+16, üstte 12 padding + sayfalar +
+              // alttaki 70'lik boşluk.
+              _contentW = baseW + 32;
+              _contentH = 12 +
+                  (pageCount * pageHBase + (pageCount - 1) * _gap) +
+                  70;
 
-              return InteractiveViewer(
+              // Jestler BİZDE (bkz. alan tanımlarındaki not): InteractiveViewer
+              // yalnızca dönüşümü uygular ve `constrained: false` ile içeriğin
+              // kendi boyutunu almasını sağlar.
+              return Listener(
+                // translucent: sayfa aralıkları/boşluklar gibi çocuğun
+                // hit-test'e cevap vermediği yerlerde de jesti alalım, ama
+                // çocuklar (Quill, çizim, görsel) dokunuşu almaya devam etsin.
+                behavior: HitTestBehavior.translucent,
+                onPointerDown: _onTouchDown,
+                onPointerMove: _onTouchMove,
+                onPointerUp: _onTouchUp,
+                onPointerCancel: _onTouchUp,
+                child: InteractiveViewer(
                   transformationController: _tc,
                   constrained: false,
-                  // Varsayılan zoom = tam genişlik; yalnızca yakınlaştırınca
-                  // yatay kaydırma açılır (sayfa genişliği görünüme eşit olduğu
-                  // için 1.0'da sağa-sola oynamaz → "oynak" hissi biter).
-                  minScale: 1.0,
-                  maxScale: 4.0,
-                  // Kalem modunda tek parmak çizer → pan KAPALI (sabit).
-                  // Parmak sayısına göre açıp kapatmak jesti bozuyordu: ikinci
-                  // parmak değince setState → rebuild → devam eden pinch iptal
-                  // oluyor ve yakınlaştırma geri alınamıyordu. İki parmakla
-                  // yakınlaştırma `scaleEnabled` ile çalışır (odak noktalı zoom
-                  // kaydırmayı da uygular).
-                  panEnabled: !penActive,
-                  scaleEnabled: true,
-                  // Sıfır kenar boşluğu: içerik kenarları görünüm kenarını
-                  // geçemez → 1.0'da yatay kilit, dikey tam kaydırma.
+                  minScale: _kMinZoom,
+                  maxScale: _kMaxZoom,
+                  panEnabled: false,
+                  scaleEnabled: false,
                   boundaryMargin: EdgeInsets.zero,
-                  // Parmak kalkınca ölçek 1'e yakınsa tam 1'e oturt. Sahada
-                  // "yakınlaştırdım, eskisi kadar uzaklaştıramadım" oluyordu:
-                  // pinch 1.0'a tam inemeyip 1.0x'in az üstünde takılıyor ve
-                  // sayfa büyük kalıyordu.
-                  onInteractionEnd: (_) {
-                    final s = _tc.value.getMaxScaleOnAxis();
-                    if (s > 1.0 && s < 1.06) _resetZoom();
-                  },
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                     child: SizedBox(
@@ -432,6 +539,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                       ),
                     ),
                   ),
+                ),
               );
             },
           ),

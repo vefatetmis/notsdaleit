@@ -59,6 +59,49 @@ Tasarımdaki **tüm ekranlar** kodlandı ve çalışıyor:
 - **Çizim koordinatları genişliğe göre normalize** (`buildScaledPath`,
   `DrawingLayer._norm` — her iki eksen ÷ genişlik) → sayfa yüksekliği metinle
   büyüse bile çizimler kaymaz.
+### 🔍 YAKINLAŞTIRMA JESTİ ARTIK BİZDE (25 Tem 2026) — üç turda çözülen hata
+
+**Saha:** "yakınlaştırdım, sonrasında eskisi kadar uzaklaştıramadım, büyük
+kaldı." İki tur boyunca yanlış yerlere bakıldı (1.0'a oturtma snap'i,
+`panEnabled`'ın parmak sayısına bağlı olması). **Asıl sebep Flutter'ın kendi
+kaynağında:**
+
+```dart
+// interactive_viewer.dart:690  _getGestureType
+if ((scale - 1).abs() > rotation.abs()) return _GestureType.scale;
+else if (rotation != 0.0) return _GestureType.rotate;
+else return _GestureType.pan;          // scale TAM 1.0 ise buraya düşer
+
+// interactive_viewer.dart:791  jest türü bir kez seçilip KİLİTLENİR
+case _GestureType.pan:
+  if (details.scale != 1.0) { widget.onInteractionUpdate?.call(details); return; }
+```
+
+İki parmak ekrana **aynı anda** değince ilk `ScaleUpdateDetails`'te
+`details.scale` tam 1.0 olur → jest "pan" olarak kilitlenir → sonrasında
+kullanıcı ne kadar sıkıştırırsa sıkıştırsın **her ölçek güncellemesi atılır**.
+Zoom-in bazen tutuyordu (ilk kare parmaklar kıpırdamışken gelirse), zoom-out
+hiç tutmuyordu.
+
+**Çözüm:** jestleri editör yönetiyor. `InteractiveViewer` duruyor ama
+`panEnabled: false, scaleEnabled: false` — yalnızca dönüşümü uyguluyor ve
+`constrained: false` ile içeriğin kendi ölçüsünü almasını sağlıyor. Üstünde bir
+`Listener` (translucent) var:
+
+- `_onTouchDown/Move/Up` parmakları `_touch` haritasında tutar.
+- **2 parmak → `_applyPinch`:** ilk karede referans (mesafe, ölçek, odak
+  noktasının sahne karşılığı) alınır; sonraki karelerde
+  `ölçek = başlangıç × (mesafe / başlangıç mesafesi)`, `[1, 4]` arasına
+  sıkıştırılır ve odak noktası **yerinde kalacak** şekilde öteleme kurulur
+  (`t = focal − sahne × ölçek`).
+- **1 parmak:** yazı/el modunda kaydırma; **kalem modunda hiçbir şey**
+  (çizimi `DrawingLayer` yapar, sayfa kaymaz).
+- `_clampMatrix` içeriği sınırlarda tutar (yatayda içerik görünümden darsa
+  ortalar). Ölçüler build'de `_contentW/_contentH/_viewportW/_viewportH`.
+- Parmaklar kalkınca ölçek 1'e çok yakınsa (<1.03) tam 1'e oturur.
+
+Üst bar menüsündeki **"Yakınlaştırmayı sıfırla"** duruyor (`zoomResetterProvider`).
+
 - **Kaydırma/yakınlaştırma (editör):** tek bir **`InteractiveViewer`** ile
   (odak noktalı zoom — dokunulan yere doğru). Kalem modunda tek parmak çizer
   (`panEnabled` parmak sayısına göre: 1=çiz, 2=kaydır/zoom); yazı/el modunda tek
