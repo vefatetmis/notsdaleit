@@ -45,8 +45,39 @@ class _ImageLayerState extends ConsumerState<ImageLayer> {
   Offset _dragDelta = Offset.zero;
   double _resizeDelta = 0;
 
+  /// Veritabanına **yazılmış ama akıştan henüz geri dönmemiş** konum/boyut.
+  ///
+  /// Parmak kalkınca önizlemeyi (delta) hemen bıraksaydık, akış yeni değeri
+  /// getirene kadar birkaç kare **eski konum** çizilir ve görsel geri sıçrardı
+  /// (sahada görülen "önce eski yerinde görünüyor, sonra yerine oturuyor").
+  /// Bu yüzden yazılan değer, akış onu doğrulayana kadar burada tutulur.
+  final Map<int, Offset> _pendingPos = {}; // id → (x, y) normalize
+  final Map<int, double> _pendingW = {}; // id → genişlik (normalize)
+
   @override
   Widget build(BuildContext context) {
+    // Akış yazdığımız değeri geri getirdiğinde bekleyen kaydı düşür.
+    ref.listen(activeImagesProvider, (_, next) {
+      final list = next.valueOrNull;
+      if (list == null || (_pendingPos.isEmpty && _pendingW.isEmpty)) return;
+      var changed = false;
+      for (final img in list) {
+        final p = _pendingPos[img.id];
+        if (p != null &&
+            (img.x - p.dx).abs() < 1e-6 &&
+            (img.y - p.dy).abs() < 1e-6) {
+          _pendingPos.remove(img.id);
+          changed = true;
+        }
+        final pw = _pendingW[img.id];
+        if (pw != null && (img.w - pw).abs() < 1e-6) {
+          _pendingW.remove(img.id);
+          changed = true;
+        }
+      }
+      if (changed && mounted) setState(() {});
+    });
+
     final images = ref.watch(activeImagesProvider).valueOrNull ?? const [];
     if (images.isEmpty) return const SizedBox.shrink();
     final selected = ref.watch(selectedImageProvider);
@@ -63,11 +94,15 @@ class _ImageLayerState extends ConsumerState<ImageLayer> {
   Widget _positioned(NoteImage img, double pageW, bool isSelected) {
     final nd = context.nd;
     final live = _dragId == img.id;
-    final iw = ((img.w + (live ? _resizeDelta : 0)) * pageW)
+    // Taban değerler: bekleyen (yazılmış) varsa o, yoksa akıştan gelen.
+    final basePos = _pendingPos[img.id] ?? Offset(img.x, img.y);
+    final baseW = _pendingW[img.id] ?? img.w;
+
+    final iw = ((baseW + (live ? _resizeDelta : 0)) * pageW)
         .clamp(pageW * 0.08, pageW);
     final ih = iw * img.aspect;
-    final left = img.x * pageW + (live ? _dragDelta.dx : 0);
-    final top = img.y * pageW + (live ? _dragDelta.dy : 0);
+    final left = basePos.dx * pageW + (live ? _dragDelta.dx : 0);
+    final top = basePos.dy * pageW + (live ? _dragDelta.dy : 0);
 
     final dirPath = widget.imagesDirPath;
     final file = dirPath == null ? null : imageFileFor(dirPath, img.file);
@@ -176,9 +211,14 @@ class _ImageLayerState extends ConsumerState<ImageLayer> {
       );
 
   void _commitMove(NoteImage img, double pageW) {
-    final nx = (img.x + _dragDelta.dx / pageW).clamp(0.0, 1.0 - img.w);
-    final ny = img.y + _dragDelta.dy / pageW;
+    final base = _pendingPos[img.id] ?? Offset(img.x, img.y);
+    final w = _pendingW[img.id] ?? img.w;
+    final nx = (base.dx + _dragDelta.dx / pageW).clamp(0.0, 1.0 - w);
+    final ny = base.dy + _dragDelta.dy / pageW;
     setState(() {
+      // Önizlemeyi bırakırken yeni konumu "bekleyen" olarak devral →
+      // akış gelene kadar görsel yerinde durur, geri sıçramaz.
+      _pendingPos[img.id] = Offset(nx, ny);
       _dragId = null;
       _dragDelta = Offset.zero;
     });
@@ -186,9 +226,12 @@ class _ImageLayerState extends ConsumerState<ImageLayer> {
   }
 
   void _commitResize(NoteImage img, double pageW) {
+    final base = _pendingW[img.id] ?? img.w;
+    final x = (_pendingPos[img.id] ?? Offset(img.x, img.y)).dx;
     // Genişlik 8%–100% arasında; sayfadan taşmaması için x'e göre sınırlanır.
-    final nw = (img.w + _resizeDelta).clamp(0.08, 1.0 - img.x);
+    final nw = (base + _resizeDelta).clamp(0.08, 1.0 - x);
     setState(() {
+      _pendingW[img.id] = nw;
       _dragId = null;
       _resizeDelta = 0;
     });

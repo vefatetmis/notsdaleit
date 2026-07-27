@@ -59,6 +59,27 @@ Tasarımdaki **tüm ekranlar** kodlandı ve çalışıyor:
 - **Çizim koordinatları genişliğe göre normalize** (`buildScaledPath`,
   `DrawingLayer._norm` — her iki eksen ÷ genişlik) → sayfa yüksekliği metinle
   büyüse bile çizimler kaymaz.
+### 🧪 TEST AĞI GENİŞLETİLDİ (25 Tem 2026) — 12 → 37 test
+
+Kullanıcı: *"özellikler çoğaldıkça diken üstünde ilerliyormuşuz gibi
+hissediyorum, her an sorun çıkacakmış gibi."* Endişe yerinde: 20 bin satıra
+gelindi ve sahada dört tur hata çıktı. Karşılığı test ağı — **hata çıkabilecek
+ama saf (test edilebilir) yerler** kapatıldı:
+
+| Dosya | Neyi korur | Neden kritik |
+|---|---|---|
+| `form_model_test.dart` (10) | Gövde encode→decode gidiş-dönüşü | `Documents.body` biçimi; **yedek, .ntdl, collab, şablon** aynı dizeyi taşır. Bir blok alan düşürürse kullanıcının yazdığı sessizce kaybolur. Yeni blok tipi eklerken buraya vaka ekle. |
+| `form_layout_test.dart` (10) | Sayfalama + tablo sınırları | Sahada en çok hata çıkan yer (içerik kırpılıyordu, satırlar kayboluyordu). Ekran ve PDF **aynı** hesabı kullanır → kayma iki tarafı birden bozar. |
+| `image_cleanup_test.dart` (5) | `imageNamesInBody` | Yanlış cevabı **doğrudan veri kaybı**: not silinince başka notta duran fotoğraf da silinebilir (çoğaltma aynı dosyayı gösterir). |
+| `migration_test.dart` (4) | Şema geçişleri | Eski sürümden güncelleyeni uygulamadan tamamen edebilir (bkz. "KRİTİK HATA"). |
+| `widget_test.dart` (8) | Göreli tarihler (iki dil) | — |
+
+**Testin kapsamadığı yerler (bilinçli):** cihaz jestleri (pinch/çizim),
+Flutter'ın kendi widget davranışı, gerçek dosya/dizin işlemleri, canlı
+paylaşım. Bunlar ancak cihazda görülür — nitekim dört saha hatasının hepsi bu
+alandaydı. **Yeni özellik eklerken kural:** saf hesap/dönüşüm/serileştirme
+yazdıysan testi de yaz; jest/render işi ise cihazda test ettir.
+
 ### 🔍 YAKINLAŞTIRMA JESTİ ARTIK BİZDE (25 Tem 2026) — üç turda çözülen hata
 
 **Saha:** "yakınlaştırdım, sonrasında eskisi kadar uzaklaştıramadım, büyük
