@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 4×1 kısayol şeridi — tasarım: Widgetlar.dc.html, ikinci kart.
+     Widget yüzeyi üstünde dört sütun; her sütun: yuvarlak köşeli accent çipi
+     içinde çizgi ikon + altında etiket. Sütunlar arasında ince dikey ayraç.
+     Dört ayrı dokunma hedefi. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="4dp">
+
+    <LinearLayout
+        android:id="@+id/sc_card"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical"
+    android:background="@drawable/widget_surface_light"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingStart="4dp"
+    android:paddingEnd="4dp"
+    android:paddingTop="6dp"
+    android:paddingBottom="6dp">
+
+    <LinearLayout
+        android:id="@+id/sc_0"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <FrameLayout
+            android:id="@+id/sc_0_chip"
+            android:layout_width="29dp"
+            android:layout_height="29dp"
+            android:background="@drawable/widget_chip_light">
+
+            <ImageView
+                android:id="@+id/sc_0_icon"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_widget_plus"
+                android:contentDescription="@string/widget_shortcut_new_note" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/sc_0_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:text="@string/widget_shortcut_new_note"
+            android:fontFamily="@font/instrument_sans_regular"
+            android:textColor="#1B1713"
+            android:textSize="10.5sp"
+            android:maxLines="1"
+            android:ellipsize="end" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:id="@+id/sc_div_0"
+        android:layout_width="1dp"
+        android:layout_height="29dp"
+        android:background="#E7E3DD" />
+
+    <LinearLayout
+        android:id="@+id/sc_1"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <FrameLayout
+            android:id="@+id/sc_1_chip"
+            android:layout_width="29dp"
+            android:layout_height="29dp"
+            android:background="@drawable/widget_chip_light">
+
+            <ImageView
+                android:id="@+id/sc_1_icon"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_widget_pen"
+                android:contentDescription="@string/widget_shortcut_draw" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/sc_1_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:text="@string/widget_shortcut_draw"
+            android:fontFamily="@font/instrument_sans_regular"
+            android:textColor="#1B1713"
+            android:textSize="10.5sp"
+            android:maxLines="1"
+            android:ellipsize="end" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:id="@+id/sc_div_1"
+        android:layout_width="1dp"
+        android:layout_height="29dp"
+        android:background="#E7E3DD" />
+
+    <LinearLayout
+        android:id="@+id/sc_2"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <FrameLayout
+            android:id="@+id/sc_2_chip"
+            android:layout_width="29dp"
+            android:layout_height="29dp"
+            android:background="@drawable/widget_chip_light">
+
+            <ImageView
+                android:id="@+id/sc_2_icon"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_widget_search"
+                android:contentDescription="@string/widget_shortcut_search" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/sc_2_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:text="@string/widget_shortcut_search"
+            android:fontFamily="@font/instrument_sans_regular"
+            android:textColor="#1B1713"
+            android:textSize="10.5sp"
+            android:maxLines="1"
+            android:ellipsize="end" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:id="@+id/sc_div_2"
+        android:layout_width="1dp"
+        android:layout_height="29dp"
+        android:background="#E7E3DD" />
+
+    <LinearLayout
+        android:id="@+id/sc_3"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <FrameLayout
+            android:id="@+id/sc_3_chip"
+            android:layout_width="29dp"
+            android:layout_height="29dp"
+            android:background="@drawable/widget_chip_light">
+
+            <ImageView
+                android:id="@+id/sc_3_icon"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_widget_calendar"
+                android:contentDescription="@string/widget_shortcut_calendar" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/sc_3_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:text="@string/widget_shortcut_calendar"
+            android:fontFamily="@font/instrument_sans_regular"
+            android:textColor="#1B1713"
+            android:textSize="10.5sp"
+            android:maxLines="1"
+            android:ellipsize="end" />
+    </LinearLayout>
+</LinearLayout>
+</FrameLayout>

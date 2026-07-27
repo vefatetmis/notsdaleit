@@ -1,5 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="widget_app_name">notsdaleit</string>
+    <string name="widget_pdf_badge">PDF</string>
+
     <string name="widget_quick_note_label">New note</string>
     <string name="widget_quick_note_desc">Open a new note straight from the home screen</string>
+
+    <string name="widget_shortcuts_desc">Shortcuts for new note, drawing, search and calendar</string>
+    <string name="widget_shortcut_new_note">New note</string>
+    <string name="widget_shortcut_draw">Draw</string>
+    <string name="widget_shortcut_search">Search</string>
+    <string name="widget_shortcut_calendar">Calendar</string>
+
+    <string name="widget_routines_label">Today\'s routines</string>
+    <string name="widget_routines_desc">See today\'s routines and check them off from the home screen</string>
+    <string name="widget_routines_empty">No routines today — add one</string>
+
+    <string name="widget_recent_label">Recent notes</string>
+    <string name="widget_recent_desc">Open your recent notes from the home screen</string>
+    <string name="widget_recent_empty">No documents yet — create your first note</string>
+
+    <string name="widget_preview_streak">12</string>
+    <string name="widget_preview_progress">2/5</string>
+    <string name="widget_preview_routine_1">Morning walk</string>
+    <string name="widget_preview_routine_2">Read 20 min</string>
+    <string name="widget_preview_routine_3">Review notes</string>
+    <string name="widget_preview_rtime_1">07:00</string>
+    <string name="widget_preview_rtime_2">12:30</string>
+    <string name="widget_preview_rtime_3">19:00</string>
+    <string name="widget_preview_note_1">Blacklist</string>
+    <string name="widget_preview_note_2">Wave optics</string>
+    <string name="widget_preview_note_3">Meeting summary</string>
+    <string name="widget_preview_note_4">Untitled note</string>
+    <string name="widget_preview_meta_1">Personal · 17h</string>
+    <string name="widget_preview_meta_2">Lecture Notes · 1d</string>
+    <string name="widget_preview_meta_3">Work · 2h</string>
+    <string name="widget_preview_meta_4">Personal · 9m</string>
 </resources>

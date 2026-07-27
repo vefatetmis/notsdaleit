@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Yeni not düğmesi, AÇIK — accent dolgu. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#1B2A42" />
+    <corners android:radius="9dp" />
+</shape>

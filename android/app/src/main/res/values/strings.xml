@@ -1,6 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Varsayılan (Türkçe) widget metinleri. İngilizcesi values-en/strings.xml. -->
+<!-- Varsayılan (Türkçe) widget metinleri. İngilizcesi values-en/strings.xml.
+
+     BUNLAR YALNIZCA "durağan" metinlerdir: widget seçicideki ad/açıklama ve
+     uygulama hiç açılmadan önceki ilk çizim. Widget çalışırken görünen metinler
+     Kotlin'deki WidgetText'ten gelir — çünkü dil, sistem dilinden değil
+     kullanıcının Ayarlar'da seçtiğinden belirlenir. -->
 <resources>
+    <string name="widget_app_name">notsdaleit</string>
+    <string name="widget_pdf_badge">PDF</string>
+
     <string name="widget_quick_note_label">Yeni not</string>
     <string name="widget_quick_note_desc">Ana ekrandan tek dokunuşla yeni not aç</string>
+
+    <string name="widget_shortcuts_desc">Yeni not, çizim, arama ve takvim kısayolları</string>
+    <string name="widget_shortcut_new_note">Yeni not</string>
+    <string name="widget_shortcut_draw">Çizim</string>
+    <string name="widget_shortcut_search">Ara</string>
+    <string name="widget_shortcut_calendar">Takvim</string>
+
+    <string name="widget_routines_label">Bugünün rutinleri</string>
+    <string name="widget_routines_desc">Bugünün rutinlerini gör ve ana ekrandan işaretle</string>
+    <string name="widget_routines_empty">Bugün için rutin yok — bir rutin ekle</string>
+
+    <string name="widget_recent_label">Son notlar</string>
+    <string name="widget_recent_desc">Son notlarını ana ekrandan aç</string>
+    <string name="widget_recent_empty">Henüz belge yok — ilk notunu oluştur</string>
+
+    <!-- Yalnızca widget SEÇİCİSİNDEKİ önizleme için (previewLayout). Widget ana
+         ekrana eklenince her metni sağlayıcı yeniden yazar, veri yoksa satırı
+         gizler — bu örnekler kullanıcıya asla görünmez. -->
+    <string name="widget_preview_streak">12</string>
+    <string name="widget_preview_progress">2/5</string>
+    <string name="widget_preview_routine_1">Sabah yürüyüşü</string>
+    <string name="widget_preview_routine_2">20 dk okuma</string>
+    <string name="widget_preview_routine_3">Ders tekrarı</string>
+    <string name="widget_preview_rtime_1">07:00</string>
+    <string name="widget_preview_rtime_2">12:30</string>
+    <string name="widget_preview_rtime_3">19:00</string>
+    <string name="widget_preview_note_1">Kara liste</string>
+    <string name="widget_preview_note_2">Dalga optiği</string>
+    <string name="widget_preview_note_3">Toplantı özeti</string>
+    <string name="widget_preview_note_4">Adsız not</string>
+    <string name="widget_preview_meta_1">Kişisel · 17 sa</string>
+    <string name="widget_preview_meta_2">Ders Notları · 1 g</string>
+    <string name="widget_preview_meta_3">İş · 2 sa</string>
+    <string name="widget_preview_meta_4">Kişisel · 9 dk</string>
 </resources>

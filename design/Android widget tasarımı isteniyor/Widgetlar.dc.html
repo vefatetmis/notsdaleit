@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #E9E3D8; font-family: "DM Sans", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: #1B2A42; text-decoration: none; border-bottom: 1px solid rgba(27,42,66,.3); }
+  a:hover { color: #35507B; border-bottom-color: rgba(53,80,123,.6); }
+</style>
+</helmet>
+
+<section id="1a" style="width: max-content; padding: 56px 64px 72px; display: flex; flex-direction: column; gap: 40px; background: #E9E3D8; color: #1B1713;">
+
+  <div style="display: flex; align-items: flex-start; gap: 20px;">
+    <div style="font-family: 'DM Mono', monospace; font-size: 15px; letter-spacing: .04em; padding: 6px 12px; border-radius: 999px; background: #1B2A42; color: #F5F1E9; margin-top: 8px;">1a</div>
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <h1 style="margin: 0; font-size: 44px; font-weight: 600; letter-spacing: -.02em;">notsdaleit — ana ekran widget'ları</h1>
+      <p style="margin: 0; font-size: 20px; color: #6E6659; max-width: 900px; text-wrap: pretty;">Dört widget, uygulamanın koyu ve açık tema paletiyle. Ölçüler Android ana ekran ızgarasına göre (4 kolon), burada 1 dp ≈ 1,55 px ölçekle gösteriliyor.</p>
+    </div>
+  </div>
+
+  <div style="display: flex; gap: 26px; align-items: flex-start; width: max-content;">
+
+    <div style="flex: none; display: flex; flex-direction: column; gap: 14px;">
+      <div style="display: grid; grid-template-columns: 604px 604px; gap: 26px;">
+        <div style="display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: #6E6659;">
+          <span style="width: 12px; height: 12px; border-radius: 50%; background: #15140F;"></span>Koyu tema
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: #6E6659;">
+          <span style="width: 12px; height: 12px; border-radius: 50%; background: #FBF7F1; border: 1px solid rgba(27,23,19,.2);"></span>Açık tema
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 604px 604px; gap: 26px;">
+
+        <div style="height: 174px; box-sizing: border-box; padding: 22px; border-radius: 24px; background: radial-gradient(130% 110% at 18% 0%, #1A1613 0%, #0B0908 65%); display: flex; align-items: center;">
+          <div style="width: 270px; height: 130px; border-radius: 34px; box-sizing: border-box; flex: none; background: #8898BC; color: #141C2E; padding: 0 22px; display: flex; align-items: center; gap: 16px; box-shadow: 0 18px 40px -22px rgba(0,0,0,.95);">
+            <div style="width: 48px; height: 48px; border-radius: 50%; background: rgba(20,28,46,.14); display: flex; align-items: center; justify-content: center; flex: none;">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0;">
+              <div style="font-size: 24px; font-weight: 600; letter-spacing: -.01em;">Yeni not</div>
+              <div style="font-size: 15px; font-weight: 500; color: rgba(20,28,46,.62);">notsdaleit</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="height: 174px; box-sizing: border-box; padding: 22px; border-radius: 24px; background: radial-gradient(130% 110% at 18% 0%, #E8DFCE 0%, #D3C8B4 70%); display: flex; align-items: center;">
+          <div style="width: 270px; height: 130px; border-radius: 34px; box-sizing: border-box; flex: none; background: #1B2A42; color: #F5F1E9; padding: 0 22px; display: flex; align-items: center; gap: 16px; box-shadow: 0 18px 38px -24px rgba(40,32,24,.6);">
+            <div style="width: 48px; height: 48px; border-radius: 50%; background: rgba(245,241,233,.14); display: flex; align-items: center; justify-content: center; flex: none;">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0;">
+              <div style="font-size: 24px; font-weight: 600; letter-spacing: -.01em;">Yeni not</div>
+              <div style="font-size: 15px; font-weight: 500; color: rgba(245,241,233,.6);">notsdaleit</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="height: 174px; box-sizing: border-box; padding: 22px; border-radius: 24px; background: radial-gradient(130% 110% at 18% 0%, #1A1613 0%, #0B0908 65%); display: flex; align-items: center;">
+          <div style="width: 560px; height: 130px; border-radius: 34px; box-sizing: border-box; flex: none; background: #24211C; border: 1px solid rgba(255,255,255,.055); box-shadow: 0 18px 40px -22px rgba(0,0,0,.95); display: flex; align-items: center; padding: 0 6px;">
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 10px;">
+              <div style="width: 46px; height: 46px; border-radius: 15px; background: rgba(136,152,188,.15); color: #A3B2D2; display: flex; align-items: center; justify-content: center;">
+                <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+              </div>
+              <div style="font-size: 17px; font-weight: 500; color: #E7E1D8;">Yeni not</div>
+            </div>
+            <div style="width: 1px; height: 46px; background: rgba(255,255,255,.07);"></div>
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 10px;">
+              <div style="width: 46px; height: 46px; border-radius: 15px; background: rgba(136,152,188,.15); color: #A3B2D2; display: flex; align-items: center; justify-content: center;">
+                <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 19.5h4L18 10l-4-4-9.5 9.5v4z"></path><path d="M14.5 5.5l4 4"></path></svg>
+              </div>
+              <div style="font-size: 17px; font-weight: 500; color: #E7E1D8;">Çizim</div>
+            </div>
+            <div style="width: 1px; height: 46px; background: rgba(255,255,255,.07);"></div>
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 10px;">
+              <div style="width: 46px; height: 46px; border-radius: 15px; background: rgba(136,152,188,.15); color: #A3B2D2; display: flex; align-items: center; justify-content: center;">
+                <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4.5 4.5"></path></svg>
+              </div>
+              <div style="font-size: 17px; font-weight: 500; color: #E7E1D8;">Ara</div>
+            </div>
+            <div style="width: 1px; height: 46px; background: rgba(255,255,255,.07);"></div>
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 10px;">
+              <div style="width: 46px; height: 46px; border-radius: 15px; background: rgba(136,152,188,.15); color: #A3B2D2; display: flex; align-items: center; justify-content: center;">
+                <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="3.5" y="5.5" width="17" height="15" rx="3.5"></rect><path d="M8 3v4M16 3v4M3.5 10.5h17"></path></svg>
+              </div>
+              <div style="font-size: 17px; font-weight: 500; color: #E7E1D8;">Takvim</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="height: 174px; box-sizing: border-box; padding: 22px; border-radius: 24px; background: radial-gradient(130% 110% at 18% 0%, #E8DFCE 0%, #D3C8B4 70%); display: flex; align-items: center;">
+          <div style="width: 560px; height: 130px; border-radius: 34px; box-sizing: border-box; flex: none; background: #FBF7F1; border: 1px solid rgba(27,23,19,.07); box-shadow: 0 18px 38px -24px rgba(40,32,24,.55); display: flex; align-items: center; padding: 0 6px;">
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 10px;">
+              <div style="width: 46px; height: 46px; border-radius: 15px; background: rgba(27,42,66,.08); color: #1B2A42; display: flex; align-items: center; justify-content: center;">
+                <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+              </div>
+              <div style="font-size: 17px; font-weight: 500; color: #2A251F;">Yeni not</div>
+            </div>
+            <div style="width: 1px; height: 46px; background: rgba(27,23,19,.09);"></div>
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 10px;">
+              <div style="width: 46px; height: 46px; border-radius: 15px; background: rgba(27,42,66,.08); color: #1B2A42; display: flex; align-items: center; justify-content: center;">
+                <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 19.5h4L18 10l-4-4-9.5 9.5v4z"></path><path d="M14.5 5.5l4 4"></path></svg>
+              </div>
+              <div style="font-size: 17px; font-weight: 500; color: #2A251F;">Çizim</div>
+            </div>
+            <div style="width: 1px; height: 46px; background: rgba(27,23,19,.09);"></div>
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 10px;">
+              <div style="width: 46px; height: 46px; border-radius: 15px; background: rgba(27,42,66,.08); color: #1B2A42; display: flex; align-items: center; justify-content: center;">
+                <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4.5 4.5"></path></svg>
+              </div>
+              <div style="font-size: 17px; font-weight: 500; color: #2A251F;">Ara</div>
+            </div>
+            <div style="width: 1px; height: 46px; background: rgba(27,23,19,.09);"></div>
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 10px;">
+              <div style="width: 46px; height: 46px; border-radius: 15px; background: rgba(27,42,66,.08); color: #1B2A42; display: flex; align-items: center; justify-content: center;">
+                <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="3.5" y="5.5" width="17" height="15" rx="3.5"></rect><path d="M8 3v4M16 3v4M3.5 10.5h17"></path></svg>
+              </div>
+              <div style="font-size: 17px; font-weight: 500; color: #2A251F;">Takvim</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="height: 320px; box-sizing: border-box; padding: 22px; border-radius: 24px; background: radial-gradient(130% 110% at 18% 0%, #1A1613 0%, #0B0908 65%); display: flex; align-items: center;">
+          <div style="width: 560px; height: 276px; border-radius: 34px; box-sizing: border-box; flex: none; background: #24211C; border: 1px solid rgba(255,255,255,.055); box-shadow: 0 18px 40px -22px rgba(0,0,0,.95); padding: 20px 24px; display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <span style="color: #A3B2D2; display: flex;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V7.6A2.6 2.6 0 016.6 5H17l-2.6-2.6"></path><path d="M20 15v1.4a2.6 2.6 0 01-2.6 2.6H7l2.6 2.6"></path></svg>
+              </span>
+              <div style="font-size: 22px; font-weight: 600; color: #F2EDE6; letter-spacing: -.01em;">Bugünün rutinleri</div>
+              <div style="margin-left: auto; display: flex; align-items: center; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 6px; padding: 5px 11px 5px 9px; border-radius: 999px; background: rgba(136,152,188,.15); color: #A3B2D2; font-size: 16px; font-weight: 600;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5c3.4 3 5.5 5.7 5.5 9.1a5.5 5.5 0 11-11 0c0-3 1.9-5.7 5.5-9.1z" opacity=".9"></path></svg>
+                  <span>{{ streak }}</span>
+                </div>
+                <div style="font-size: 19px; font-weight: 600; color: #F2EDE6;">{{ doneLabel }}</div>
+              </div>
+            </div>
+
+            <div style="height: 6px; border-radius: 3px; background: rgba(255,255,255,.07); overflow: hidden;">
+              <div style="height: 6px; border-radius: 3px; background: #8898BC; width: {{ progressWidth }};"></div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <div style="display: flex; align-items: center; gap: 14px; height: 44px;">
+                <span style="width: 26px; height: 26px; border-radius: 50%; background: #8898BC; color: #141C2E; display: flex; align-items: center; justify-content: center; flex: none;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"></path></svg>
+                </span>
+                <span style="font-size: 20px; color: #8D857A; text-decoration: line-through; text-decoration-color: rgba(141,133,122,.6);">Sabah yürüyüşü</span>
+                <span style="margin-left: auto; font-size: 17px; color: #8D857A;">07:00</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 14px; height: 44px;">
+                <span style="width: 26px; height: 26px; border-radius: 50%; background: #8898BC; color: #141C2E; display: flex; align-items: center; justify-content: center; flex: none;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"></path></svg>
+                </span>
+                <span style="font-size: 20px; color: #8D857A; text-decoration: line-through; text-decoration-color: rgba(141,133,122,.6);">20 dk okuma</span>
+                <span style="margin-left: auto; font-size: 17px; color: #8D857A;">12:30</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 14px; height: 44px;">
+                <span style="width: 26px; height: 26px; border-radius: 50%; border: 2px solid rgba(242,237,230,.28); flex: none;"></span>
+                <span style="font-size: 20px; color: #F2EDE6;">Ders tekrarı</span>
+                <span style="margin-left: auto; font-size: 17px; color: #A79E93;">19:00</span>
+              </div>
+            </div>
+
+            <div style="margin-top: auto; display: flex; align-items: center; gap: 8px; font-size: 17px; color: #A79E93;">
+              <span>+2 rutin daha</span>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 5l7 7-7 7"></path></svg>
+            </div>
+          </div>
+        </div>
+
+        <div style="height: 320px; box-sizing: border-box; padding: 22px; border-radius: 24px; background: radial-gradient(130% 110% at 18% 0%, #E8DFCE 0%, #D3C8B4 70%); display: flex; align-items: center;">
+          <div style="width: 560px; height: 276px; border-radius: 34px; box-sizing: border-box; flex: none; background: #FBF7F1; border: 1px solid rgba(27,23,19,.07); box-shadow: 0 18px 38px -24px rgba(40,32,24,.55); padding: 20px 24px; display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <span style="color: #1B2A42; display: flex;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V7.6A2.6 2.6 0 016.6 5H17l-2.6-2.6"></path><path d="M20 15v1.4a2.6 2.6 0 01-2.6 2.6H7l2.6 2.6"></path></svg>
+              </span>
+              <div style="font-size: 22px; font-weight: 600; color: #1B1713; letter-spacing: -.01em;">Bugünün rutinleri</div>
+              <div style="margin-left: auto; display: flex; align-items: center; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 6px; padding: 5px 11px 5px 9px; border-radius: 999px; background: rgba(27,42,66,.08); color: #1B2A42; font-size: 16px; font-weight: 600;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5c3.4 3 5.5 5.7 5.5 9.1a5.5 5.5 0 11-11 0c0-3 1.9-5.7 5.5-9.1z" opacity=".9"></path></svg>
+                  <span>{{ streak }}</span>
+                </div>
+                <div style="font-size: 19px; font-weight: 600; color: #1B1713;">{{ doneLabel }}</div>
+              </div>
+            </div>
+
+            <div style="height: 6px; border-radius: 3px; background: rgba(27,23,19,.09); overflow: hidden;">
+              <div style="height: 6px; border-radius: 3px; background: #1B2A42; width: {{ progressWidth }};"></div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <div style="display: flex; align-items: center; gap: 14px; height: 44px;">
+                <span style="width: 26px; height: 26px; border-radius: 50%; background: #1B2A42; color: #F5F1E9; display: flex; align-items: center; justify-content: center; flex: none;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"></path></svg>
+                </span>
+                <span style="font-size: 20px; color: #8B8377; text-decoration: line-through; text-decoration-color: rgba(139,131,119,.6);">Sabah yürüyüşü</span>
+                <span style="margin-left: auto; font-size: 17px; color: #8B8377;">07:00</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 14px; height: 44px;">
+                <span style="width: 26px; height: 26px; border-radius: 50%; background: #1B2A42; color: #F5F1E9; display: flex; align-items: center; justify-content: center; flex: none;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"></path></svg>
+                </span>
+                <span style="font-size: 20px; color: #8B8377; text-decoration: line-through; text-decoration-color: rgba(139,131,119,.6);">20 dk okuma</span>
+                <span style="margin-left: auto; font-size: 17px; color: #8B8377;">12:30</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 14px; height: 44px;">
+                <span style="width: 26px; height: 26px; border-radius: 50%; border: 2px solid rgba(27,23,19,.22); flex: none;"></span>
+                <span style="font-size: 20px; color: #1B1713;">Ders tekrarı</span>
+                <span style="margin-left: auto; font-size: 17px; color: #7C7468;">19:00</span>
+              </div>
+            </div>
+
+            <div style="margin-top: auto; display: flex; align-items: center; gap: 8px; font-size: 17px; color: #7C7468;">
+              <span>+2 rutin daha</span>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 5l7 7-7 7"></path></svg>
+            </div>
+          </div>
+        </div>
+
+        <div style="height: 320px; box-sizing: border-box; padding: 22px; border-radius: 24px; background: radial-gradient(130% 110% at 18% 0%, #1A1613 0%, #0B0908 65%); display: flex; align-items: center;">
+          <div style="width: 560px; height: 276px; border-radius: 34px; box-sizing: border-box; flex: none; background: #24211C; border: 1px solid rgba(255,255,255,.055); box-shadow: 0 18px 40px -22px rgba(0,0,0,.95); padding: 22px 24px; display: flex; flex-direction: column; gap: 14px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 30px; height: 30px; border-radius: 9px; background: #F2EDE6; color: #1B2A42; display: flex; align-items: center; justify-content: center; flex: none;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3 19l6.4-9.8 3.9 6 2-3L21 19z"></path></svg>
+              </div>
+              <div style="font-size: 22px; font-weight: 600; color: #F2EDE6; letter-spacing: -.01em;">Son notlar</div>
+              <div style="margin-left: auto; width: 40px; height: 40px; border-radius: 14px; background: #8898BC; color: #141C2E; display: flex; align-items: center; justify-content: center;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+              </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 12px; flex: 1;">
+              <div style="background: #2C2823; border-radius: 18px; padding: 13px 15px; display: flex; flex-direction: column; justify-content: center; gap: 5px; min-width: 0;">
+                <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#A79E93" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex: none;"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"></path><path d="M13.6 3.4V8H19"></path></svg>
+                  <span style="font-size: 19px; font-weight: 500; color: #F2EDE6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">KARA LİSTE</span>
+                </div>
+                <div style="font-size: 16px; color: #8D857A;">Kişisel · 17 sa</div>
+              </div>
+              <div style="background: #2C2823; border-radius: 18px; padding: 13px 15px; display: flex; flex-direction: column; justify-content: center; gap: 5px; min-width: 0;">
+                <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+                  <span style="font-size: 11px; font-weight: 600; letter-spacing: .06em; padding: 2px 5px; border-radius: 5px; background: rgba(136,152,188,.2); color: #A3B2D2; flex: none;">PDF</span>
+                  <span style="font-size: 19px; font-weight: 500; color: #F2EDE6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Dalga optiği</span>
+                </div>
+                <div style="font-size: 16px; color: #8D857A;">Ders Notları · 1 g</div>
+              </div>
+              <div style="background: #2C2823; border-radius: 18px; padding: 13px 15px; display: flex; flex-direction: column; justify-content: center; gap: 5px; min-width: 0;">
+                <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#A79E93" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex: none;"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"></path><path d="M13.6 3.4V8H19"></path></svg>
+                  <span style="font-size: 19px; font-weight: 500; color: #F2EDE6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Toplantı özeti</span>
+                </div>
+                <div style="font-size: 16px; color: #8D857A;">İş · 2 sa</div>
+              </div>
+              <div style="background: #2C2823; border-radius: 18px; padding: 13px 15px; display: flex; flex-direction: column; justify-content: center; gap: 5px; min-width: 0;">
+                <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#A79E93" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex: none;"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"></path><path d="M13.6 3.4V8H19"></path></svg>
+                  <span style="font-size: 19px; font-weight: 500; color: #F2EDE6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Adsız not</span>
+                </div>
+                <div style="font-size: 16px; color: #8D857A;">Kişisel · 9 dk</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="height: 320px; box-sizing: border-box; padding: 22px; border-radius: 24px; background: radial-gradient(130% 110% at 18% 0%, #E8DFCE 0%, #D3C8B4 70%); display: flex; align-items: center;">
+          <div style="width: 560px; height: 276px; border-radius: 34px; box-sizing: border-box; flex: none; background: #FBF7F1; border: 1px solid rgba(27,23,19,.07); box-shadow: 0 18px 38px -24px rgba(40,32,24,.55); padding: 22px 24px; display: flex; flex-direction: column; gap: 14px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 30px; height: 30px; border-radius: 9px; background: #1B2A42; color: #F5F1E9; display: flex; align-items: center; justify-content: center; flex: none;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3 19l6.4-9.8 3.9 6 2-3L21 19z"></path></svg>
+              </div>
+              <div style="font-size: 22px; font-weight: 600; color: #1B1713; letter-spacing: -.01em;">Son notlar</div>
+              <div style="margin-left: auto; width: 40px; height: 40px; border-radius: 14px; background: #1B2A42; color: #F5F1E9; display: flex; align-items: center; justify-content: center;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+              </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 12px; flex: 1;">
+              <div style="background: #F1EBE0; border-radius: 18px; padding: 13px 15px; display: flex; flex-direction: column; justify-content: center; gap: 5px; min-width: 0;">
+                <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#7C7468" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex: none;"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"></path><path d="M13.6 3.4V8H19"></path></svg>
+                  <span style="font-size: 19px; font-weight: 500; color: #1B1713; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">KARA LİSTE</span>
+                </div>
+                <div style="font-size: 16px; color: #8B8377;">Kişisel · 17 sa</div>
+              </div>
+              <div style="background: #F1EBE0; border-radius: 18px; padding: 13px 15px; display: flex; flex-direction: column; justify-content: center; gap: 5px; min-width: 0;">
+                <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+                  <span style="font-size: 11px; font-weight: 600; letter-spacing: .06em; padding: 2px 5px; border-radius: 5px; background: rgba(27,42,66,.1); color: #1B2A42; flex: none;">PDF</span>
+                  <span style="font-size: 19px; font-weight: 500; color: #1B1713; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Dalga optiği</span>
+                </div>
+                <div style="font-size: 16px; color: #8B8377;">Ders Notları · 1 g</div>
+              </div>
+              <div style="background: #F1EBE0; border-radius: 18px; padding: 13px 15px; display: flex; flex-direction: column; justify-content: center; gap: 5px; min-width: 0;">
+                <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#7C7468" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex: none;"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"></path><path d="M13.6 3.4V8H19"></path></svg>
+                  <span style="font-size: 19px; font-weight: 500; color: #1B1713; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Toplantı özeti</span>
+                </div>
+                <div style="font-size: 16px; color: #8B8377;">İş · 2 sa</div>
+              </div>
+              <div style="background: #F1EBE0; border-radius: 18px; padding: 13px 15px; display: flex; flex-direction: column; justify-content: center; gap: 5px; min-width: 0;">
+                <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#7C7468" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex: none;"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"></path><path d="M13.6 3.4V8H19"></path></svg>
+                  <span style="font-size: 19px; font-weight: 500; color: #1B1713; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Adsız not</span>
+                </div>
+                <div style="font-size: 16px; color: #8B8377;">Kişisel · 9 dk</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <sc-if value="{{ showSpecs }}" hint-placeholder-val="{{ true }}">
+      <div style="flex: none; width: 460px; display: flex; flex-direction: column; gap: 14px;">
+        <div style="font-size: 15px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: #6E6659;">Davranış &amp; teslim notları</div>
+        <div style="display: flex; flex-direction: column; gap: 26px;">
+
+          <div style="min-height: 174px; box-sizing: border-box; background: #FDFBF7; border: 1px solid rgba(27,23,19,.09); border-radius: 20px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; align-items: baseline; gap: 10px;">
+              <div style="font-size: 21px; font-weight: 600;">Yeni not</div>
+              <div style="font-family: 'DM Mono', monospace; font-size: 14px; color: #6E6659;">2×1 · 170×90dp</div>
+            </div>
+            <div style="font-size: 16px; line-height: 1.5; color: #4A443B; text-wrap: pretty;">Mevcut widget'ın yenilenmiş hâli: artık sistem temasını izliyor. Tek dokunuş → boş editör (<span style="font-family: 'DM Mono', monospace; font-size: 14px;">notsdaleit://not/yeni</span>). Tüm yüzey dokunma hedefi.</div>
+          </div>
+
+          <div style="min-height: 174px; box-sizing: border-box; background: #FDFBF7; border: 1px solid rgba(27,23,19,.09); border-radius: 20px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; align-items: baseline; gap: 10px;">
+              <div style="font-size: 21px; font-weight: 600;">Kısayollar</div>
+              <div style="font-family: 'DM Mono', monospace; font-size: 14px; color: #6E6659;">4×1 · 350×90dp</div>
+            </div>
+            <div style="font-size: 16px; line-height: 1.5; color: #4A443B; text-wrap: pretty;">Dört ayrı dokunma hedefi (her biri ≥48dp): <span style="font-family: 'DM Mono', monospace; font-size: 14px;">/not/yeni · /cizim · /arama · /takvim</span>. İkonlar accent, etiketler tek satır.</div>
+          </div>
+
+          <div style="min-height: 320px; box-sizing: border-box; background: #FDFBF7; border: 1px solid rgba(27,23,19,.09); border-radius: 20px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: flex; align-items: baseline; gap: 10px;">
+              <div style="font-size: 21px; font-weight: 600;">Bugünün rutinleri</div>
+              <div style="font-family: 'DM Mono', monospace; font-size: 14px; color: #6E6659;">4×2 · 350×190dp</div>
+            </div>
+            <ul style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 9px; font-size: 16px; line-height: 1.45; color: #4A443B;">
+              <li>Bugün planlı rutinler, saate göre sıralı. Üç satır sığar, kalanı “+N rutin daha”.</li>
+              <li>Sağ üstte tamamlama sayacı ve seri (alev + gün). İnce ilerleme çubuğu sayacı yansıtır.</li>
+              <li>Satıra dokun → anında işaretle; widget yerinde güncellenir, uygulama açılmaz.</li>
+              <li>Başlığa dokun → Rutinler ekranı. Tamamlanan satır soluk + üstü çizili.</li>
+              <li>Boş durum: “Bugün için rutin yok — bir rutin ekle”.</li>
+            </ul>
+          </div>
+
+          <div style="min-height: 320px; box-sizing: border-box; background: #FDFBF7; border: 1px solid rgba(27,23,19,.09); border-radius: 20px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: flex; align-items: baseline; gap: 10px;">
+              <div style="font-size: 21px; font-weight: 600;">Son notlar</div>
+              <div style="font-family: 'DM Mono', monospace; font-size: 14px; color: #6E6659;">4×2 · 350×190dp</div>
+            </div>
+            <ul style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 9px; font-size: 16px; line-height: 1.45; color: #4A443B;">
+              <li>En son düzenlenen 4 belge, 2×2 ızgarada. Her kart: tür (not / PDF), başlık, klasör · zaman.</li>
+              <li>Karta dokun → ilgili not veya PDF açılır. Başlık satırındaki + → yeni not.</li>
+              <li>Uzun başlıklar tek satırda kırpılır; PDF'ler metin ikonu yerine etiketle ayrılır.</li>
+              <li>Boş durum: “Henüz belge yok — ilk notunu oluştur” + tek buton.</li>
+            </ul>
+          </div>
+
+        </div>
+      </div>
+    </sc-if>
+
+  </div>
+
+  <div style="display: grid; width: 1720px; grid-template-columns: 1fr 1fr 1fr; gap: 26px; padding-top: 12px; border-top: 1px solid rgba(27,23,19,.12);">
+
+    <div style="display: flex; flex-direction: column; gap: 14px;">
+      <div style="font-size: 15px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: #6E6659;">Koyu tema renkleri</div>
+      <div style="display: flex; flex-direction: column; gap: 8px; font-family: 'DM Mono', monospace; font-size: 15px; color: #4A443B;">
+        <div style="display: flex; align-items: center; gap: 12px;"><span style="width: 26px; height: 26px; border-radius: 8px; background: #15140F; border: 1px solid rgba(27,23,19,.15);"></span>#15140F · zemin</div>
+        <div style="display: flex; align-items: center; gap: 12px;"><span style="width: 26px; height: 26px; border-radius: 8px; background: #24211C;"></span>#24211C · widget yüzeyi</div>
+        <div style="display: flex; align-items: center; gap: 12px;"><span style="width: 26px; height: 26px; border-radius: 8px; background: #2C2823;"></span>#2C2823 · iç kart</div>
+        <div style="display: flex; align-items: center; gap: 12px;"><span style="width: 26px; height: 26px; border-radius: 8px; background: #8898BC;"></span>#8898BC · accent</div>
+        <div style="display: flex; align-items: center; gap: 12px;"><span style="width: 26px; height: 26px; border-radius: 8px; background: #F2EDE6;"></span>#F2EDE6 · metin / #8D857A ikincil</div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 14px;">
+      <div style="font-size: 15px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: #6E6659;">Açık tema renkleri</div>
+      <div style="display: flex; flex-direction: column; gap: 8px; font-family: 'DM Mono', monospace; font-size: 15px; color: #4A443B;">
+        <div style="display: flex; align-items: center; gap: 12px;"><span style="width: 26px; height: 26px; border-radius: 8px; background: #F0EBDF; border: 1px solid rgba(27,23,19,.15);"></span>#F0EBDF · zemin</div>
+        <div style="display: flex; align-items: center; gap: 12px;"><span style="width: 26px; height: 26px; border-radius: 8px; background: #FBF7F1; border: 1px solid rgba(27,23,19,.15);"></span>#FBF7F1 · widget yüzeyi</div>
+        <div style="display: flex; align-items: center; gap: 12px;"><span style="width: 26px; height: 26px; border-radius: 8px; background: #F1EBE0;"></span>#F1EBE0 · iç kart</div>
+        <div style="display: flex; align-items: center; gap: 12px;"><span style="width: 26px; height: 26px; border-radius: 8px; background: #1B2A42;"></span>#1B2A42 · accent</div>
+        <div style="display: flex; align-items: center; gap: 12px;"><span style="width: 26px; height: 26px; border-radius: 8px; background: #1B1713;"></span>#1B1713 · metin / #8B8377 ikincil</div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 14px;">
+      <div style="font-size: 15px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: #6E6659;">Ortak ölçüler &amp; uygulama</div>
+      <div style="font-size: 16px; line-height: 1.55; color: #4A443B; text-wrap: pretty;">Tipografi DM Sans (500 / 600), widget metni min. 13sp. Köşe: widget 24dp, iç kart 12dp, pill tam yuvarlak. İç boşluk 16dp, satır yüksekliği 28dp, dokunma alanı ≥48dp.</div>
+      <div style="font-size: 16px; line-height: 1.55; color: #4A443B; text-wrap: pretty;">Glance + GlanceTheme ile kur; renkler <span style="font-family: 'DM Mono', monospace; font-size: 14px;">values</span> / <span style="font-family: 'DM Mono', monospace; font-size: 14px;">values-night</span> kaynaklarından gelsin (dynamic color kapalı, marka renkleri sabit). Not veya rutin değiştiğinde <span style="font-family: 'DM Mono', monospace; font-size: 14px;">updateAll</span>, ayrıca gece yarısı yenileme.</div>
+    </div>
+
+  </div>
+
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showSpecs&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Teslim&quot;},&quot;streak&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:12,&quot;min&quot;:0,&quot;max&quot;:365,&quot;unit&quot;:&quot;gün&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Veri&quot;},&quot;routineTotal&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:5,&quot;min&quot;:1,&quot;max&quot;:12,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Veri&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const total = this.props.routineTotal ?? 5;
+    const done = Math.min(2, total);
+    return {
+      showSpecs: this.props.showSpecs ?? true,
+      streak: this.props.streak ?? 12,
+      doneLabel: done + "/" + total,
+      progressWidth: Math.round((done / total) * 100) + "%"
+    };
+  }
+}
+</script>
+</body>
+</html>

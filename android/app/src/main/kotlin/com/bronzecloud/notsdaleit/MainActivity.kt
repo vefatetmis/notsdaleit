@@ -6,14 +6,22 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 /**
- * Ana ekran widget'ından gelen eylemi Flutter'a taşır.
+ * Ana ekran widget'ları ile Flutter arasındaki köprü.
  *
- * İki yol var, ikisi de gerekli:
- * - **Soğuk başlatma** (uygulama kapalıyken widget'a dokunuldu): Flutter henüz
- *   hazır olmadığı için eylem [pendingAction]'da bekletilir; Dart tarafı hazır
- *   olunca `consumeLaunchAction` ile alır.
- * - **Sıcak başlatma** (uygulama arka planda): [onNewIntent] tetiklenir ve
+ * **Eylem taşıma** (widget'a dokunuldu → uygulama açıldı) iki yolla olur,
+ * ikisi de gerekli:
+ * - **Soğuk başlatma** (uygulama kapalıydı): Flutter henüz hazır olmadığı için
+ *   eylem [pendingAction]'da bekletilir; Dart hazır olunca `consumeLaunchAction`
+ *   ile alır.
+ * - **Sıcak başlatma** (uygulama arka plandaydı): [onNewIntent] tetiklenir ve
  *   eylem doğrudan kanaldan gönderilir.
+ *
+ * **Veri taşıma** (uygulama → widget) `setWidgetData` ile: Dart bir JSON anlık
+ * görüntü yollar, [WidgetStore] saklar ve tüm widget'lar yeniden çizilir.
+ *
+ * **İşaret taşıma** (widget → uygulama) `takePendingRoutineToggles` ile:
+ * widget'tan yapılan rutin işaretleri kuyrukta bekler, Dart alıp veritabanına
+ * uygular.
  */
 class MainActivity : FlutterActivity() {
 
@@ -25,9 +33,7 @@ class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
-        if (intent?.action == ACTION_NEW_NOTE) {
-            pendingAction = NEW_NOTE
-        }
+        pendingAction = actionOf(intent)
 
         channel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
         channel?.setMethodCallHandler { call, result ->
@@ -35,6 +41,17 @@ class MainActivity : FlutterActivity() {
                 "consumeLaunchAction" -> {
                     result.success(pendingAction)
                     pendingAction = null // bir kez tüketilir
+                }
+                "setWidgetData" -> {
+                    val json = call.arguments as? String
+                    if (json != null) {
+                        WidgetStore.saveData(applicationContext, json)
+                        WidgetStore.refreshAll(applicationContext)
+                    }
+                    result.success(null)
+                }
+                "takePendingRoutineToggles" -> {
+                    result.success(WidgetStore.takePending(applicationContext))
                 }
                 else -> result.notImplemented()
             }
@@ -44,19 +61,36 @@ class MainActivity : FlutterActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        if (intent.action == ACTION_NEW_NOTE) {
-            // Kanal hazır değilse (nadiren) eylem kaybolmasın.
-            if (channel == null) {
-                pendingAction = NEW_NOTE
-            } else {
-                channel?.invokeMethod("launchAction", NEW_NOTE)
-            }
+        val action = actionOf(intent) ?: return
+        // Kanal hazır değilse (nadiren) eylem kaybolmasın.
+        if (channel == null) {
+            pendingAction = action
+        } else {
+            channel?.invokeMethod("launchAction", action)
         }
     }
 
+    /**
+     * Intent'ten widget eylemini çıkarır.
+     *
+     * Eski sürümden kalan ana ekran widget'ları hâlâ [ACTION_NEW_NOTE] taşıyan
+     * bir PendingIntent tutuyor olabilir (kullanıcı widget'ı yeniden eklemeden
+     * güncelledi) — o yol bilerek korunuyor.
+     */
+    private fun actionOf(intent: Intent?): String? = when (intent?.action) {
+        ACTION_WIDGET -> intent.getStringExtra(EXTRA_ACTION)
+        ACTION_NEW_NOTE -> "newNote"
+        else -> null
+    }
+
     companion object {
+        /** Yeni, genel widget eylemi; asıl eylem [EXTRA_ACTION] extra'sındadır. */
+        const val ACTION_WIDGET = "com.bronzecloud.notsdaleit.WIDGET"
+        const val EXTRA_ACTION = "widgetAction"
+
+        /** Eski (tek widget'lı) sürümün eylemi — geriye dönük uyumluluk. */
         const val ACTION_NEW_NOTE = "com.bronzecloud.notsdaleit.NEW_NOTE"
+
         private const val CHANNEL = "notsdaleit/widget"
-        private const val NEW_NOTE = "newNote"
     }
 }

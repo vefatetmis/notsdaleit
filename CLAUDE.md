@@ -59,45 +59,194 @@ Tasarımdaki **tüm ekranlar** kodlandı ve çalışıyor:
 - **Çizim koordinatları genişliğe göre normalize** (`buildScaledPath`,
   `DrawingLayer._norm` — her iki eksen ÷ genişlik) → sayfa yüksekliği metinle
   büyüse bile çizimler kaymaz.
-### ✅ ANA EKRAN WIDGET'I — "Yeni not" (25 Tem 2026)
+### ✅ ANA EKRAN WIDGET'LARI — dört widget (27 Tem 2026)
 
-Android ana ekranına 2×1 bir widget: dokununca uygulama açılıp **doğrudan boş
-bir A4 not** oluşturur (şablon diyaloğu gösterilmez — widget'ın amacı araya
-adım koymamak).
+Kullanıcı: *"sadece yeni not açabiliyoruz; rutin takibi, not kısayolları, farklı
+boyutlarda farklı amaçlara yönelik kompakt tasarımlar, 2 temamız var ona göre
+renk seçimi de olmalı."* Tek durağan widget → **dört widget + gerçek veri**.
 
-**PAKET EKLENMEDİ.** `home_widget` planlanmıştı ama gerek kalmadı: widget
-durağan (dinamik veri göstermiyor), tek ihtiyacı bir `PendingIntent` ve küçük
-bir `MethodChannel`. Paket eklemek yeni bir Kotlin sürüm bağımlılığı demekti —
-eklentiler burada **1.9.25**'e sabit. İleride widget'ta gerçek veri (bugünün
-görevleri gibi) göstermek istenirse paket o zaman değerlendirilir.
+| Widget | Boyut | Ne yapar |
+|---|---|---|
+| **Yeni not** | 2×1 | Dokun → doğrudan boş A4 not (şablon diyaloğu yok) |
+| **Kısayollar** | 4×1 | Yeni not · Çizim · Ara · Takvim (dört ayrı dokunuş alanı) |
+| **Bugünün rutinleri** | 4×2 | Bugün planlı rutinler + `2/5` sayacı; **satıra dokun → işaretle** |
+| **Son notlar** | 4×2 | Son 4 belge; satıra dokun → belge açılır, `+` → yeni not |
+
+**PAKET YİNE EKLENMEDİ.** `home_widget` gerçek veri için düşünülmüştü ama
+gerekmedi: mevcut `notsdaleit/widget` MethodChannel'ı genişletildi. Paket
+eklemek yeni bir Kotlin sürüm bağımlılığı demekti — eklentiler burada
+**1.9.25**'e sabit.
+
+**Veri akışı (iki yön):**
+- **Uygulama → widget:** `features/widget/widget_data.dart` bir JSON anlık
+  görüntü üretir (tema, dil, rutinler+gün maskeleri+seriler, son belgeler) ve
+  `setWidgetData` ile yollar. `WidgetSyncRunner` (app.dart, `AutoBackupRunner`'ı
+  sarar) veriyi `ref.watch` ile izler; dize değişmedikçe kanalı meşgul etmez.
+  Kotlin `WidgetStore` saklar → `refreshAll` dört widget'ı yeniden çizer.
+- **Widget → uygulama:** rutin satırına dokunmak uygulamayı **açmaz**;
+  `RoutinesWidgetProvider` yayını yakalar, `WidgetStore.toggleRoutine`
+  görünümü anında günceller ve işareti **bekleyen kuyruğa** yazar. Uygulama
+  açılınca/öne gelince `drainPendingRoutineToggles` kuyruğu alıp
+  `RoutineRepository.setChecked` ile uygular. **`setChecked` `toggle` değil** —
+  kuyruk aynı kaydı iki kez taşırsa toggle işareti geri alırdı.
+
+**Gün maskesi native tarafta değerlendirilir** (Dart'ta değil): hangi rutinin
+bugün planlı olduğu ve işaretin bugüne mi ait olduğu Kotlin'de hesaplanır.
+Sebep: manifeste bağlı `DATE_CHANGED` yayını gece yarısı gelince widget,
+**uygulama hiç açılmadan** yeni güne göre yeniden çizilir. Bu yüzden payload'da
+rutinin `days` maskesi ve `doneDay` (en son işaretlenen gün) gider; `done`
+hesaplanmış hâliyle gitmez.
+
+### 🎨 GÖRÜNÜM: Claude Design handoff'u uygulandı (27 Tem 2026, üçüncü tur)
+
+İlk iki turda widget'lar **kendi kafamıza göre** çizildi: önce Android'in
+varsayılan diliyle, sonra uygulamanın kart diline (bej kabuk + fildişi kartlar +
+outline ikonlar) hizalanarak. Kullanıcı ikisini de beğenmedi ve
+**`design/Android widget tasarımı isteniyor/Widgetlar.dc.html`** handoff'unu
+verdi. **Nihai görünüm oradan gelir; tahmin yürütme, o dosyayı oku.**
+
+⚠️ **Tasarımın kendi paleti var — `nd_colors.dart` DEĞİL.** Yakın ama birebir
+değil (ör. açık tema vurgusu tasarımda `#1B2A42`, uygulamada `#193769`).
+Çakışmada **tasarım kazanır**; `WidgetTheme.kt` `WidgetPalette` bu tokenları
+taşır:
+
+| | Koyu | Açık |
+|---|---|---|
+| widget yüzeyi | `#24211C` | `#FBF7F1` |
+| iç kart | `#2C2823` | `#F1EBE0` |
+| accent (dolgu) | `#8898BC` | `#1B2A42` |
+| accent (ikon/metin) | `#A3B2D2` | `#1B2A42` |
+| metin / ikincil / üçüncül | `#F2EDE6` / `#8D857A` / `#A79E93` | `#1B1713` / `#8B8377` / `#7C7468` |
+
+Tasarımdaki yarı saydam katmanlar (`rgba(...)`) shape drawable'lara **zemine
+yedirilmiş düz renk** olarak girdi — RemoteViews'te katman karıştırma yok.
+
+**Widget'ların tasarımdaki hâli:**
+- **Yeni not (2×1):** accent **dolgulu** kart; yarı saydam daire içinde artı,
+  yanında "Yeni not" / "notsdaleit" iki satırı. (Kart artık fildişi değil.)
+- **Kısayollar (4×1):** yüzey üstünde dört sütun, her biri accent çipi içinde
+  çizgi ikon + etiket, aralarında **dikey ayraç**.
+- **Bugünün rutinleri (4×2):** başlıkta **seri rozeti** (alev + gün) ve `2/5`
+  sayacı, altında sayacı yansıtan **ilerleme çubuğu**, sonra **üç** satır
+  (onay dairesi + başlık + **hatırlatıcı saati**), taşarsa "+N rutin daha".
+  Rutinler **saate göre** sıralı (saatsizler sonda).
+- **Son notlar (4×2):** başlıkta logo işareti + accent dolgulu `+`; gövde
+  **2×2 ızgara** iç kart — tür (not → çizgi ikon, PDF → **"PDF" rozeti**),
+  başlık ve **"klasör · zaman"**. Zaman burada **kısa** biçimde ("17 sa",
+  "1 g") — `formatRelativeShortIn`; uzun biçim ("17 sa önce") kartı taşırıyordu.
+
+**Tasarımdan bilerek sapılan üç yer:**
+1. **Font:** tasarım DM Sans diyor, biz **Instrument Sans** kullanıyoruz —
+   uygulamanın fontu o; widget'ın uygulamadan farklı bir yazıyla çıkması ilk
+   şikâyetin ta kendisiydi. TTF'ler `res/font/`'a kopyalandı.
+2. **Tema kaynağı:** tasarım `values`/`values-night` (sistem teması) diyor; biz
+   **uygulamanın** tema seçimini izliyoruz. Kullanıcı uygulamada açık tema
+   seçtiyse telefon koyu temada olsa bile widget açık kalmalı — bu saha
+   testinde onaylandı.
+3. **Glance yerine RemoteViews:** tasarım notu Glance öneriyor; paket eklemek
+   Kotlin 1.9.25 sabitini riske atardı ve gerekmedi.
+
+**RemoteViews'in üç tuzağı (hepsi bu turda yaşandı):**
+- **Düz `<View>` YASAK.** RemoteViews yalnız `@RemoteView` işaretli sınıfları
+  inflate eder; ayraçlar bu yüzden `FrameLayout`. Kullanılabilir olanlar:
+  LinearLayout · FrameLayout · TextView · ImageView · ProgressBar (+ birkaçı).
+  Yeni bir görünüm eklerken **önce listeye bak**, yoksa cihazda "widget
+  yüklenemedi" çıkar.
+- **`setColorFilter` ile ikon GİZLENMEZ.** `setColorFilter(int)` SRC_ATOP
+  kullanır; alfası 0 olan kaynak hedefi olduğu gibi bırakır → ikon yine görünür.
+  Boş halkadaki onay işareti `setInt(id, "setImageAlpha", 0)` ile gizleniyor.
+- **`progressDrawable` çalışma anında değiştirilemez** → ilerleme çubuğu tema
+  başına **iki ayrı ProgressBar**, biri gösteriliyor.
+
+**Üstü çizili metin** de doğrudan yok: `setInt(id, "setPaintFlags", …)` ile
+`Paint.STRIKE_THRU_TEXT_FLAG` verilir (`WidgetTheme.kt` `PaintFlags`).
+
+### 📐 SAYDAM ÇERÇEVE + İÇERİĞE GÖRE BÜZÜLEN KART (önemli)
+
+Kullanıcı sahada: *"Google widget'ını üstten ve alttan saydam kırpıyor ki
+gerçek 4×1 elde edebilsin; bizim görüntümüz göze orantısız geliyor."* Haklıydı —
+kök görünüm `match_parent` olduğu için kart, ana ekranda ayrılan hücrenin
+tamamını kaplıyordu; tek rutin varken altta kocaman boşluk kalıyordu.
+
+**Tasarım zaten bunu söylüyormuş** ama ilk okuyuşta kaçırıldı: mock'ta widget
+alanı `height:174px` + `padding:22px`, kart ise onun içinde `height:130px` —
+yani kartın etrafındaki ~14dp **saydam alan**, kartın kendisi değil.
+
+Bu yüzden dört düzenin de yapısı şu:
+
+```
+FrameLayout  (widget_root — SAYDAM, padding 3–4dp)
+  └ LinearLayout (…_card — wrap_content + center_vertical, yüzey zemini)
+```
+
+- **`wrap_content` şart:** kart içeriği kadar yükselir; içerik azken hücrenin
+  geri kalanı saydam kalır ve widget küçük görünür (Google'ın arama çubuğu
+  gibi). `match_parent` yaparsan orantısızlık geri gelir.
+- Zemin ve dokunma hedefi artık `widget_root`'ta değil **kart id'sinde**
+  (`qn_card` · `sc_card` · `rt_card` · `rc_card`) — sağlayıcılarda buraya bak.
+
+⚠️ **`res/font/` API 26 ister.** minSdk 21; Android 5–7'de `fontFamily`
+niteliği dize olarak okunur, `Typeface.create` bilinmeyen aileyi bulamayıp
+**sistem fontuna düşer** — çökme değil, yalnız o cihazlarda font farklı olur.
+Bu yüzden minSdk yükseltilmedi, layout kopyalanmadı.
+
+**Yükseklik gerçeği:** tasarım 4×2 için 190dp varsayıyor, sahada ~155dp var.
+Ölçüler oranlı biçimde sıkıştırıldı (rutinler ~151dp, son notlar ~139dp).
+**Büyütmeden önce cihazda ölç** — taşarsa alt satır kırpılır. Rutinlerde satır
+sayısının 3 olması da buradan geliyor (tasarım da 3 diyor).
 
 **Android tarafı** (`android/app/src/main/`):
-- `kotlin/…/QuickNoteWidgetProvider.kt` — `AppWidgetProvider`; kök görünüme
-  `MainActivity`'yi `ACTION_NEW_NOTE` ile açan PendingIntent bağlar
-  (`FLAG_IMMUTABLE` zorunlu, API 31+).
-- `res/layout/widget_quick_note.xml` — ikon + "Yeni not" + `+`; zemin
-  `res/drawable/widget_background.xml` (kart `#FFFCF6`, kenarlık `#E7E0D3`,
-  yazı logo laciverti `#193769` — uygulama paletiyle aynı).
-- `res/xml/quick_note_widget_info.xml` — `updatePeriodMillis="0"` (durağan
-  widget, pil dostu), `targetCellWidth/Height` 2×1.
-- `res/values/strings.xml` (TR) + `res/values-en/strings.xml` (EN).
-- Manifest'e `receiver` — `android:exported="true"` **zorunlu**: sistem
-  APPWIDGET_UPDATE yayınını gönderebilsin.
+- `kotlin/…/WidgetStore.kt` — JSON anlık görüntü + yerel üstünlükler
+  (`overrides`) + bekleyen kuyruk (`pending`); `nd_widget` SharedPreferences.
+- `kotlin/…/WidgetTheme.kt` — palet, iki dilli metinler (`WidgetText`),
+  PendingIntent üretimi.
+  ⚠️ **PendingIntent eşitliği extra'lara BAKMAZ.** Dört kısayol aynı action'ı
+  taşıdığı için her biri ayrı `requestCode` **ve** ayrı `ndwidget://…` data
+  URI'si alır; yoksa hepsi tek eyleme çökerdi.
+- `kotlin/…/{QuickNote,Shortcuts,Routines,RecentNotes}WidgetProvider.kt`.
+- `res/layout/widget_{quick_note,shortcuts,routines,recent_notes}.xml` —
+  satır/kart sayısı **sabit** (rutinler 3, son notlar 4), veri azsa fazlası
+  `GONE`. RemoteViews'te dinamik liste ayrı bir `RemoteViewsService` isterdi;
+  bu boyutta gereksiz.
+- `res/drawable/widget_*.xml` — tasarımın şekilleri, **tema başına ayrı**
+  (`_light`/`_dark`): `surface` · `accent` · `inner` · `chip` · `pill` ·
+  `addbtn` · `logo` · `circle` · `check_fill` · `check_ring` · `badge` ·
+  `progress`. `ic_widget_*.xml` tasarımın **çizgi (stroke)** ikonları; rengi
+  çalışma anında `setColorFilter` ile verilir.
+- `res/font/instrument_sans_{regular,semibold,bold}.ttf` — uygulamanın fontu.
+- `res/xml/*_widget_info.xml` — hepsi `updatePeriodMillis="0"` (sistem
+  uyandırması yok), `previewLayout` ile seçicide gerçek tasarım görünür.
+- Manifest'te dört `receiver`, `android:exported="true"` **zorunlu**.
 
-**MainActivity.kt artık boş değil** — iki başlatma yolunu da karşılar:
-- **soğuk** (uygulama kapalı): Flutter hazır olmadığı için eylem
-  `pendingAction`'da bekler, Dart `consumeLaunchAction` ile alır;
-- **sıcak** (arka planda): `onNewIntent` → kanaldan `launchAction`.
+**MainActivity.kt** eylemleri genelleştirdi: `ACTION_WIDGET` + `EXTRA_ACTION`
+(`newNote` · `newDrawing` · `search` · `calendar` · `routines` · `library` ·
+`openNote:<id>`). Eski `ACTION_NEW_NOTE` yolu **bilerek korundu** — kullanıcı
+uygulamayı güncellediğinde ana ekranında duran eski widget hâlâ o eylemi taşıyan
+bir PendingIntent tutuyor olabilir. Kanal ayrıca `setWidgetData` ve
+`takePendingRoutineToggles` metotlarını karşılar.
 
-**Flutter tarafı:** `features/widget/home_widget_bridge.dart` —
-`initHomeWidgetBridge(ref)` `app.dart`'taki `_IncomingPdfHandler.initState`'te
-çağrılır; `createConfiguredNote` ile boş not açar.
+**Gizlilik: kilitli notlar widget'a HİÇ girmez** (`widget_data.dart` eler).
+Widget akışında PIN sorulacak ekran yok ve kilidin amacı zaten başlığın
+görünmemesi. `home_widget_bridge._openNote` ikinci bir savunma yapar: veri
+bayatsa (not silinmiş/kilitlenmiş) kütüphaneye düşer.
 
-**Doğrulandı:** dev APK'nın manifestinde `QuickNoteWidgetProvider` +
-`android.appwidget.provider` meta-data var (`aapt2 dump xmltree`).
+**Test:** `test/widget_payload_test.dart` (17 test) — payload alan adlarının
+Kotlin `WidgetStore.parse` ile eşleşmesi, kilitli notun elenmesi, `doneDay`/
+seri hesabı, 4 belge sınırı, hatırlatıcı saatinin `HH:mm` biçimi, belge
+zamanının kısa biçimi ve rutinlerin saate göre sıralanması. Bu dize iki dilin sınırında: bir alan adı sessizce
+değişse hiçbir derleyici uyarmaz, widget yalnızca boşalır.
 
-**Sonraki adım (istenirse):** widget'ta bugünün görevleri/rutinleri listesi —
-o zaman veri köprüsü (SharedPreferences) ve `home_widget` paketi gerekir.
+**Doğrulandı:** dev APK'nın manifestinde dört provider + `android.appwidget.provider`
+meta-data + `ROUTINE_TOGGLE`/`DATE_CHANGED` action'ları var; derlenmiş
+layout'larda yalnız RemoteViews'in kabul ettiği görünüm sınıfları geçiyor
+(`aapt2 dump xmltree`).
+
+**Saha testi (27 Tem 2026, ikinci tur):** widget seçicide görünüyor · 4×2 ana
+ekrana sığıyor · widget'tan işaretleme uygulamaya geçiyor · tema değişimi
+çalışıyor. **Üçüncü turun (tasarım handoff'u) görünümü cihazda DENENMEDİ.**
+
+**Sonraki adım (istenirse):** bugünün görevleri (Tasks) widget'ı — aynı veri
+köprüsü hazır, yalnız payload'a `tasks` alanı + bir provider eklenir.
 
 ### 🧹 TEMİZLİK TURU (25 Tem 2026) — 555 satır ölü kod silindi
 
@@ -133,6 +282,7 @@ o yolla eklenmiş notlardaki fotoğraflar bozulmasın diye okuma/çizme tarafı
 duruyor; yeni ekleme `NoteImages`'a gidiyor.
 
 ### 🧪 TEST AĞI GENİŞLETİLDİ (25 Tem 2026) — 12 → 37 test
+*(27 Tem 2026: widget payload testleriyle **58**.)*
 
 Kullanıcı: *"özellikler çoğaldıkça diken üstünde ilerliyormuşuz gibi
 hissediyorum, her an sorun çıkacakmış gibi."* Endişe yerinde: 20 bin satıra
@@ -145,7 +295,8 @@ ama saf (test edilebilir) yerler** kapatıldı:
 | `form_layout_test.dart` (10) | Sayfalama + tablo sınırları | Sahada en çok hata çıkan yer (içerik kırpılıyordu, satırlar kayboluyordu). Ekran ve PDF **aynı** hesabı kullanır → kayma iki tarafı birden bozar. |
 | `image_cleanup_test.dart` (5) | `imageNamesInBody` | Yanlış cevabı **doğrudan veri kaybı**: not silinince başka notta duran fotoğraf da silinebilir (çoğaltma aynı dosyayı gösterir). |
 | `migration_test.dart` (4) | Şema geçişleri | Eski sürümden güncelleyeni uygulamadan tamamen edebilir (bkz. "KRİTİK HATA"). |
-| `widget_test.dart` (8) | Göreli tarihler (iki dil) | — |
+| `widget_test.dart` (12) | Göreli tarihler (iki dil, uzun + kısa biçim) | — |
+| `widget_payload_test.dart` (17) | Ana ekran widget'ı payload'u | Dize **iki dilin sınırında** (Dart üretir, Kotlin okur) — alan adı değişse derleyici uyarmaz, widget sessizce boşalır. Ayrıca **kilitli notun elenmesi** bir gizlilik kuralı. |
 
 **Testin kapsamadığı yerler (bilinçli):** cihaz jestleri (pinch/çizim),
 Flutter'ın kendi widget davranışı, gerçek dosya/dizin işlemleri, canlı
@@ -672,6 +823,7 @@ sonraki Play yüklemesinde (versionCode **+5**) gidecek:
 | E-posta girişi arayüzü gizlendi (`kAuthEnabled = false`) | `bb7995f` |
 | Geri al / ileri al (yazı + çizim) | bu oturum |
 | Çeviri eksikleri kapandı (araç çubuğu, klasörler, arama, tarihler) | bu oturum |
+| Ana ekran widget'ları: dört widget, gerçek veri, tema uyumu (27 Tem 2026) | bu oturum |
 
 **Kapalı testteki 1.3.0+4'ün içeriği (aşağıdaki listenin ilk 9 maddesi):**
 
@@ -763,11 +915,21 @@ stepper max + altında açıklama satırı), tablo altı düğmeler (soluklaşı
 sayfa kartı boş kalır ve kullanıcı onu kaldıramaz (sayfa silme özelliği YOK).
 "Sayfayı sil" yeni yol haritasında (aşağı bkz.).
 
-**⭐ SONRAKİ ADIM (yeni session buradan devam):** açık hata YOK. Sıradaki iş
-listesi = aşağıdaki **"YENİ YOL HARİTASI (24 Tem 2026 denetimi)"** bölümü.
-"Büyükler" bloğunun tamamı bitti — (a) tablo ekleme, (b1) şekiller,
-(b3) lasso, (c) form alan biçimi (alan bazında). **(b2) cetvel YAPILMAYACAK — kullanıcı kararı: "gerek yok".**
-Kullanıcı: "hepsini yap, kolaydan zora, sıra sende."
+**⭐ SONRAKİ ADIM (yeni session buradan devam):** açık hata YOK.
+
+**Kullanıcı 27 Tem 2026'da özellik listesini KAPATTI:** *"uygulamamız bitmiştir,
+ekleyeceğimiz her şeyi ekledik; sadece daha kompakt tasarım için menüleri falan
+düzenleyeceğiz, tasarım az çok değişecek."* Yani sıradaki iş **yeni özellik
+değil, arayüz sadeleştirme/kompaktlaştırma** — özellikle menüler (belge menüsü ⋮,
+araç çubukları, alt sayfalar). Yeni özellik önermeden önce bunu hatırla; istenen
+şey görsel düzen. Tasarım değişikliği gelirse yine **Claude Design handoff'u
+olarak `design/` klasörüne** düşer (bkz. widget turunda öğrenilen: tahmin
+yürütme, handoff'u oku).
+
+Eski (artık ikincil) iş listesi = aşağıdaki **"YENİ YOL HARİTASI (24 Tem 2026
+denetimi)"** bölümü. "Büyükler" bloğunun tamamı bitti — (a) tablo ekleme,
+(b1) şekiller, (b3) lasso, (c) form alan biçimi (alan bazında).
+**(b2) cetvel YAPILMAYACAK — kullanıcı kararı: "gerek yok".**
 Mail/auth ASKIDA (dokunma). Her adım: kullanıcıya ne yapacağını söyle → onay →
 yap → dev APK.
 
@@ -1150,9 +1312,10 @@ otomatik yedeğin ana thread'de JSON üretmesi (çok büyük veride kısa donma)
    (`local_auth`), uygulama geneli kilit (açılışta PIN).
 3. **Sesli not** — ses kaydı + oynatıcı (`record` benzeri paket), dosya yönetimi
    yedeklemeye de girmeli. En büyük iş.
-4. ~~Ana ekran widget'ı (Android)~~ → **YAPILDI** (yukarı bkz.). Kalan:
-   widget'ta gerçek veri (bugünün görevleri) — o zaman `home_widget` paketi +
-   SharedPreferences köprüsü gerekir.
+4. ~~Ana ekran widget'ı (Android)~~ → **YAPILDI**, 27 Tem 2026'da **dört
+   widget'a** çıkarıldı (gerçek veri + rutin işaretleme + tema uyumu; yukarı
+   bkz.). Paket hâlâ gerekmedi. Kalan: bugünün **görevleri** widget'ı (köprü
+   hazır, payload'a bir alan eklemek yeter).
 
 **C — fazlalıklar**
 9. ~~`table_embed.dart`~~ → **SİLİNDİ** (25 Tem 2026 temizlik turu, yukarı bkz.).

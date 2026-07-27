@@ -1,41 +1,71 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Hızlı not widget'ı: ikon + etiket + artı. Tamamı tek dokunuş alanıdır
-     (kök görünüme PendingIntent bağlanır). -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- 2×1 "Yeni not" — tasarım: Widgetlar.dc.html, ilk kart.
+     Accent DOLGULU kart (koyu temada açık mavi, açık temada lacivert), içinde
+     yarı saydam daire + artı, yanında iki satır: "Yeni not" / "notsdaleit".
+     Tüm yüzey tek dokunma hedefi.
+     Renkler çalışma anında verilir (WidgetPalette); buradakiler widget
+     seçicideki önizleme içindir. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/widget_background"
+    android:padding="4dp">
+
+    <LinearLayout
+        android:id="@+id/qn_card"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical"
+    android:background="@drawable/widget_accent_light"
     android:orientation="horizontal"
     android:gravity="center_vertical"
     android:paddingStart="14dp"
     android:paddingEnd="14dp"
-    android:paddingTop="10dp"
-    android:paddingBottom="10dp">
+    android:paddingTop="12dp"
+    android:paddingBottom="12dp">
 
-    <ImageView
-        android:layout_width="26dp"
-        android:layout_height="26dp"
-        android:src="@mipmap/ic_launcher"
-        android:contentDescription="@string/widget_quick_note_label" />
+    <FrameLayout
+        android:id="@+id/qn_circle"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:background="@drawable/widget_circle_light">
 
-    <TextView
+        <ImageView
+            android:id="@+id/qn_icon"
+            android:layout_width="17dp"
+            android:layout_height="17dp"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_widget_plus"
+            android:contentDescription="@string/widget_quick_note_label" />
+    </FrameLayout>
+
+    <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:layout_marginStart="10dp"
-        android:text="@string/widget_quick_note_label"
-        android:textColor="#193769"
-        android:textSize="15sp"
-        android:textStyle="bold"
-        android:maxLines="1"
-        android:ellipsize="end" />
+        android:layout_marginStart="11dp"
+        android:orientation="vertical">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="+"
-        android:textColor="#193769"
-        android:textSize="24sp"
-        android:includeFontPadding="false" />
+        <TextView
+            android:id="@+id/qn_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/widget_quick_note_label"
+            android:fontFamily="@font/instrument_sans_semibold"
+            android:textColor="#F5F1E9"
+            android:textSize="15sp"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <TextView
+            android:id="@+id/qn_sub"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/widget_app_name"
+            android:fontFamily="@font/instrument_sans_regular"
+            android:textColor="#9EA1A6"
+            android:textSize="9.5sp"
+            android:maxLines="1" />
+    </LinearLayout>
 </LinearLayout>
+</FrameLayout>

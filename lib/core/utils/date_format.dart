@@ -33,3 +33,22 @@ String formatRelativeIn(DateTime dateTime, {required bool en}) {
 /// Ekranlarda kullanılan kısayol — dili context'ten alır.
 String formatRelative(BuildContext context, DateTime dateTime) =>
     formatRelativeIn(dateTime, en: context.isEn);
+
+/// **Kısaltılmış** göreli zaman: "9 dk", "2 sa", "1 g", "3 hf".
+///
+/// "önce"/"ago" eki yok — ana ekran widget'ının 2×2 ızgarasında satır
+/// "klasör · zaman" olarak yazılıyor ve tasarım (Widgetlar.dc.html) orada bu
+/// kısa biçimi kullanıyor; uzun biçim kartı taşırıyordu.
+String formatRelativeShortIn(DateTime dateTime, {required bool en}) {
+  final diff = DateTime.now().difference(dateTime);
+
+  if (diff.inSeconds < 60) return en ? 'now' : 'şimdi';
+  if (diff.inMinutes < 60) return en ? '${diff.inMinutes}m' : '${diff.inMinutes} dk';
+  if (diff.inHours < 24) return en ? '${diff.inHours}h' : '${diff.inHours} sa';
+
+  final days = diff.inDays;
+  if (days < 7) return en ? '${days}d' : '$days g';
+  if (days < 30) return en ? '${(days / 7).floor()}w' : '${(days / 7).floor()} hf';
+  if (days < 365) return en ? '${(days / 30).floor()}mo' : '${(days / 30).floor()} ay';
+  return en ? '${(days / 365).floor()}y' : '${(days / 365).floor()} y';
+}

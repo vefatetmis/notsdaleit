@@ -37,6 +37,33 @@ class RoutineRepository {
         .write(RoutinesCompanion(remindAt: Value(minutes)));
   }
 
+  /// Bir günün işaretini **kesin bir duruma** getirir (varsa/yoksa değil).
+  ///
+  /// Ana ekran widget'ından gelen işaretler bununla uygulanır: kuyruk aynı
+  /// işareti iki kez taşısa bile sonuç değişmez ([toggle] olsaydı ikinci
+  /// uygulama işareti geri alırdı).
+  Future<void> setChecked({
+    required int routineId,
+    required DateTime day,
+    required bool done,
+  }) async {
+    final d = DateTime(day.year, day.month, day.day);
+    final existing = await (_db.select(_db.routineChecks)
+          ..where((t) => t.routineId.equals(routineId) & t.day.equals(d)))
+        .getSingleOrNull();
+    if (done && existing == null) {
+      await _db.into(_db.routineChecks).insert(RoutineChecksCompanion.insert(
+            routineId: routineId,
+            day: d,
+            createdAt: DateTime.now(),
+          ));
+    } else if (!done && existing != null) {
+      await (_db.delete(_db.routineChecks)
+            ..where((t) => t.id.equals(existing.id)))
+          .go();
+    }
+  }
+
   /// Bir günün işaretini değiştirir: varsa kaldırır, yoksa ekler.
   /// [day] gün hassasiyetine indirgenir (00:00).
   Future<void> toggle({required int routineId, required DateTime day}) async {

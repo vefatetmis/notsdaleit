@@ -12,6 +12,7 @@ import 'features/ntdl/ntdl_service.dart';
 import 'features/onboarding/onboarding_screen.dart';
 import 'features/shell/actions.dart';
 import 'features/widget/home_widget_bridge.dart';
+import 'features/widget/widget_data.dart';
 import 'features/backup/auto_backup.dart';
 import 'features/shell/home_shell.dart';
 import 'features/shell/shell_state.dart';
@@ -71,7 +72,7 @@ class _IncomingPdfHandlerState extends ConsumerState<_IncomingPdfHandler> {
       _handle(files);
       ReceiveSharingIntent.instance.reset();
     });
-    // Ana ekran widget'ı ("Yeni not") — soğuk ve sıcak başlatma.
+    // Ana ekran widget'ları — soğuk ve sıcak başlatma.
     initHomeWidgetBridge(ref);
   }
 
@@ -100,6 +101,7 @@ class _IncomingPdfHandlerState extends ConsumerState<_IncomingPdfHandler> {
 
   @override
   Widget build(BuildContext context) =>
-      // Günlük otomatik yedek buradan tetiklenir (ilk kareden sonra, sessiz).
-      const AutoBackupRunner(child: HomeShell());
+      // WidgetSyncRunner: ana ekran widget'larının verisini canlı tutar.
+      // AutoBackupRunner: günlük otomatik yedek (ilk kareden sonra, sessiz).
+      const WidgetSyncRunner(child: AutoBackupRunner(child: HomeShell()));
 }

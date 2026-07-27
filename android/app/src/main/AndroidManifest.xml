@@ -104,8 +104,10 @@
                 <data android:pathPattern=".*\\..*\\..*\\..*\\.ntdl"/>
             </intent-filter>
         </activity>
-        <!-- Ana ekran widget'ı: "Yeni not". Sistem APPWIDGET_UPDATE yayınını
-             gönderebilmesi için exported olmalı. -->
+        <!-- Ana ekran widget'ları. Sistem APPWIDGET_UPDATE yayınını
+             gönderebilmesi için hepsi exported olmalı. -->
+
+        <!-- 2×1: tek dokunuşta yeni not. -->
         <receiver
             android:name=".QuickNoteWidgetProvider"
             android:exported="true">
@@ -115,6 +117,49 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/quick_note_widget_info"/>
+        </receiver>
+
+        <!-- 4×1: yeni not · çizim · ara · takvim kısayolları. -->
+        <receiver
+            android:name=".ShortcutsWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/shortcuts_widget_info"/>
+        </receiver>
+
+        <!-- 4×2: bugünün rutinleri (ana ekrandan işaretlenebilir).
+             DATE_CHANGED gece yarısı gelir ve listeyi/işaretleri yeni güne
+             göre yeniden çizdirir; uygulamanın açılmasına gerek kalmaz.
+             (Android 8+ örtük yayın kısıtlarından muaf yayınlardandır.) -->
+        <receiver
+            android:name=".RoutinesWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+                <action android:name="com.bronzecloud.notsdaleit.ROUTINE_TOGGLE"/>
+                <action android:name="android.intent.action.DATE_CHANGED"/>
+                <action android:name="android.intent.action.TIME_SET"/>
+                <action android:name="android.intent.action.TIMEZONE_CHANGED"/>
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/routines_widget_info"/>
+        </receiver>
+
+        <!-- 4×2: son notlar (satıra dokun → belge açılır). -->
+        <receiver
+            android:name=".RecentNotesWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/recent_notes_widget_info"/>
         </receiver>
 
         <!-- flutter_local_notifications: planlanan alarmı bildirime çeviren

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Hızlı not widget'ının tanımı. `updatePeriodMillis="0"`: widget durağan,
-     periyodik güncellemeye gerek yok (pil dostu). -->
+<!-- 2×1 "Yeni not". `updatePeriodMillis="0"`: içerik durağan, periyodik
+     güncellemeye gerek yok (pil dostu); tema/dil değişince uygulama zaten
+     yeniden çizdirir. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="110dp"
     android:minHeight="40dp"
@@ -10,5 +11,6 @@
     android:resizeMode="horizontal"
     android:widgetCategory="home_screen"
     android:previewImage="@mipmap/ic_launcher"
+    android:previewLayout="@layout/widget_quick_note"
     android:initialLayout="@layout/widget_quick_note"
     android:description="@string/widget_quick_note_desc" />
