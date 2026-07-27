@@ -19,16 +19,16 @@ import '../forms/insert_image.dart';
 import '../shell/shell_state.dart';
 import 'editor_state.dart';
 import 'image_layer.dart';
-import 'table_embed.dart';
 
 /// Birleşik not editörü: boyutlu sayfa üzerinde hem **biçimli yazı**
 /// (flutter_quill) hem **kalemle çizim**. Araç çubuğundaki **Aa** ile yazı
 /// moduna, kalem araçlarıyla çizim moduna geçilir.
 ///
-/// Kaydırma/yakınlaştırma tek bir [InteractiveViewer] ile yapılır:
+/// Kaydırma/yakınlaştırma **kendi jest yönetimimizle** yapılır (sebebi aşağıda
+/// `_touch` alanlarının yanında):
 /// - iki parmakla **dokunduğun noktaya doğru** yakınlaştırır (odak noktalı),
 /// - yazı/el modunda **tek parmak** kaydırır,
-/// - kalem modunda **tek parmak çizer**, **iki parmak** kaydırır/yakınlaştırır.
+/// - kalem modunda **tek parmak çizer**, **iki parmak** yakınlaştırır.
 class NoteEditorScreen extends ConsumerStatefulWidget {
   const NoteEditorScreen({super.key});
 
@@ -769,7 +769,9 @@ class _SheetState extends ConsumerState<_Sheet> {
                             placeholder: context.t(
                                 'Yazmaya başlayın…', 'Start writing…'),
                             customStyles: _noteStyles(ctx, paper.text),
-                            embedBuilders: const [TableEmbedBuilder()],
+                            // Bilinmeyen gömülü (eski 'ndtable' denemesinden
+                            // kalma notlar) çökertmesin: boş çizilir.
+                            unknownEmbedBuilder: const _SkipEmbedBuilder(),
                           ),
                         ),
                       ),
@@ -854,3 +856,19 @@ class _PageBackgroundPainter extends CustomPainter {
       old.type != type || old.lineColor != lineColor;
 }
 
+
+/// Tanınmayan gömülüler için yer tutucu.
+///
+/// Terk edilen "ndtable" denemesiyle oluşturulmuş eski notlarda gövdede hâlâ
+/// bir embed olabilir. Builder verilmezse Quill böyle bir notu açarken hata
+/// fırlatır; bu builder onu görünmez kılıp notun açılmasını garanti eder.
+class _SkipEmbedBuilder extends EmbedBuilder {
+  const _SkipEmbedBuilder();
+
+  @override
+  String get key => 'unknown';
+
+  @override
+  Widget build(BuildContext context, EmbedContext embedContext) =>
+      const SizedBox.shrink();
+}

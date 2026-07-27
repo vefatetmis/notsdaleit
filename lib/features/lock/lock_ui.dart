@@ -16,7 +16,7 @@ import 'lock_service.dart';
 Future<bool> askPin(BuildContext context, WidgetRef ref, String title) async {
   final ok = await showDialog<bool>(
     context: context,
-    builder: (_) => _PinDialog(title: title, verifyWith: ref),
+    builder: (_) => _PinDialog(title: title),
   );
   return ok == true;
 }
@@ -134,12 +134,10 @@ void _toast(BuildContext context, String tr, String en) {
 class _PinDialog extends ConsumerStatefulWidget {
   const _PinDialog({
     required this.title,
-    this.verifyWith,
     this.returnPin = false,
   });
 
   final String title;
-  final WidgetRef? verifyWith;
   final bool returnPin;
 
   @override

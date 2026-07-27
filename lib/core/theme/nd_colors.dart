@@ -32,7 +32,6 @@ class NdColors extends ThemeExtension<NdColors> {
     required this.hover,
     required this.accent,
     required this.accentFg,
-    required this.accentSoft,
     required this.inks,
   });
 
@@ -48,7 +47,6 @@ class NdColors extends ThemeExtension<NdColors> {
   final Color hover; // hover zemini
   final Color accent; // vurgu (buton) zemini — denim mavi
   final Color accentFg; // vurgu üzeri metin
-  final Color accentSoft; // vurgunun soluk zemini (seçili öğe, çip)
   final List<Color> inks; // kalem renkleri
 
   static const light = NdColors(
@@ -64,7 +62,6 @@ class NdColors extends ThemeExtension<NdColors> {
     hover: Color(0xFFEDE6D8),
     accent: Color(0xFF193769),
     accentFg: Color(0xFFFFFFFF),
-    accentSoft: Color(0xFFE2E7F1),
     inks: [
       Color(0xFF262626),
       Color(0xFF4A6CF7),
@@ -86,7 +83,6 @@ class NdColors extends ThemeExtension<NdColors> {
     hover: Color(0xFF232019),
     accent: Color(0xFF7B97CE),
     accentFg: Color(0xFF0A1526),
-    accentSoft: Color(0xFF1C2740),
     inks: [
       Color(0xFFECECEA),
       Color(0xFF4A6CF7),
@@ -124,7 +120,6 @@ class NdColors extends ThemeExtension<NdColors> {
     Color? hover,
     Color? accent,
     Color? accentFg,
-    Color? accentSoft,
     List<Color>? inks,
   }) {
     return NdColors(
@@ -140,7 +135,6 @@ class NdColors extends ThemeExtension<NdColors> {
       hover: hover ?? this.hover,
       accent: accent ?? this.accent,
       accentFg: accentFg ?? this.accentFg,
-      accentSoft: accentSoft ?? this.accentSoft,
       inks: inks ?? this.inks,
     );
   }
@@ -161,7 +155,6 @@ class NdColors extends ThemeExtension<NdColors> {
       hover: Color.lerp(hover, other.hover, t)!,
       accent: Color.lerp(accent, other.accent, t)!,
       accentFg: Color.lerp(accentFg, other.accentFg, t)!,
-      accentSoft: Color.lerp(accentSoft, other.accentSoft, t)!,
       inks: t < 0.5 ? inks : other.inks,
     );
   }

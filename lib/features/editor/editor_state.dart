@@ -40,16 +40,17 @@ typedef TableInserter = void Function(int rows, int cols);
 
 final tableInserterProvider = StateProvider<TableInserter?>((ref) => null);
 
-/// Açık editörün "görsel ekle" kancası — tablo kancasının eşi. Görsel de bir
-/// **form bloğu** olduğundan eklemeyi editör yapar (serbest not gerekiyorsa
-/// forma dönüştürülür). `name` = `images/` altındaki dosya adı.
+/// Açık editörün "görsel ekle" kancası. Görsel bir **form bloğu DEĞİL**;
+/// çizimler gibi sayfanın üzerine serbestçe yerleştirilen ayrı bir katman
+/// (`NoteImages`) — bu yüzden not forma dönüşmez. `name` = `images/`
+/// klasöründeki dosya adı, `aspect` = yükseklik ÷ genişlik.
 typedef ImageInserter = void Function(String name, double aspect);
 
 final imageInserterProvider = StateProvider<ImageInserter?>((ref) => null);
 
-/// Açık editörün "yakınlaştırmayı sıfırla" kancası. Zoom durumu
-/// `InteractiveViewer`'ın controller'ında olduğu için sıfırlamayı editör yapar;
-/// üst bar menüsü bunu çağırır.
+/// Açık editörün "yakınlaştırmayı sıfırla" kancası. Dönüşüm editörün kendi
+/// `TransformationController`'ında olduğu için sıfırlamayı o yapar; üst bar
+/// menüsü bunu çağırır.
 final zoomResetterProvider = StateProvider<VoidCallback?>((ref) => null);
 
 /// Editörde **şu an bakılan sayfa** (0 tabanlı). Görünümün ortasının hangi
@@ -144,11 +145,6 @@ double aspectForPageSize(String? id) {
   }
   return 1.414;
 }
-
-PageSizeOption pageSizeOptionFor(String? id) => kPageSizes.firstWhere(
-      (p) => p.id == id,
-      orElse: () => kPageSizes.first,
-    );
 
 /// Sayfa arka plan desenini bir canvas'a çizer — editör ve PDF export ortak
 /// kullanır (böylece ekranda ne görünüyorsa PDF'te de o çıkar). Aralıklar sayfa

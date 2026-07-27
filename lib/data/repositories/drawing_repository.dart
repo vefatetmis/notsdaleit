@@ -75,26 +75,6 @@ class DrawingRepository {
         .go();
   }
 
-  /// Sayfadaki son çizimi geri alır.
-  Future<void> undoLast({required int docId, required int page}) async {
-    final last = await (_db.select(_db.strokes)
-          ..where((t) => t.docId.equals(docId) & t.page.equals(page))
-          ..orderBy([
-            (t) => OrderingTerm(expression: t.id, mode: OrderingMode.desc),
-          ])
-          ..limit(1))
-        .getSingleOrNull();
-    if (last != null) {
-      await (_db.delete(_db.strokes)..where((t) => t.id.equals(last.id))).go();
-    }
-  }
-
-  Future<void> clear({required int docId, required int page}) {
-    return (_db.delete(_db.strokes)
-          ..where((t) => t.docId.equals(docId) & t.page.equals(page)))
-        .go();
-  }
-
   /// Belgedeki (tüm sayfalar) en son çizimi geri alır ve silinen satırı
   /// döndürür — "ileri al" bu satırı geri koyabilsin diye.
   Future<Stroke?> undoLastForDoc(int docId) async {

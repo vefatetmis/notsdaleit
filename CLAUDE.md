@@ -59,6 +59,39 @@ Tasarımdaki **tüm ekranlar** kodlandı ve çalışıyor:
 - **Çizim koordinatları genişliğe göre normalize** (`buildScaledPath`,
   `DrawingLayer._norm` — her iki eksen ÷ genişlik) → sayfa yüksekliği metinle
   büyüse bile çizimler kaymaz.
+### 🧹 TEMİZLİK TURU (25 Tem 2026) — 555 satır ölü kod silindi
+
+Kullanıcı: *"uygulamayı baştan sona temizleyelim."* Özellik eklemeden, biriken
+ağırlık atıldı. `lib` **19.988 → 19.471 satır**; analiz temiz, 37 test geçiyor.
+
+**Silinenler:**
+- **`features/editor/table_embed.dart` (318 satır)** — terk edilmiş "ndtable"
+  (Quill'e gömülü tablo) denemesinden kalmaydı; yeni tablo form bloğu.
+  Beraberinde `pdf_export`'taki ndtable yolu da gitti (`_PdfTable`,
+  `_paintTable` ~200 satır, Delta ayrıştırmasındaki embed dalı).
+  **Güvence:** o denemeyle oluşturulmuş eski bir notta gövdede hâlâ embed
+  olabilir; builder verilmezse Quill notu **açarken hata fırlatır**. Bu yüzden
+  `QuillEditorConfig.unknownEmbedBuilder` → `_SkipEmbedBuilder` (görünmez yer
+  tutucu) eklendi. `_parseDelta` artık `List<_Line>` döndürüyor (eskiden
+  `List<Object>` idi, tablo da karışıyordu).
+- **`DrawingRepository.undoLast` / `clear`** — sayfa bazlı; hiç çağrılmıyordu
+  (belge bazlı `undoLastForDoc` / `clearDoc` kullanılıyor).
+- **`NdColors.accentSoft`** — eklenmişti ama hiçbir ekran okumuyordu
+  (copyWith/lerp dâhil temizlendi).
+- **`pageSizeOptionFor`** — kullanılmıyordu.
+- **`_PinDialog.verifyWith`** — parametre veriliyordu ama okunmuyordu.
+
+**Bayat yorumlar düzeltildi:** `imageInserterProvider` hâlâ "form bloğu" diyordu
+(artık `NoteImages` katmanı), editör sınıf yorumu hâlâ "InteractiveViewer ile"
+diyordu (artık kendi jestimiz).
+
+**Bağımlılıklar denetlendi:** pubspec'teki 14 paketin hepsi kullanımda; ölü
+bağımlılık yok.
+
+**BIRAKILANLAR (bilinçli):** eski `ImageBlock` (form bloğu görseli) —
+o yolla eklenmiş notlardaki fotoğraflar bozulmasın diye okuma/çizme tarafı
+duruyor; yeni ekleme `NoteImages`'a gidiyor.
+
 ### 🧪 TEST AĞI GENİŞLETİLDİ (25 Tem 2026) — 12 → 37 test
 
 Kullanıcı: *"özellikler çoğaldıkça diken üstünde ilerliyormuşuz gibi
@@ -1065,7 +1098,7 @@ Taramada **veri taşıma boşlukları** çıktı (hepsi düzeltildi):
 **Denetimde bulunan ama BİLEREK bırakılanlar** (sıraya alındı, aşağıdaki
 listelerde): Quill sayfa taşması · yedekten dönen hatırlatıcılar · editörden
 etiketleme · lasso taşımanın collab'a gitmemesi · görselin yedeğe girmemesi ·
-`table_embed.dart` (318 satır ölü ağırlık) · sürüm yazısının elle eşitlenmesi ·
+sürüm yazısının elle eşitlenmesi ·
 otomatik yedeğin ana thread'de JSON üretmesi (çok büyük veride kısa donma).
 
 ### 📌 SIRADAKİ BÜYÜK ÜÇLÜNÜN KALANI
@@ -1089,10 +1122,7 @@ otomatik yedeğin ana thread'de JSON üretmesi (çok büyük veride kısa donma)
    olduğu için cihazda test şart.
 
 **C — fazlalıklar**
-9. **`features/editor/table_embed.dart`** (318 satır) — başarısız ndtable
-   denemesinden kalma. Yeni tablo bunu KULLANMIYOR; yalnız eski test notları
-   bozulmasın diye okuma tarafında duruyor (`note_editor_screen` embedBuilders
-   + `pdf_export` import). Temizlenebilir.
+9. ~~`table_embed.dart`~~ → **SİLİNDİ** (25 Tem 2026 temizlik turu, yukarı bkz.).
 10. **Sürüm yazısı elle eşitleniyor** (`settings_screen`'de `'1.3.0'` sabiti) —
     pubspec değişip burası unutulabilir. package_info_plus eklenmedi (bilinçli).
 
@@ -1104,7 +1134,7 @@ elle 36'ya sabitlendi (Flutter yükseltilmedi); ayrıntı "Önemli notlar"da.
 **Sıradaki iş:** **"SIRADAKİ BÜYÜK ÜÇLÜ"** (fotoğraf ekleme → not kilidi →
 sesli not; ayrıntı yukarıda). Sonra yol haritasının kalanı: A4 (Quill sayfa
 taşması), A5 (yedekten dönen hatırlatıcılar), B7 (editörden etiketleme),
-B8 (lasso collab), C9 (table_embed temizliği).
+B8 (lasso collab).
 
 Kapananlar (24–25 Tem): A1 giriş düğmesi · A2 renk paleti · A3 sayfa silme ·
 B6 çeviriler · geri/ileri al · tablo sınırları + sayfa büyütme · çizim
@@ -1205,9 +1235,8 @@ kırpma · notu çoğalt · metni kopyala · otomatik yedekleme.
 4. **Büyükler — HEPSİ UYGULANDI (dev APK):** tablo ekleme (a) · kalem araçları
    (b1 şekiller ✓ · b2 cetvel YAPILMAYACAK · b3 lasso ✓) · form alan biçimi (c).
    - **(a) Tablo — UYGULANDI (dev APK):** tablo bir **form bloğu**dur
-     (`TableBlock` — `form_model.dart`); eski `table_embed.dart` (ndtable Quill
-     embed'i) KULLANILMADI (sahada başarısız olmuştu, dosya eski notlar için
-     duruyor). Model: `rows` (dikdörtgen tutulan `List<List<String>>`) + `header`
+     (`TableBlock` — `form_model.dart`); eski ndtable Quill embed'i
+     KULLANILMADI (sahada başarısız olmuştu; dosyası 25 Tem 2026'da silindi). Model: `rows` (dikdörtgen tutulan `List<List<String>>`) + `header`
      (ilk satır başlık: `paper.faint` zemin + kalın). JSON `{'type':'table',
      'r':[[…]], 'hd':0?}` → kaydetme/collab/.ntdl/yedek/şablon otomatik taşır.
      **Ölçüm/sayfalama** (`form_layout`): `tableRowHeight` hücre metnini sarıp
@@ -1339,9 +1368,8 @@ olarak çizilir.**
   (yapılacak/devam/tamam bölümleri).
 - `plainTextFromBody` form metnini çıkarır (arama/önizleme); yeni-not
   önizleme kartları form bloklarını şematiğe çevirir.
-- **ndtable embed kodu duruyor** (`table_embed.dart` hâlâ kayıtlı — eski test
-  notları bozulmasın); yeni şablonlar onu KULLANMAZ. İleride tamamen
-  kaldırılabilir.
+- **ndtable embed kodu SİLİNDİ** (25 Tem 2026); o denemeyle oluşmuş eski
+  notlar `unknownEmbedBuilder` sayesinde yine açılır (gömülü görünmez çizilir).
 
 **Sayfa modeli + ölçek (saha geri bildirimi sonrası yeniden kuruldu):**
 - **Bağımsız sayfa kartları:** `_Sheet` artık her sayfayı ayrı kart çizer
