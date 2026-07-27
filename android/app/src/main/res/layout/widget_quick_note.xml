@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Hızlı not widget'ı: ikon + etiket + artı. Tamamı tek dokunuş alanıdır
+     (kök görünüme PendingIntent bağlanır). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingStart="14dp"
+    android:paddingEnd="14dp"
+    android:paddingTop="10dp"
+    android:paddingBottom="10dp">
+
+    <ImageView
+        android:layout_width="26dp"
+        android:layout_height="26dp"
+        android:src="@mipmap/ic_launcher"
+        android:contentDescription="@string/widget_quick_note_label" />
+
+    <TextView
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="10dp"
+        android:text="@string/widget_quick_note_label"
+        android:textColor="#193769"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:maxLines="1"
+        android:ellipsize="end" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="+"
+        android:textColor="#193769"
+        android:textSize="24sp"
+        android:includeFontPadding="false" />
+</LinearLayout>

@@ -59,6 +59,46 @@ Tasarımdaki **tüm ekranlar** kodlandı ve çalışıyor:
 - **Çizim koordinatları genişliğe göre normalize** (`buildScaledPath`,
   `DrawingLayer._norm` — her iki eksen ÷ genişlik) → sayfa yüksekliği metinle
   büyüse bile çizimler kaymaz.
+### ✅ ANA EKRAN WIDGET'I — "Yeni not" (25 Tem 2026)
+
+Android ana ekranına 2×1 bir widget: dokununca uygulama açılıp **doğrudan boş
+bir A4 not** oluşturur (şablon diyaloğu gösterilmez — widget'ın amacı araya
+adım koymamak).
+
+**PAKET EKLENMEDİ.** `home_widget` planlanmıştı ama gerek kalmadı: widget
+durağan (dinamik veri göstermiyor), tek ihtiyacı bir `PendingIntent` ve küçük
+bir `MethodChannel`. Paket eklemek yeni bir Kotlin sürüm bağımlılığı demekti —
+eklentiler burada **1.9.25**'e sabit. İleride widget'ta gerçek veri (bugünün
+görevleri gibi) göstermek istenirse paket o zaman değerlendirilir.
+
+**Android tarafı** (`android/app/src/main/`):
+- `kotlin/…/QuickNoteWidgetProvider.kt` — `AppWidgetProvider`; kök görünüme
+  `MainActivity`'yi `ACTION_NEW_NOTE` ile açan PendingIntent bağlar
+  (`FLAG_IMMUTABLE` zorunlu, API 31+).
+- `res/layout/widget_quick_note.xml` — ikon + "Yeni not" + `+`; zemin
+  `res/drawable/widget_background.xml` (kart `#FFFCF6`, kenarlık `#E7E0D3`,
+  yazı logo laciverti `#193769` — uygulama paletiyle aynı).
+- `res/xml/quick_note_widget_info.xml` — `updatePeriodMillis="0"` (durağan
+  widget, pil dostu), `targetCellWidth/Height` 2×1.
+- `res/values/strings.xml` (TR) + `res/values-en/strings.xml` (EN).
+- Manifest'e `receiver` — `android:exported="true"` **zorunlu**: sistem
+  APPWIDGET_UPDATE yayınını gönderebilsin.
+
+**MainActivity.kt artık boş değil** — iki başlatma yolunu da karşılar:
+- **soğuk** (uygulama kapalı): Flutter hazır olmadığı için eylem
+  `pendingAction`'da bekler, Dart `consumeLaunchAction` ile alır;
+- **sıcak** (arka planda): `onNewIntent` → kanaldan `launchAction`.
+
+**Flutter tarafı:** `features/widget/home_widget_bridge.dart` —
+`initHomeWidgetBridge(ref)` `app.dart`'taki `_IncomingPdfHandler.initState`'te
+çağrılır; `createConfiguredNote` ile boş not açar.
+
+**Doğrulandı:** dev APK'nın manifestinde `QuickNoteWidgetProvider` +
+`android.appwidget.provider` meta-data var (`aapt2 dump xmltree`).
+
+**Sonraki adım (istenirse):** widget'ta bugünün görevleri/rutinleri listesi —
+o zaman veri köprüsü (SharedPreferences) ve `home_widget` paketi gerekir.
+
 ### 🧹 TEMİZLİK TURU (25 Tem 2026) — 555 satır ölü kod silindi
 
 Kullanıcı: *"uygulamayı baştan sona temizleyelim."* Özellik eklemeden, biriken
@@ -1110,16 +1150,9 @@ otomatik yedeğin ana thread'de JSON üretmesi (çok büyük veride kısa donma)
    (`local_auth`), uygulama geneli kilit (açılışta PIN).
 3. **Sesli not** — ses kaydı + oynatıcı (`record` benzeri paket), dosya yönetimi
    yedeklemeye de girmeli. En büyük iş.
-4. **Ana ekran widget'ı (Android)** — kullanıcı istedi (25 Tem 2026), listeye
-   alındı. **Kapsam:** en değerli hâli "hızlı not" (ana ekrandan tek dokunuşla
-   yeni nota düşmek); ikinci aday "bugünün görevleri/rutinleri". **Gereken:**
-   `home_widget` paketi + **native Android tarafı** (AppWidgetProvider + layout
-   XML + güncelleme tetikleyicisi). **Riskler:** (a) eklentilerin Kotlin
-   sürümü 1.9.25'e sabit — paketin uyumu önce doğrulanmalı, (b) widget'ın
-   verisi uygulamayla paylaşılmalı (SharedPreferences köprüsü), (c) uygulamada
-   henüz "hızlı not" akışı yok — widget onun kısayolu olacak, önce akışın
-   kendisi gerekebilir. **Sıra:** kilit ve sesli nottan sonra; native iş
-   olduğu için cihazda test şart.
+4. ~~Ana ekran widget'ı (Android)~~ → **YAPILDI** (yukarı bkz.). Kalan:
+   widget'ta gerçek veri (bugünün görevleri) — o zaman `home_widget` paketi +
+   SharedPreferences köprüsü gerekir.
 
 **C — fazlalıklar**
 9. ~~`table_embed.dart`~~ → **SİLİNDİ** (25 Tem 2026 temizlik turu, yukarı bkz.).

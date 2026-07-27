@@ -104,6 +104,19 @@
                 <data android:pathPattern=".*\\..*\\..*\\..*\\.ntdl"/>
             </intent-filter>
         </activity>
+        <!-- Ana ekran widget'ı: "Yeni not". Sistem APPWIDGET_UPDATE yayınını
+             gönderebilmesi için exported olmalı. -->
+        <receiver
+            android:name=".QuickNoteWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/quick_note_widget_info"/>
+        </receiver>
+
         <!-- flutter_local_notifications: planlanan alarmı bildirime çeviren
              alıcı ve yeniden başlatmadan sonra hatırlatıcıları geri kuran alıcı.
              Bu alıcılar olmadan zamanlanan bildirimler HİÇ tetiklenmez. -->

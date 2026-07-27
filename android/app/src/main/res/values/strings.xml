@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Varsayılan (Türkçe) widget metinleri. İngilizcesi values-en/strings.xml. -->
+<resources>
+    <string name="widget_quick_note_label">Yeni not</string>
+    <string name="widget_quick_note_desc">Ana ekrandan tek dokunuşla yeni not aç</string>
+</resources>
